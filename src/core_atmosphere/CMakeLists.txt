@@ -117,7 +117,7 @@ list(TRANSFORM ATMOSPHERE_CORE_PHYSICS_GFL_SOURCES PREPEND physics/physics_noaa/
 
 # physics/physics_noaa/SMOKE/
 set(ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES
-    mpas_smoke_wrapper.F90
+    MPAS/mpas_smoke_wrapper.F90
     mpas_smoke_init.F90
     mpas_smoke_config.F90
     dep_data_mod.F90
