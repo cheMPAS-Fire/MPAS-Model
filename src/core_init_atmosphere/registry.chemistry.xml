@@ -75,23 +75,6 @@
 <!-- **************************************************************************************** -->
 
 	<streams>
-<!--
-		<stream name="input"
-                        type="input"
-                        filename_template="x1.40962.grid.nc"
-                        input_interval="initial_only"
-                        immutable="true">
-
-		</stream>
-
-		<stream name="output"
-                        type="output"
-                        filename_template="x1.40962.init.nc"
-                        output_interval="initial_only"
-                        packages="initial_conds"
-                        immutable="true">
-		</stream>
--->
 		<stream name="lbc"
                         type="output"
                         filename_template="lbc.$Y-$M-$D_$h.$m.$s.nc"

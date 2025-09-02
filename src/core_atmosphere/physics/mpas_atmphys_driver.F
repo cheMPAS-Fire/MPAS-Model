@@ -147,7 +147,7 @@
                                  atm_input,           &
                                  ngw_input,           &
                                  sfc_input,           &
-                                 emis_input
+                                 emission_input
 
  logical,pointer:: config_frac_seaice
 
@@ -222,7 +222,7 @@
     call mpas_pool_get_subpool(block%structs,'ngw_input'          ,ngw_input          )
     call mpas_pool_get_subpool(block%structs,'tend_physics'       ,tend_physics       )
     if ( do_chemistry ) then
-       call mpas_pool_get_subpool(block%structs,'emis_input',emis_input)
+       call mpas_pool_get_subpool(block%structs,'emission_input',emission_input)
     endif
 
     call mpas_pool_get_dimension(block%dimensions,'nThreads',nThreads)
@@ -354,7 +354,7 @@
        call allocate_smoke(block%configs)
 !$OMP PARALLEL DO
        do thread=1,nThreads
-          call driver_smoke(itimestep,time_lev,emis_input,state,block%configs,mesh,      &
+          call driver_smoke(itimestep,time_lev,emission_input,state,block%configs,mesh,      &
                             sfc_input,diag_physics,tend_physics,                         &
                             cellSolveThreadStart(thread),cellSolveThreadEnd(thread)      )
        end do

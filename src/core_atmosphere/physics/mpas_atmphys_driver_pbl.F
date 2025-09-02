@@ -723,20 +723,45 @@
           ch_p(i,j)   = ch(i)
           qsfc_p(i,j) = qsfc(i)
           tsk_p(i,j)  = skintemp(i)
-          if ( enh_mix ) then
-             frp_out_p(i,j)     = frp_out(i)
-          endif
-          if ( num_chem .gt. 0 ) then
-             if ( drydep_opt .ne. 0 ) then
-                do n = 1,num_chem
-                  ddvel_p(i,j,n) = ddvel(n,i)
-                enddo
-             else
-                  ddvel_p(i,j,:) = 0._RKIND
+       enddo
+       enddo
+
+       if ( num_chem .gt. 0 ) then
+          do j = jts,jte
+          do i = its,ite
+             if ( enh_mix ) then
+                frp_out_p(i,j)     = frp_out(i)
              endif
-          endif
-       enddo
-       enddo
+          enddo
+          enddo
+
+          do n = 1,num_chem
+          do j = jts,jte
+          do i = its,ite
+             if ( drydep_opt .ne. 0 ) then
+                ddvel_p(i,j,n) = ddvel(n,i)
+             else
+                ddvel_p(i,j,:) = 0._RKIND
+             endif
+          enddo
+          enddo
+          enddo
+
+          do n = 1,num_chem
+          do j = jts,jte
+          do k = kts,kte
+          do i = its,ite
+             chem_p(i,k,j,n) = chem(n,k,i)
+             if ( drydep_opt .ne. 0 ) then
+                tend_chem_settle_p(i,k,j,n) = tend_chem_settle(n,k,i)
+             else
+                tend_chem_settle_p(i,k,j,n) = 0._RKIND
+             endif
+          enddo
+          enddo
+          enddo
+          enddo
+       endif ! chem
 
        do j = jts,jte
        do k = kts,kte
@@ -776,18 +801,11 @@
 
           pattern_spp_pbl(i,k,j) = 0._RKIND
 
-          if ( num_chem .gt. 0) then
-             do n = 1, num_chem
-                chem_p(i,k,j,n) = chem(n,k,i)
-                if ( drydep_opt .ne. 0 ) then
-                   tend_chem_settle_p(i,k,j,n) = tend_chem_settle(n,k,i)
-                else
-                   tend_chem_settle_p(i,k,j,n) = 0._RKIND
-                endif
-             enddo
-          endif
        enddo
        enddo
+       enddo
+
+       do j = jts,jte
        do i = its,ite
           maxwidthbl_p(i,j) = 0._RKIND
           maxmfbl_p(i,j)    = 0._RKIND
@@ -1107,6 +1125,15 @@
           call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
           call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
           chem => scalars(chemistry_start:chemistry_end,:,:)
+          do n = 1,num_chem
+          do j = jts,jte
+          do k = kts,kte
+          do i = its,ite
+               chem(n,k,i)    = chem_p(i,k,j,n)
+          enddo
+          enddo
+          enddo
+          enddo
        endif
 
        do j = jts,jte
@@ -1150,12 +1177,6 @@
           qwt(k,i)        = qwt_p(i,k,j)
 
           rqsblten(k,i)   = rqsblten_p(i,k,j)
-
-          if ( num_chem .gt. 0 ) then
-             do n = 1,num_chem
-                chem(n,k,i)    = chem_p(i,k,j,n)
-             enddo
-          endif
        enddo
        enddo
        enddo
@@ -1594,15 +1615,15 @@
                   bl_mynn_cloudmix   = bl_mynn_cloudmix    ,                                              &
                   bl_mynn_mixqt      = bl_mynn_mixqt       ,                                              &
                   bl_mynn_ess        = bl_mynn_ess         ,                                              &
-                  mix_chem = mix_chem, &
-                  nchem = num_chem,    &
-                  ndvel = num_chem,    &
-                  chem3d = chem_p,     &
-                  vd3d = ddvel_p,      &
-                  settle3d = tend_chem_settle_p, &
-                  enh_mix  = enh_mix, &
-                  frp_mean = frp_out_p,  &
-                  emis_ant_no = xland_p, &
+                  mix_chem           = mix_chem            ,                                              &
+                  nchem              = num_chem            ,                                              &
+                  ndvel              = num_chem            ,                                              &
+                  chem3d             = chem_p              ,                                              &
+                  vd3d               = ddvel_p             ,                                              &
+                  settle3d           = tend_chem_settle_p  ,                                              &
+                  enh_mix            = enh_mix             ,                                              &
+                  frp_mean           = frp_out_p           ,                                              &
+                  emis_ant_no        = xland_p             ,                                              &
                   ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,                 &
                   ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,                 &
                   its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte ,                 &

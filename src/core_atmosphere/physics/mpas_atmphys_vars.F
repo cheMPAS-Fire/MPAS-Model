@@ -235,9 +235,9 @@
 ! Settling tendency from dry dep driver
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     tend_chem_settle_p
-! Dry dep velocitieces, resolved wetdep flux (nchem x ncells)
+! Dry dep velocities, resolved wetdep flux (nchem x ncells)
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    ddvel_p, wetdep_resolved_p
+    ddvel_p, wetdep_resolved_p, drydep_flux_p
 ! PM Diags
  real(kind=RKIND),dimension(:,:),allocatable:: &
     vis_p
@@ -248,7 +248,7 @@
  real(kind=RKIND),dimension(:,:),allocatable:: &
     aod550_p
 ! Input/output smoke 2D fields - JLS
-real(kind=RKIND),dimension(:,:),allocatable::  &
+ real(kind=RKIND),dimension(:,:),allocatable::  &
     frp_in_p,          &!
     frp_out_p,         &!
     fre_in_p,          &!
@@ -271,7 +271,8 @@ real(kind=RKIND),dimension(:,:),allocatable::  &
     eco_id_p !JR
 ! RWC fields
  real(kind=RKIND),dimension(:,:),allocatable:: &
-    RWC_denominator_p,&
+    RWC_denominator_p
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
     RWC_annual_sum_p,&
     RWC_annual_sum_smoke_fine_p,&
     RWC_annual_sum_smoke_coarse_p,&
@@ -372,9 +373,9 @@ real(kind=RKIND),dimension(:,:),allocatable::  &
     f_unspc_coarse,   &
     f_ssalt_fine,     &
     f_ssalt_coarse,   &
-    f_so4a_fine,      &
-    f_no3a_fine,      &
-    f_nh4a_fine,      &
+    f_so4_a_fine,     &
+    f_no3_a_fine,     &
+    f_nh4_a_fine,     &
     f_nh3,            &
     f_so2,            &
     f_ch4

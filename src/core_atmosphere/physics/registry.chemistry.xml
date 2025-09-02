@@ -58,7 +58,7 @@
            possible_values="Positive integer values"/>
       <nml_option name="kwildfire" type="integer" default_value="1"
            units="-"
-           description="Number of vertical levels in biomaass burning emission input"
+           description="Number of vertical levels in biomass burning emission input"
            possible_values="Positive integer values"/>
       <nml_option name="kbiogenic" type="integer" default_value="1"
            units="-"
@@ -102,7 +102,7 @@
            possible_values="Positive integer values"/>
       <nml_option name="plume_alpha" type="real" default_value="0.0"
            units="-"
-           description="Enrainment constant for plumerise scheme"
+           description="Entrainment constant for plumerise scheme"
            possible_values="Positive integer values"/>
       <nml_option name="bb_qv_scale_factor" type="real" default_value="1.0"
            units="-"
@@ -162,7 +162,7 @@
             possbile_values=".true. or .false."/>
        <nml_option name="config_mynn_enh_mix" type="logical" default_value="false" in_defaults="false"
             units="-"
-            description="Flag that controls artificially enhancning the PBL exhange coefs"
+            description="Flag that controls artificially enhancing the PBL exhange coefs"
             possbile_values=".true. or .false."/>
    </nml_record>
 
@@ -183,6 +183,7 @@
               <var name="aod550"/>
               <var name="vis"/>
               <var name="ddvel"/>
+              <var name="drydep_flux"/>
               <var name="wetdep_resolved"/>
               <var name="hwp"/>
               <var name="frp_out"/>
@@ -279,7 +280,7 @@
    </var_struct>
 
 <!-- INPUT EMISSIONS -->
-   <var_struct name="emis_input" time_levs="1">
+   <var_struct name="emission_input" time_levs="1">
      <!-- BIOMASS BURNING -->
       <var_array name="e_bb_in" type="real" dimensions="nkwildfire nCells Time">
          <var name="e_bb_in_smoke_fine" name_in_code="e_bb_in_smoke_fine" array_group="bb_in_aerosols" units="ug m^{-2} s^{-1}"
@@ -312,7 +313,7 @@
 
       <var_array name="e_ant_out" type="real" dimensions="nVertLevels nCells Time">
 	 <var name="e_ant_out_dust_fine" name_in_code="e_ant_out_dust_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
-              description="ouput anthropogenic fine dust emissions"
+              description="output anthropogenic fine dust emissions"
               packages="mpas_anthro_in"/>
          <var name="e_ant_out_dust_coarse" name_in_code="e_ant_out_dust_coarse" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output anthropogenic coarse dust emissions"
@@ -397,9 +398,11 @@
            description="Hours since fire was last detected"
            packages="mpas_smoke_in"/>
       <var name="ddvel"                 type="real" dimensions="nChem nCells Time" units="cm s^{-1}"
-           description="dry deposition velocitiy"/>
+           description="dry deposition velocity"/>
+      <var name="drydep_flux"       type="real" dimensions="nChem nCells Time" units="ug m^{-2} s^{-1}"
+           description="dry deposition mass flux"/>
       <var name="wetdep_resolved"       type="real" dimensions="nChem nCells Time" units="ug m^{-2} s^{-1}"
-           description="dry deposition velocitiy"/>
+           description="resolved wet deposition flux"/>
       <var name="PM2_5"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
            description="particulate matter less than or equal to 2.5 micrometers in diameter"/>
       <var name="PM10"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
@@ -414,7 +417,7 @@
            description="threshold friction velocity"
            packages="mpas_dust_in"/>
       <var name="uthres_sg_in" type="real" dimensions="nCells" units="-"
-           description="threshold friction velocity (alternate"
+           description="threshold friction velocity (alternate)"
            packages="mpas_dust_in"/>
       <var name="sandfrac_in" type="real" dimensions="nCells" units="-"
            description="sand fraction"

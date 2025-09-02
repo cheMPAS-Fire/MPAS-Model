@@ -379,7 +379,7 @@
  end subroutine physics_timetracker
 
 !=================================================================================================================
- subroutine physics_run_init(configs,mesh,state,emis_input,diag_physics,clock,stream_manager)
+ subroutine physics_run_init(configs,mesh,state,emission_input,diag_physics,clock,stream_manager)
 !=================================================================================================================
 
 !input arguments:
@@ -387,7 +387,7 @@
  type(mpas_pool_type),intent(in):: configs
  type(mpas_pool_type),intent(in):: state
  type(mpas_pool_type),intent(in):: diag_physics
- type(mpas_pool_type),intent(in):: emis_input
+ type(mpas_pool_type),intent(in):: emission_input
  type(MPAS_Clock_type):: clock
  type (MPAS_streamManager_type), intent(inout) :: stream_manager
 
@@ -471,7 +471,7 @@
  call mpas_pool_get_dimension(diag_physics, 'num_e_bb_out',n_e_bb_out    )
  call mpas_pool_get_dimension(diag_physics, 'num_e_dust_out',n_e_dust_out)
 
- call mpas_pool_get_dimension(emis_input,'num_e_bb_in',n_e_bb_in         )
+ call mpas_pool_get_dimension(emission_input,'num_e_bb_in',n_e_bb_in         )
 
 !initialization of gmt, julian day, and alarms:
 
