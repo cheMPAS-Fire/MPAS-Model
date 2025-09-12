@@ -26,7 +26,7 @@
  use mpas_atmphys_interface
  use mpas_atmphys_sfc_diagnostics,only: atmphys_sfc_diagnostics
  use mpas_atmphys_update
- use mpas_atmphys_vars, only: l_camlw,l_conv,l_radtlw,l_radtsw
+ use mpas_atmphys_vars, only: l_camlw,l_conv,l_radtlw,l_radtsw,do_chemistry
  use mpas_timer
 
  implicit none
@@ -158,9 +158,7 @@
                                   config_pbl_scheme,        &
                                   config_radt_lw_scheme,    &
                                   config_radt_sw_scheme,    &
-                                  config_sfclayer_scheme,   &
-                                  config_smoke_scheme,      &
-                                  config_dust_scheme
+                                  config_sfclayer_scheme
 
  logical, pointer:: config_oml1d
  real(kind=RKIND),pointer:: config_bucket_radt
@@ -170,7 +168,6 @@
 
  integer:: time_lev
  integer:: thread
- logical:: do_chemistry
 
  integer,pointer:: nThreads
  integer,dimension(:),pointer:: cellSolveThreadStart, cellSolveThreadEnd
@@ -192,14 +189,6 @@
  call mpas_pool_get_config(domain%configs,'config_bucket_update'    ,config_bucket_update    )
  call mpas_pool_get_config(domain%configs,'config_frac_seaice'      ,config_frac_seaice      ) 
  call mpas_pool_get_config(domain%configs,'config_oml1d'            ,config_oml1d            )
- call mpas_pool_get_config(domain%configs,'config_smoke_scheme'     ,config_smoke_scheme     )
- call mpas_pool_get_config(domain%configs,'config_dust_scheme'      ,config_dust_scheme      )
-
- if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off') then
-    do_chemistry = .true.
- else
-    do_chemistry = .false.
- endif
 
  if(config_convection_scheme .ne. 'off' .or. &
     config_lsm_scheme        .ne. 'off' .or. &

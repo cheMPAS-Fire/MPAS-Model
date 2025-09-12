@@ -160,6 +160,7 @@
 
  integer,public:: num_chem             !Temporary workaround for defining dimensions holding chem data
  integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic!Number of vertical levels in input emission data
+ logical:: do_chemistry                !controls call to smoke, dust and other chemical processes
 
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
  integer,public:: num_e_ant_out,num_e_bb_out,num_e_bio_out,num_e_dust_out,num_e_ss_out,num_e_vol_out

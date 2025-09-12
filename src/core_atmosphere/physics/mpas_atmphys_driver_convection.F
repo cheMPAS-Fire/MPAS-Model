@@ -257,7 +257,7 @@
             enddo
             enddo
 
-       if (num_chem .gt. 0) then
+       if (do_chemistry) then
           if(.not.allocated(chem_p)) allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
        endif
 
@@ -449,7 +449,7 @@
        if(allocated(sub3d_rucuten_p) ) deallocate(sub3d_rucuten_p )
        if(allocated(sub3d_rvcuten_p) ) deallocate(sub3d_rvcuten_p )
 
-       if (num_chem .gt. 0) then
+       if (do_chemistry) then
           if(allocated(chem_p)      ) deallocate(chem_p     )
        endif
 

@@ -396,7 +396,9 @@
                                   config_lsm_scheme,        &
                                   config_microp_scheme,     &
                                   config_radt_lw_scheme,    &
-                                  config_radt_sw_scheme
+                                  config_radt_sw_scheme,    &
+                                  config_smoke_scheme,      &
+                                  config_dust_scheme
 
  character(len=StrKIND),pointer:: config_conv_interval,     &
                                   config_pbl_interval,      &
@@ -447,6 +449,8 @@
  call mpas_pool_get_config(configs,'config_sst_update'       ,config_sst_update       )
  call mpas_pool_get_config(configs,'config_frac_seaice'      ,config_frac_seaice      )
  call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
+ call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
+ call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
 
  call mpas_get_timeInterval(mpas_get_clock_timestep(clock, ierr), dt=dt)
 
@@ -710,6 +714,12 @@
 
  num_e_bb_out  = n_e_bb_out
  num_e_dust_out= n_e_dust_out
+
+ if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off') then
+    do_chemistry = .true.
+ else
+    do_chemistry = .false.
+ endif
 
  if(trim(config_lsm_scheme) .eq. "sf_noah") sf_surface_physics = 2
 

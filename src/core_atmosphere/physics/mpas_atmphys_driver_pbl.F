@@ -125,6 +125,14 @@
  if(.not.allocated(kzm_p)) allocate(kzm_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(kzq_p)) allocate(kzq_p(ims:ime,kms:kme,jms:jme))
 
+ !allocation of chemistry arrays
+ if (do_chemistry) then
+    if(.not.allocated(ddvel_p)) allocate(ddvel_p(ims:ime,jms:jme,1:num_chem))
+    if(.not.allocated(tend_chem_settle_p)) allocate(tend_chem_settle_p(ims:ime,kms:kme,jms:jme,1:num_chem))
+    if(.not.allocated(chem_p)) allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
+    if(.not.allocated(frp_out_p)) allocate(frp_out_p(ims:ime,jms:jme))
+ endif
+
  pbl_select: select case (trim(pbl_scheme))
 
     case("bl_ysu")
@@ -236,14 +244,6 @@
        !allocation of additional arrays:
        if(.not.allocated(pattern_spp_pbl)) allocate(pattern_spp_pbl(ims:ime,kms:kme,jms:jme))
 
-       !allocation of chemistry arrays
-       if ( num_chem .gt. 0 ) then
-          if(.not.allocated(ddvel_p)) allocate(ddvel_p(ims:ime,jms:jme,1:num_chem))
-          if(.not.allocated(tend_chem_settle_p)) allocate(tend_chem_settle_p(ims:ime,kms:kme,jms:jme,1:num_chem))
-          if(.not.allocated(chem_p)) allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
-          if(.not.allocated(frp_out_p)) allocate(frp_out_p(ims:ime,jms:jme))
-       endif
-
     case("bl_myj")
        if(.not.allocated(ht_p)         ) allocate(ht_p(ims:ime,jms:jme)      )
        if(.not.allocated(chlowq_p)     ) allocate(chlowq_p(ims:ime,jms:jme)  )
@@ -308,6 +308,14 @@
  if(allocated(kzh_p)) deallocate(kzh_p)
  if(allocated(kzm_p)) deallocate(kzm_p)
  if(allocated(kzq_p)) deallocate(kzq_p)
+
+ !deallocation of chemistry arrays
+ if (do_chemistry) then
+    if(allocated(ddvel_p)           ) deallocate(ddvel_p           )
+    if(allocated(chem_p)            ) deallocate(chem_p            )
+    if(allocated(tend_chem_settle_p)) deallocate(tend_chem_settle_p)
+    if(allocated(frp_out_p)         ) deallocate(frp_out_p         )
+ endif
 
  pbl_select: select case (trim(pbl_scheme))
 
@@ -420,14 +428,6 @@
 
        !deallocation of additional arrays:
        if(allocated(pattern_spp_pbl)) deallocate(pattern_spp_pbl)
-
-       !deallocation of chemistry arrays
-       if (num_chem .gt. 0) then
-          if(allocated(ddvel_p)           ) deallocate(ddvel_p           )
-          if(allocated(chem_p)            ) deallocate(chem_p            )
-          if(allocated(tend_chem_settle_p)) deallocate(tend_chem_settle_p)
-          if(allocated(frp_out_p)         ) deallocate(frp_out_p)
-       endif
 
    case("bl_myj")
        if(allocated(ht_p)         ) deallocate(ht_p      )
@@ -543,6 +543,57 @@
  enddo
  enddo
  enddo
+
+ if (do_chemistry) then
+    call mpas_pool_get_array(state,'scalars',scalars,1)
+    call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
+    if ( drydep_opt .ne. 0 ) then
+       call mpas_pool_get_array(tend_physics,'tend_chem_settle',tend_chem_settle)
+       call mpas_pool_get_array(diag_physics,'ddvel',ddvel)
+    endif
+    call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
+    call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
+    chem => scalars(chemistry_start:chemistry_end,:,:)
+    call mpas_pool_get_config(configs,'config_mynn_enh_mix',enh_mix)
+    if (enh_mix) then
+       call mpas_pool_get_array(diag_physics,'frp_out',frp_out)
+    end if
+
+    do j = jts,jte
+    do i = its,ite
+       if ( enh_mix ) then
+          frp_out_p(i,j)     = frp_out(i)
+    endif
+    enddo
+    enddo
+
+    do n = 1,num_chem
+    do j = jts,jte
+    do i = its,ite
+       if ( drydep_opt .ne. 0 ) then
+          ddvel_p(i,j,n) = ddvel(n,i)
+       else
+          ddvel_p(i,j,:) = 0._RKIND
+       endif
+    enddo
+    enddo
+    enddo
+
+    do n = 1,num_chem
+    do j = jts,jte
+    do k = kts,kte
+    do i = its,ite
+       chem_p(i,k,j,n) = chem(n,k,i)
+       if ( drydep_opt .ne. 0 ) then
+          tend_chem_settle_p(i,k,j,n) = tend_chem_settle(n,k,i)
+       else
+          tend_chem_settle_p(i,k,j,n) = 0._RKIND
+       endif
+    enddo
+    enddo
+    enddo
+    enddo
+ endif ! chem
 
  pbl_select: select case (trim(pbl_scheme))
 
@@ -701,21 +752,6 @@
        call mpas_pool_get_array(diag_physics,'sub_qv'    ,sub_qv    )
        call mpas_pool_get_array(diag_physics,'det_thl'   ,det_thl   )
        call mpas_pool_get_array(diag_physics,'det_qv'    ,det_qv    )
-       if ( num_chem .gt. 0 ) then
-          call mpas_pool_get_array(state,'scalars',scalars,1)
-          call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
-          if ( drydep_opt .ne. 0 ) then
-             call mpas_pool_get_array(tend_physics,'tend_chem_settle',tend_chem_settle)
-             call mpas_pool_get_array(diag_physics,'ddvel',ddvel)
-          endif
-          call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
-          call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
-          chem => scalars(chemistry_start:chemistry_end,:,:)
-          call mpas_pool_get_config(configs,'config_mynn_enh_mix',enh_mix)
-          if (enh_mix) then
-             call mpas_pool_get_array(diag_physics,'frp_out',frp_out)
-          end if
-       endif
 
        do j = jts,jte
        do i = its,ite
@@ -725,43 +761,6 @@
           tsk_p(i,j)  = skintemp(i)
        enddo
        enddo
-
-       if ( num_chem .gt. 0 ) then
-          do j = jts,jte
-          do i = its,ite
-             if ( enh_mix ) then
-                frp_out_p(i,j)     = frp_out(i)
-             endif
-          enddo
-          enddo
-
-          do n = 1,num_chem
-          do j = jts,jte
-          do i = its,ite
-             if ( drydep_opt .ne. 0 ) then
-                ddvel_p(i,j,n) = ddvel(n,i)
-             else
-                ddvel_p(i,j,:) = 0._RKIND
-             endif
-          enddo
-          enddo
-          enddo
-
-          do n = 1,num_chem
-          do j = jts,jte
-          do k = kts,kte
-          do i = its,ite
-             chem_p(i,k,j,n) = chem(n,k,i)
-             if ( drydep_opt .ne. 0 ) then
-                tend_chem_settle_p(i,k,j,n) = tend_chem_settle(n,k,i)
-             else
-                tend_chem_settle_p(i,k,j,n) = 0._RKIND
-             endif
-          enddo
-          enddo
-          enddo
-          enddo
-       endif ! chem
 
        do j = jts,jte
        do k = kts,kte
@@ -974,6 +973,22 @@
  enddo
  enddo
 
+ if (do_chemistry ) then
+    call mpas_pool_get_array(state,'scalars',scalars,1)
+    call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
+    call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
+    chem => scalars(chemistry_start:chemistry_end,:,:)
+    do n = 1,num_chem
+    do j = jts,jte
+    do k = kts,kte
+    do i = its,ite
+       chem(n,k,i)    = chem_p(i,k,j,n)
+    enddo
+    enddo
+    enddo
+    enddo
+ endif
+
  pbl_select: select case (trim(pbl_scheme))
 
     case("bl_ysu")
@@ -1119,22 +1134,6 @@
        call mpas_pool_get_array(diag_physics,'det_qv'    ,det_qv    )
 
        call mpas_pool_get_array(tend_physics,'rqsblten'  ,rqsblten  )
-
-       if ( num_chem .gt. 0 ) then
-          call mpas_pool_get_array(state,'scalars',scalars,1)
-          call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
-          call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
-          chem => scalars(chemistry_start:chemistry_end,:,:)
-          do n = 1,num_chem
-          do j = jts,jte
-          do k = kts,kte
-          do i = its,ite
-               chem(n,k,i)    = chem_p(i,k,j,n)
-          enddo
-          enddo
-          enddo
-          enddo
-       endif
 
        do j = jts,jte
        do i = its,ite
