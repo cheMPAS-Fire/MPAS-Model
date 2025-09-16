@@ -160,6 +160,10 @@
  enddo
  enddo
 
+ if (do_chemistry) then
+    if(.not.allocated(chem_p)) allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
+ endif
+
  convection_select: select case(convection_scheme)
 
     case ("cu_grell_freitas")
@@ -256,10 +260,6 @@
             enddo
             enddo
             enddo
-
-       if (do_chemistry) then
-          if(.not.allocated(chem_p)) allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
-       endif
 
     case ("cu_kain_fritsch")
        if(.not.allocated(dx_p)       ) allocate(dx_p(ims:ime,jms:jme)              )
@@ -887,6 +887,23 @@
  enddo
  enddo
 
+ if (do_chemistry) then
+    call mpas_pool_get_array(state,'scalars',scalars,1)
+    call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
+    call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
+    chem => scalars(chemistry_start:chemistry_end,:,:)
+
+    do j = jts,jte
+    do i = its,ite
+    do k = kts,kte
+    do n = 1,num_chem
+       chem_p(i,k,j,n) = chem(n,k,i)
+    enddo
+    enddo
+    enddo
+    enddo
+ endif
+
  convection_select: select case(convection_scheme)
 
     case ("cu_grell_freitas")
@@ -997,13 +1014,6 @@
        call mpas_pool_get_array(tend_physics,'rucuten'   ,rucuten   )
        call mpas_pool_get_array(tend_physics,'rvcuten'   ,rvcuten   )
 
-       if ( num_chem .gt. 0 ) then
-           call mpas_pool_get_array(state,'scalars',scalars,1)
-           call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
-           call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
-           chem => scalars(chemistry_start:chemistry_end,:,:)
-       endif
-
        do j = jts,jte
        do i = its,ite
           dx_p(i,j) = len_disp / meshDensity(i)**0.25
@@ -1042,12 +1052,6 @@
 
              cldfrac_cu_p(i,k,j)= cldfrac_cu(k,i)
              refl10cm_cu_p(i,k,j)= refl10cm_cu(k,i)
-
-             if ( num_chem .gt. 0 ) then
-                do n = 1,num_chem
-                   chem_p(i,k,j,n) = chem(n,k,i)
-                enddo
-             endif
           enddo
        enddo
        enddo
@@ -1227,6 +1231,23 @@
  enddo
  enddo
 
+ if (do_chemistry) then
+    call mpas_pool_get_array(state,'scalars',scalars,1)
+    call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
+    call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
+    chem => scalars(chemistry_start:chemistry_end,:,:)
+
+    do j = jts,jte
+    do i = its,ite
+    do k = kts, kte
+    do n = 1,num_chem
+       chem(n,k,i) = chem_p(i,k,j,n)
+    enddo
+    enddo
+    enddo
+    enddo
+ endif
+
  convection_select: select case(convection_scheme)
 
     case ("cu_grell_freitas")
@@ -1285,13 +1306,6 @@
        call mpas_pool_get_array(tend_physics,'rvcuten',rvcuten)
        call mpas_pool_get_array(mesh,'bdyMaskCell',bdyMaskCell)
 
-       if ( num_chem .gt. 0 ) then
-           call mpas_pool_get_array(state,'scalars',scalars,1)
-           call mpas_pool_get_dimension(state, 'chemistry_start', chemistry_start)
-           call mpas_pool_get_dimension(state, 'chemistry_end', chemistry_end)
-           chem => scalars(chemistry_start:chemistry_end,:,:)
-       endif
-
        do j = jts,jte
        do i = its,ite
           cubot(i)         = cubot_p(i,j)
@@ -1314,12 +1328,6 @@
 
              cldfrac_cu (k,i)  = cldfrac_cu_p(i,k,j)
              refl10cm_cu(k,i)  = refl10cm_cu_p(i,k,j)
-
-             if ( num_chem .gt. 0 ) then
-                do n = 1,num_chem
-                   chem(n,k,i) = chem_p(i,k,j,n)
-                enddo
-             endif
           enddo
        enddo
        enddo

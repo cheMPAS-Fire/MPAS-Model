@@ -1556,7 +1556,7 @@
 !      call mpas_log_write('--- f_nwfa = $l',logicArgs=(/f_nwfa/))
 !      call mpas_log_write('--- f_nbca = $l',logicArgs=(/f_nbca/))
 
-       if (num_chem > 0 ) mix_chem = .true.
+       if (do_chemistry) mix_chem = .true.
 
        call mpas_timer_start('bl_mynnedmf')
        call mynnedmf_driver( &
