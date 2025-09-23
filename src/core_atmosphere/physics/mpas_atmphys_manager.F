@@ -417,9 +417,9 @@
  integer,pointer:: nMonths
  integer,pointer:: nAerosols,nAerLevels,nOznLevels
  integer,pointer:: nCellsSolve,nSoilLevels,nVertLevels,nlcat,nscat
- integer,pointer:: nChem,nkanthro,nkwildfire,nkbiogenic,nkvolcanic
- integer,pointer:: n_e_bb_in
- integer,pointer:: n_e_bb_out,n_e_dust_out
+ integer,pointer:: nChem,nkanthro,nkwildfire,nkbiogenic,nkvolcanic,nkreswoodcomb
+ integer,pointer:: n_e_ant_in,n_e_bb_in,n_e_bio_in,n_e_vol_in
+ integer,pointer:: n_e_ant_out,n_e_bb_out,n_e_bio_out,n_e_dust_out,n_e_ss_out,n_e_vol_out
 
  real(kind=RKIND):: dt
 
@@ -471,11 +471,19 @@
  call mpas_pool_get_dimension(mesh,'nkwildfire'   ,nkwildfire     )
  call mpas_pool_get_dimension(mesh,'nkbiogenic'   ,nkbiogenic     )
  call mpas_pool_get_dimension(mesh,'nkvolcanic'   ,nkvolcanic     )
+ call mpas_pool_get_dimension(mesh,'nkreswoodcomb',nkreswoodcomb       )
 
+ call mpas_pool_get_dimension(diag_physics, 'num_e_ant_out',n_e_ant_out  )
  call mpas_pool_get_dimension(diag_physics, 'num_e_bb_out',n_e_bb_out    )
+ call mpas_pool_get_dimension(diag_physics, 'num_e_bio_out',n_e_bio_out  )
  call mpas_pool_get_dimension(diag_physics, 'num_e_dust_out',n_e_dust_out)
+ call mpas_pool_get_dimension(diag_physics, 'num_e_ss_out',n_e_ss_out    )
+ call mpas_pool_get_dimension(diag_physics, 'num_e_vol_out',n_e_vol_out  )
 
+ call mpas_pool_get_dimension(emission_input,'num_e_ant_in',n_e_ant_in       )
  call mpas_pool_get_dimension(emission_input,'num_e_bb_in',n_e_bb_in         )
+ call mpas_pool_get_dimension(emission_input,'num_e_bio_in',n_e_bio_in       )
+ call mpas_pool_get_dimension(emission_input,'num_e_vol_in',n_e_vol_in       )
 
 !initialization of gmt, julian day, and alarms:
 
@@ -709,11 +717,19 @@
  kwildfire   = nkwildfire
  kbiogenic   = nkbiogenic
  kvolcanic   = nkvolcanic
-
+ kreswoodcomb= nkreswoodcomb
+!
+ num_e_ant_in= n_e_ant_in
  num_e_bb_in = n_e_bb_in
-
+ num_e_bio_in= n_e_bio_in
+ num_e_vol_in= n_e_vol_in
+!
+ num_e_ant_out = n_e_ant_out
  num_e_bb_out  = n_e_bb_out
+ num_e_bio_out = n_e_bio_out
  num_e_dust_out= n_e_dust_out
+ num_e_ss_out  = n_e_ss_out
+ num_e_vol_out = n_e_vol_out
 
  if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off') then
     do_chemistry = .true.

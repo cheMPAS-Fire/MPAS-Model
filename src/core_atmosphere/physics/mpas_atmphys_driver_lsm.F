@@ -379,6 +379,9 @@
                                            flqc,flhc,sfcexc,sfcevp,mavail
  real(kind=RKIND),dimension(:,:),pointer:: smfr3d,landusef,soilf,keepfr3d,zs
 
+ logical,pointer :: add_fire_heat_flux
+ real(kind=RKIND),dimension(:),pointer  :: hfx_bb
+
 !local variables and arrays:
  logical:: do_fill
  integer:: ip,iEdg
@@ -389,6 +392,7 @@
  call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
  call mpas_pool_get_config(configs,'config_microp_scheme'    ,config_microp_scheme    )
  call mpas_pool_get_config(configs,'config_lsm_scheme'       ,config_lsm_scheme       )
+ call mpas_pool_get_config(configs,'add_fire_heat_flux'      ,add_fire_heat_flux      )
 
  call mpas_pool_get_array(diag_physics,'acsnom'    ,acsnom    )
  call mpas_pool_get_array(diag_physics,'acsnow'    ,acsnow    )
@@ -423,6 +427,9 @@
  call mpas_pool_get_array(diag_physics,'udrunoff'  ,udrunoff  )
  call mpas_pool_get_array(diag_physics,'z0'        ,z0        )
  call mpas_pool_get_array(diag_physics,'znt'       ,znt       )
+ if (add_fire_heat_flux)then
+   call mpas_pool_get_array(diag_physics,'hfx_bb'         ,hfx_bb           )
+ endif
  if (config_lsm_scheme .eq. "sf_ruc") then
    call mpas_pool_get_array(diag_physics,'rhosnf'         ,rhosnf           )
    call mpas_pool_get_array(diag_physics,'precipfr'       ,precipfr         )
@@ -530,7 +537,12 @@
     glw_p(i,j)        = glw(i)
     grdflx_p(i,j)     = grdflx(i)
     gsw_p(i,j)        = gsw(i)
-    hfx_p(i,j)        = hfx(i)
+! JLS, add fire heat flux
+    if (add_fire_heat_flux) then
+       hfx_p(i,j)        = hfx(i) + hfx_bb(i)      
+    else
+       hfx_p(i,j)        = hfx(i)
+    endif
     lai_p(i,j)        = lai(i)
     lh_p(i,j)         = lh(i)
     noahres_p(i,j)    = noahres(i)
