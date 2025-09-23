@@ -16,6 +16,8 @@
           description="Number of vertical levels in biogenic emission file"/>
       <dim name="nkvolcanic"             definition="namelist:kvolcanic"
           description="Number of vertical levels in volcanic emission file"/>
+      <dim name="nkreswoodcomb"             definition="namelist:kreswoodcomb"
+          description="Number of vertical levels in residential wood combustion emission file"/>
       <dim name="TWENTYFOUR"          definition="24"
           description="A constant value of 24"/>
    </dims>
@@ -39,6 +41,7 @@
          <package name="mpas_dms_in"   description="parameterization of DMS"/>
          <package name="mpas_plastic_in"   description="parameterization of microplastics"/>
          <package name="mpas_volc_in"   description="parameterization of volcanic emissions for mpas-smoke"/>
+         <package name="mpas_sna_in"    description="parameterization of sulfate-nitrate-ammonium"/>
    </packages>
 
 
@@ -99,6 +102,10 @@
            description="Number of vertical levels in biogenic emission input"
            possible_values="Positive integer values"/>
       <nml_option name="kvolcanic" type="integer" default_value="1"
+           units="-"
+           description="Number of vertical levels in volcanic emission input"
+           possible_values="Positive integer values"/>
+      <nml_option name="kreswoodcomb" type="integer" default_value="1"
            units="-"
            description="Number of vertical levels in volcanic emission input"
            possible_values="Positive integer values"/>
@@ -408,14 +415,6 @@
               description="fine microplastic mixing ratio"
               packages="mpas_plastic_in"/>
 
-         <var name="dust_fine" array_group="chemistry" units="kg kg^{-1}"
-              description="fine dust mixing ratio"
-              packages="mpas_dust_in;mpas_anthro_in"/>
-
-         <var name="dust_coarse" array_group="chemistry" units="kg kg^{-1}"
-              description="coarse dust mixing ratio"
-              packages="mpas_dust_in;mpas_anthro_in"/>
-
          <var name="ssalt_fine" array_group="chemistry" units="kg kg^{-1}"
               description="fine sea salt mixing ratio"
               packages="mpas_ssalt_in"/>
@@ -526,7 +525,7 @@
               packages="mpas_methane_in;mpas_anthro_in"/>
       </var_array>
      <!-- Biogenic -->
-      <var_array name="e_bio_in" type="real" dimensions="nkbio nCells Time">
+      <var_array name="e_bio_in" type="real" dimensions="nkbiogenic nCells Time">
          <var name="e_bio_in_polp_tree" name_in_code="e_bio_in_polp_tree" array_group="bio_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input biogenic coarse tree pollen emissions"
               packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
@@ -538,7 +537,7 @@
               packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
       </var_array>
      <!-- Volcanic -->
-      <var_array name="e_vol_in" type="real" dimensions="nkvol nCells Time">
+      <var_array name="e_vol_in" type="real" dimensions="nkvolcanic nCells Time">
              <var name="e_vol_in_vash_fine" name_in_code="e_vol_in_vash_fine" array_group="vol_in_aerosols" units="ug m^{-2} s^{-1}"
                   description="input volcanic fine ash emissions"
                   packages="mpas_volc_in"/>
@@ -750,16 +749,18 @@
            description="aerosol optical depth from all aerosols"/>
       <var name="aod550"           type="real" dimensions="nCells Time" units="-"
            description="aerosol optical depth (2D) from all aerosols"/>
-      <var name="RWC_annual_sum" type="real" dimensions="nkrwc nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning emissions"/>
-      <var name="RWC_annual_sum_smoke_fine" type="real" dimensions="nkrwc nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_smoke_fine" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning fine smoke emissions"/>
-      <var name="RWC_annual_sum_smoke_coarse" type="real" dimensions="nkrwc nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_smoke_coarse" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning coarse smoke emissions"/>
-      <var name="RWC_annual_sum_unspc_fine" type="real" dimensions="nkrwc nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_unspc_fine" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning fine unspc emissions"/>
-      <var name="RWC_annual_sum_unspc_coarse" type="real" dimensions="nkrwc nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_unspc_coarse" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning coarse unspc emissions"/>
+      <var name="RWC_denominator" type="real" dimensions="nCells Time" units="F"
+           description="Annual Sum of (42.12 - 0.79*daily_minimum_temperature)"/>
       <var name="hno3_bkgd"             type="real" dimensions="nVertLevels nCells Time" units="mol mol^{-1}"
            description="background HNO3 (nitric acid) concentration"
            packages="mpas_sna_in"/>

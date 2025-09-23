@@ -40,15 +40,25 @@
  character(len=StrKIND),pointer:: config_pbl_scheme
  character(len=StrKIND),pointer:: config_lsm_scheme
  character(len=StrKIND),pointer:: config_smoke_scheme
+ character(len=StrKIND),pointer:: config_pollen_scheme
  character(len=StrKIND),pointer:: config_dust_scheme
+ character(len=StrKIND),pointer:: config_anthro_scheme
+ character(len=StrKIND),pointer:: config_ssalt_scheme
+ character(len=StrKIND),pointer:: config_volc_scheme
+ character(len=StrKIND),pointer:: config_sna_scheme
+ character(len=StrKIND),pointer:: config_methane_scheme
+
  logical,pointer:: config_tempo_hailaware, config_tempo_aerosolaware
  logical,pointer:: mp_kessler_in,mp_thompson_in,mp_thompson_aers_in,mp_wsm6_in,mp_nssl2m_in,nssl3m_in
  logical,pointer:: mp_tempo_in, tempo_hailaware_in, tempo_aerosolaware_in
- logical,pointer:: cu_grell_freitas_in,cu_grell_freitas_li_in,cu_kain_fritsch_in,cu_ntiedtke_in
+ logical,pointer:: cu_grell_freitas_in,cu_kain_fritsch_in,cu_ntiedtke_in
  logical,pointer:: bl_mynn_in,bl_mynnedmf_in,bl_ysu_in,bl_myj_in
  logical,pointer:: lsm_noah_in,lsm_ruc_in
  logical,pointer:: sf_noahmp_in
- logical,pointer:: mpas_smoke_in,mpas_dust_in
+ logical,pointer:: mpas_smoke_in, mpas_dust_in, &
+                   mpas_anthro_in, mpas_ssalt_in, mpas_volc_in, &
+                   mpas_sna_in, mpas_methane_in,                &
+                   speciated_pollen_rupture, speciated_pollen_primary, simple_pollen
 
  integer :: ierr
 
@@ -159,9 +169,6 @@
  nullify(cu_grell_freitas_in)
  call mpas_pool_get_package(packages,'cu_grell_freitas_inActive',cu_grell_freitas_in)
 
- nullify(cu_grell_freitas_li_in)
- call mpas_pool_get_package(packages,'cu_grell_freitas_li_inActive',cu_grell_freitas_li_in)
-
  nullify(cu_kain_fritsch_in)
  call mpas_pool_get_package(packages,'cu_kain_fritsch_inActive',cu_kain_fritsch_in)
 
@@ -169,7 +176,6 @@
  call mpas_pool_get_package(packages,'cu_ntiedtke_inActive',cu_ntiedtke_in)
 
  if(.not.associated(cu_grell_freitas_in) .or. &
-    .not.associated(cu_grell_freitas_li_in)  .or. &
     .not.associated(cu_kain_fritsch_in)  .or. &
     .not.associated(cu_ntiedtke_in)    ) then
     call mpas_log_write('====================================================================================',messageType=MPAS_LOG_ERR)
@@ -182,12 +188,9 @@
  cu_grell_freitas_in = .false.
  cu_kain_fritsch_in  = .false.
  cu_ntiedtke_in      = .false.
- cu_grell_freitas_li_in = .false.
 
  if(config_convection_scheme=='cu_grell_freitas') then
     cu_grell_freitas_in = .true.
- elseif(config_convection_scheme == 'cu_grell_freitas_li') then
-    cu_grell_freitas_li_in = .true.
  elseif(config_convection_scheme == 'cu_kain_fritsch') then
     cu_kain_fritsch_in = .true.
  elseif(config_convection_scheme == 'cu_tiedtke' .or. &
@@ -196,7 +199,6 @@
  endif
 
  call mpas_log_write('    cu_grell_freitas_in     = $l', logicArgs=(/cu_grell_freitas_in/))
- call mpas_log_write('    cu_grell_freitas_li_in  = $l', logicArgs=(/cu_grell_freitas_li_in/))
  call mpas_log_write('    cu_kain_fritsch_in      = $l', logicArgs=(/cu_kain_fritsch_in/))
  call mpas_log_write('    cu_ntiedtke_in          = $l', logicArgs=(/cu_ntiedtke_in/))
 
@@ -275,8 +277,8 @@
    lsm_ruc_in = .true.
  endif
 
- call mpas_log_write('    lsm_noah_in             = $l', logicArgs=(/lsm_noah_in/))
- call mpas_log_write('    lsm_ruc_in              = $l', logicArgs=(/lsm_ruc_in/))
+ call mpas_log_write('    lsm_noah_in              = $l', logicArgs=(/lsm_noah_in/))
+ call mpas_log_write('    lsm_ruc_in               = $l', logicArgs=(/lsm_ruc_in/))
 
 !--- initialization of all packages for parameterizations of land surface processes:
 
@@ -302,15 +304,15 @@
 
 !--- initialization of packages for parameterizations of smoke:
 
- call mpas_pool_get_config(configs,'config_smoke_scheme', config_smoke_scheme)
+  call mpas_pool_get_config(configs,'config_smoke_scheme', config_smoke_scheme)
 
- nullify(mpas_smoke_in)
- call mpas_pool_get_package(packages,'mpas_smoke_inActive', mpas_smoke_in)
+  nullify(mpas_smoke_in)
+  call mpas_pool_get_package(packages,'mpas_smoke_inActive', mpas_smoke_in)
 
-  if(.not.associated(mpas_smoke_in)) then
-     call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
-     call mpas_log_write('* Error while setting up packages for smoke options in atmosphere core.',  messageType=MPAS_LOG_ERR)
-     call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+   if(.not.associated(mpas_smoke_in)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for smoke options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
     ierr = 1
     return
  endif
@@ -322,6 +324,66 @@
  endif
 
  call mpas_log_write('    mpas_smoke_in              = $l', logicArgs=(/mpas_smoke_in/))
+ call mpas_log_write('')
+
+!--- initialization of packages for parameterizations of pollen:
+
+  call mpas_pool_get_config(configs,'config_pollen_scheme', config_pollen_scheme)
+
+  nullify(simple_pollen)
+  nullify(speciated_pollen_rupture)
+  nullify(speciated_pollen_primary)
+  call mpas_pool_get_package(packages,'simple_pollenActive', simple_pollen)
+  call mpas_pool_get_package(packages,'speciated_pollen_ruptureActive', speciated_pollen_rupture)
+  call mpas_pool_get_package(packages,'speciated_pollen_primaryActive', speciated_pollen_primary)
+
+   if(.not.associated(simple_pollen)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for pollen options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+   endif
+   if(.not.associated(speciated_pollen_rupture)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up additional packages for pollen options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+   endif
+   if(.not.associated(speciated_pollen_primary)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up additional packages for pollen options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+   endif
+
+ simple_pollen = .false.
+ speciated_pollen_rupture = .false.
+ speciated_pollen_primary = .false.
+
+! if(config_pollen_scheme.ne.'off') then
+!   mpas_pollen_in = .true.
+! endif
+ if(config_pollen_scheme.eq.'speciated') then
+   speciated_pollen_primary = .true.
+   speciated_pollen_rupture = .true.
+ endif
+ if(config_pollen_scheme.eq.'speciated_primary_only') then
+   speciated_pollen_primary = .true.
+ endif
+ if(config_pollen_scheme.eq.'simple')then
+   simple_pollen = .true.
+ endif
+
+! call mpas_log_write('    mpas_pollen_in              = $l', logicArgs=(/mpas_pollen_in/))
+! call mpas_log_write('')
+ call mpas_log_write('    simple_pollen              = $l', logicArgs=(/simple_pollen/))
+ call mpas_log_write('')
+ call mpas_log_write('    speciated_pollen_rupture              = $l', logicArgs=(/speciated_pollen_rupture/))
+ call mpas_log_write('')
+ call mpas_log_write('    speciated_pollen_primary              = $l', logicArgs=(/speciated_pollen_primary/))
  call mpas_log_write('')
 
 !--- initialization of packages for parameterizations of dust:
@@ -347,6 +409,130 @@
 
  call mpas_log_write('    mpas_dust_in              = $l', logicArgs=(/mpas_dust_in/))
  call mpas_log_write('')
+
+!--- initialization of packages for parameterizations of sea salt:
+
+  call mpas_pool_get_config(configs,'config_ssalt_scheme', config_ssalt_scheme)
+
+  nullify(mpas_ssalt_in)
+  call mpas_pool_get_package(packages,'mpas_ssalt_inActive', mpas_ssalt_in)
+
+   if(.not.associated(mpas_ssalt_in)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for sea salt options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+ endif
+
+ mpas_ssalt_in = .false.
+
+ if(config_ssalt_scheme.ne.'off') then
+   mpas_ssalt_in = .true.
+ endif
+
+ call mpas_log_write('    mpas_ssalt_in              = $l', logicArgs=(/mpas_ssalt_in/))
+ call mpas_log_write('')
+
+!--- initialization of packages for parameterizations of anthropogenic PM:
+
+  call mpas_pool_get_config(configs,'config_anthro_scheme', config_anthro_scheme)
+
+  nullify(mpas_anthro_in)
+  call mpas_pool_get_package(packages,'mpas_anthro_inActive', mpas_anthro_in)
+
+   if(.not.associated(mpas_anthro_in)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for anthropogenic options options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+ endif
+
+ mpas_anthro_in = .false.
+
+ if(config_anthro_scheme.ne.'off') then
+   mpas_anthro_in = .true.
+ endif
+
+ call mpas_log_write('    mpas_anthro_in              = $l', logicArgs=(/mpas_anthro_in/))
+ call mpas_log_write('')
+
+!--- initialization of packages for parameterizations of volcanic PM:
+
+  call mpas_pool_get_config(configs,'config_volc_scheme', config_volc_scheme)
+
+  nullify(mpas_volc_in)
+  call mpas_pool_get_package(packages,'mpas_volc_inActive', mpas_volc_in)
+
+   if(.not.associated(mpas_volc_in)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for volcanic options options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+ endif
+
+ mpas_volc_in = .false.
+
+ if(config_volc_scheme.ne.'off') then
+   mpas_volc_in = .true.
+ endif
+
+ call mpas_log_write('    mpas_volc_in              = $l', logicArgs=(/mpas_volc_in/))
+ call mpas_log_write('')
+
+
+!--- initialization of packages for parameterizations of SNA PM:
+
+  call mpas_pool_get_config(configs,'config_sna_scheme', config_sna_scheme)
+
+  nullify(mpas_sna_in)
+  call mpas_pool_get_package(packages,'mpas_sna_inActive', mpas_sna_in)
+
+   if(.not.associated(mpas_sna_in)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for SNA options options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+ endif
+
+ mpas_sna_in = .false.
+
+ if(config_sna_scheme.ne.'off') then
+   mpas_sna_in = .true.
+ endif
+
+ call mpas_log_write('    mpas_sna_in              = $l', logicArgs=(/mpas_sna_in/))
+ call mpas_log_write('')
+
+
+!--- initialization of packages for parameterizations of methane:
+
+  call mpas_pool_get_config(configs,'config_methane_scheme', config_methane_scheme)
+
+  nullify(mpas_methane_in)
+  call mpas_pool_get_package(packages,'mpas_methane_inActive', mpas_methane_in)
+
+   if(.not.associated(mpas_methane_in)) then
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for methane options options in atmosphere core.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+ endif
+
+ mpas_methane_in = .false.
+
+ if(config_methane_scheme.ne.'off') then
+   mpas_methane_in = .true.
+ endif
+
+ call mpas_log_write('    mpas_methane_in              = $l', logicArgs=(/mpas_methane_in/))
+ call mpas_log_write('')
+
+
 
  end function atmphys_setup_packages
 
