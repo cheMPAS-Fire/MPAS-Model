@@ -69,10 +69,6 @@
            units="-"
            description="configuration for mpas sea salt model"
            possible_values="`on',`off'"/>
-      <nml_option name="config_anthro_scheme" type="character" default_value="off" in_defaults="false"
-           units="-"
-           description="configuration for mpas anthropogenic emissions model"
-           possible_values="`on',`off'"/>
       <nml_option name="config_volc_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas volcanic emissions model"

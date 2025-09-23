@@ -1664,7 +1664,7 @@
            qc_vis  = qc_p, qr_vis = qr_p, qi_vis = qi_p, qs_vis = qs_p, qg_vis = qg_p,   &
            blcldw_vis = qcbl_p, blcldi_vis = qibl_p,                                     &
            coszen = coszr_p,                                                             &
-           aod3d_smoke = aod3d_smoke_p, aod3d = aod3d_p, vis    = vis_p,         ,       &
+           aod3d_smoke = aod3d_smoke_p, aod3d = aod3d_p, vis    = vis_p          ,       &
            pi_phy  = pi_p        , rho_phy  = rho_p      , kpbl     = kpbl_p     ,       &
            nsoil   = num_soils   , smois    = smois_p    , tslb     = tslb_p     ,       &
            ivgtyp  = ivgtyp_p    , isltyp   = isltyp_p   , nlcat    = num_landcat,       &

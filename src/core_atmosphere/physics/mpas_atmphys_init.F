@@ -598,7 +598,7 @@ use mpas_stream_manager
  if(index_polp_weed    .gt. -1) f_polp_weed = .true.
  if(index_polp_all    .gt. -1)  f_polp_all = .true.
  if(index_pols_all     .gt. -1) f_pols_all = .true.
- ifi(index_pols_tree    .gt. -1) f_pols_tree = .true.
+ if(index_pols_tree    .gt. -1) f_pols_tree = .true.
  if(index_pols_grass   .gt. -1) f_pols_grass = .true.
  if(index_pols_weed    .gt. -1) f_pols_weed = .true.
  if(index_dust_fine    .gt. -1) f_dust_fine = .true.
