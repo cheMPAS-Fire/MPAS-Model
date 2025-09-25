@@ -25,9 +25,29 @@
            units="-"
            description="configuration for mpas smoke model"
            possible_values="`on',`off'"/>
+      <nml_option name="config_pollen_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas pollen model"
+           possible_values="`on',`off'"/>
       <nml_option name="config_dust_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas dust model"
+           possible_values="`on',`off'"/>
+      <nml_option name="config_ssalt_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas sea salt model"
+           possible_values="`on',`off'"/>
+      <nml_option name="config_anthro_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas anthropogenic emissions model"
+           possible_values="`on',`off'"/>
+      <nml_option name="config_volc_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas volcanic emissions model"
+           possible_values="`on',`off'"/>
+      <nml_option name="config_sna_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas sulfate nitrate ammonium model"
            possible_values="`on',`off'"/>
       <nml_option name="num_chem" type="integer" default_value="0"
            units="-"
@@ -64,8 +84,14 @@
 <!-- **************************************************************************************** -->
         <packages>
          <package name="mpas_smoke_in"  description="parameterization of smoke."/>
+         <package name="speciated_pollen_rupture" description="parameterization of speciated rupture for pollen"/>
+         <package name="speciated_pollen_primary" description="parameterization of speciated primary pollen"/>
+         <package name="simple_pollen" description="parameterization of speciated primary pollen"/>
          <package name="mpas_dust_in"   description="parameterization of dust"/>
+         <package name="mpas_ssalt_in"  description="parameterization of sea salt"/>
          <package name="mpas_anthro_in" description="parameterization of anthropogenic emissions for mpas-smoke"/>
+         <package name="mpas_volc_in"   description="parameterization of volcanic emissions for mpas-smoke"/>
+         <package name="mpas_sna_in"    description="parameterization of sulfate-nitrate-ammonium"/>
          <package name="mpas_aerosols_in" description="parameterization of mpas aerosols"/>
         </packages>
 
@@ -75,6 +101,23 @@
 <!-- **************************************************************************************** -->
 
 	<streams>
+<!--
+		<stream name="input"
+                        type="input"
+                        filename_template="x1.40962.grid.nc"
+                        input_interval="initial_only"
+                        immutable="true">
+
+		</stream>
+
+		<stream name="output"
+                        type="output"
+                        filename_template="x1.40962.init.nc"
+                        output_interval="initial_only"
+                        packages="initial_conds"
+                        immutable="true">
+		</stream>
+-->
 		<stream name="lbc"
                         type="output"
                         filename_template="lbc.$Y-$M-$D_$h.$m.$s.nc"
@@ -105,6 +148,42 @@
                            description="fine smoke mixing ratio"
                            packages="mpas_smoke_in"/>
 
+                      <var name="smoke_coarse" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse smoke mixing ratio"
+                           packages="mpas_smoke_in"/>
+
+                      <var name="polp_tree" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse tree pollen mixing ratio"
+                           packages="speciated_pollen_primary;speciated_pollen_rupture"/>
+       
+                      <var name="polp_grass" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse grass pollen mixing ratio"
+                           packages="speciated_pollen_primary;speciated_pollen_rupture"/>
+       
+                      <var name="polp_weed" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse weed pollen mixing ratio"
+                           packages="speciated_pollen_primary;speciated_pollen_rupture"/>
+                      
+                      <var name="polp_all" array_group="chemistry" units="kg kg^{-1}"
+                           description="combined primary pollen mixing ratio"
+                           packages="simple_pollen"/>
+      
+                      <var name="pols_all" array_group="chemistry" units="kg kg^{-1}"
+                           description="combined ruptured pollen mixing ratio"
+                           packages="simple_pollen;speciated_pollen_primary"/>
+       
+                      <var name="pols_tree" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine tree pollen mixing ratio"
+                           packages="speciated_pollen_rupture"/>
+       
+                      <var name="pols_grass" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine grass pollen mixing ratio"
+                           packages="speciated_pollen_rupture"/>
+       
+                      <var name="pols_weed" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine weed pollen mixing ratio"
+                           packages="speciated_pollen_rupture"/>
+ 
                       <var name="dust_fine" array_group="chemistry" units="kg kg^{-1}"
                            description="fine dust mixing ratio"
                            packages="mpas_dust_in;mpas_anthro_in"/>
@@ -112,6 +191,51 @@
                       <var name="dust_coarse" array_group="chemistry" units="kg kg^{-1}"
                            description="coarse dust mixing ratio"
                            packages="mpas_dust_in;mpas_anthro_in"/>
+ 
+                      <var name="ssalt_fine" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine sea salt mixing ratio"
+                           packages="mpas_ssalt_in"/>
+ 
+                      <var name="ssalt_coarse" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse sea salt mixing ratio"
+                           packages="mpas_ssalt_in"/>
+
+                      <var name="unspc_fine" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine anthropogenic primary aerosol mixing ration"
+                           packages="mpas_anthro_in"/>
+ 
+                      <var name="unspc_coarse" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse anthropogenic primary aerosol"
+                           packages="mpas_anthro_in"/>
+
+                      <var name="vash_fine" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine volcanic ash"
+                           packages="mpas_volc_in"/> 
+
+                      <var name="vash_coarse" array_group="chemistry" units="kg kg^{-1}"
+                           description="coarse volcanic ash"
+                           packages="mpas_volc_in"/> 
+
+                      <var name="so4_a_fine" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine sulfate aerosol"
+                           packages="mpas_aerosols_in;mpas_sna_in"/>
+ 
+                      <var name="no3_a_fine" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine nitrate aerosol"
+                           packages="mpas_aerosols_in;mpas_sna_in"/> 
+
+                      <var name="nh4_a_fine" array_group="chemistry" units="kg kg^{-1}"
+                           description="fine ammonium aerosol"
+                           packages="mpas_aerosols_in;mpas_sna_in"/> 
+
+                      <var name="so2" array_group="chemistry" units="mol mol^{-1}"
+                           description="sulfur dioxide"
+                           packages="mpas_aerosols_in;mpas_sna_in"/> 
+
+                      <var name="nh3" array_group="chemistry" units="mol mol^{-1}"
+                           description="ammonia"
+                           packages="mpas_aerosols_in;mpas_sna_in"/> 
+                </var_array>
         </var_struct>
 
         <var_struct name="lbc_state" time_levs="1">
@@ -119,11 +243,50 @@
                         <var name="lbc_smoke_fine" array_group="chemistry"  packages="mpas_smoke_in" units="kg kg^{-1} s^{-1}"
                              description="Lateral boundary tendency of fine smoke mixing ratio"/>
 
+                        <var name="lbc_smoke_coarse" array_group="chemistry"  packages="mpas_smoke_in" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of coarse smoke mixing ratio"/>
+                        
+                        <var name="lbc_polp_tree" array_group="chemistry"  packages="speciated_pollen_primary;speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of coarse tree pollen mixing ratio"/>
+  
+                        <var name="lbc_polp_grass" array_group="chemistry"  packages="speciated_pollen_primary;speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of coarse grass pollen mixing ratio"/>
+  
+                        <var name="lbc_polp_weed" array_group="chemistry"  packages="speciated_pollen_primary;speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of coarse weed pollen mixing ratio"/>
+
+                        <var name="lbc_polp_all" array_group="chemistry"  packages="simple_pollen" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of total primary pollen mixing ratio"/>
+                        
+                        <var name="lbc_pols_all" array_group="chemistry"  packages="simple_pollen;speciated_pollen_primary" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of total fine pollen mixing ratio"/>
+  
+                        <var name="lbc_pols_tree" array_group="chemistry"  packages="speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of fine tree pollen mixing ratio"/>
+  
+                        <var name="lbc_pols_grass" array_group="chemistry"  packages="speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of fine grass pollen mixing ratio"/>
+  
+                        <var name="lbc_pols_weed" array_group="chemistry"  packages="speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of fine weed pollen mixing ratio"/>
+  
                         <var name="lbc_dust_fine" array_group="chemistry"  packages="mpas_dust_in" units="kg kg^{-1} s^{-1}"
                              description="Lateral boundary tendency of fine dust mixing ratio"/>
   
                         <var name="lbc_dust_coarse" array_group="chemistry"  packages="mpas_dust_in" units="kg kg^{-1} s^{-1}"
                              description="Lateral boundary tendency of coarse dust mixing ratio"/>
+  
+                        <var name="lbc_ssalt_fine" array_group="chemistry"  packages="mpas_ssalt_in" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of fine dust mixing ratio"/>
+  
+                        <var name="lbc_ssalt_coarse" array_group="chemistry"  packages="mpas_ssalt_in" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of coarse dust mixing ratio"/>
+  
+                        <var name="lbc_unspc_fine" array_group="chemistry"  packages="mpas_anthro_in" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of fine primary aerosol mixing ratio"/>
+  
+                        <var name="lbc_unspc_coarse" array_group="chemistry"  packages="mpas_anthro_in" units="kg kg^{-1} s^{-1}"
+                             description="Lateral boundary tendency of coarse primary aerosol mixing ratio"/>
 
                         <var name="lbc_MASSDEN" array_group="chemistry" units="kg kg^{-1} s^{-1}"
                              description="Lateral boundary tendency of fine smoke mixing ratio"/>
@@ -136,8 +299,35 @@
 		     description="First guess smoke aerosols"/>
                 <var name="smoke_fine_fg" name_in_code="smoke_fine" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
 		     packages="mpas_smoke_in;mpas_anthro_in" description="First guess fine smoke aerosols"/>
+                <var name="smoke_coarse_fg" name_in_code="smoke_coarse" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="mpas_smoke_in;mpas_anthro_in" description="First guess coarse smoke aerosols"/>
                 <var name="dust_fine_fg" name_in_code="dust_fine" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
 		     packages="mpas_dust_in;mpas_anthro_in" description="First guess fine dust aerosols"/>
                 <var name="dust_coarse_fg" name_in_code="dust_coarse" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
 		     packages="mpas_dust_in;mpas_anthro_in" description="First guess coarse dust aerosols"/>
+                <var name="unspc_fine_fg" name_in_code="unspc_fine" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="mpas_anthro_in" description="First guess fine unspeciated aerosols"/>
+                <var name="unspc_coarse_fg" name_in_code="unspc_coarse" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="mpas_anthro_in" description="First guess coarse unspeciaated aerosols"/>
+                <var name="ssalt_fine_fg" name_in_code="ssalt_fine" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="mpas_ssalt_in" description="First guess fine sea salt aerosols"/>
+                <var name="ssalt_coarse_fg" name_in_code="ssalt_coarse" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="mpas_ssalt_in" description="First guess coarse sea salt aerosols"/>
+                <var name="polp_all_fg" name_in_code="polp_all" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="simple_pollen" description="First guess coarse pollen"/>
+                <var name="pols_all_fg" name_in_code="polp_all" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="simple_pollen;speciated_pollen_rupture" description="First guess ruptured pollen"/>
+                <var name="polp_tree_fg" name_in_code="polp_tree" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="speciated_pollen_primary;speciated_pollen_rupture" description="First guess coarse tree pollen"/>
+                <var name="polp_grass_fg" name_in_code="polp_grass" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="speciated_pollen_primary;speciated_pollen_rupture" description="First guess coarse grass pollen"/>
+                <var name="polp_weed_fg" name_in_code="polp_weed" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="speciated_pollen_primary;speciated_pollen_rupture" description="First guess coarse weed pollen"/>
+                <var name="pols_tree_fg" name_in_code="pols_tree" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="speciated_pollen_rupture" description="First guess fine tree pollen"/>
+                <var name="pols_grass_fg" name_in_code="pols_grass" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="speciated_pollen_rupture" description="First guess fine grass pollen"/>
+                <var name="pols_weed_fg" name_in_code="pols_weed" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+		     packages="speciated_pollen_rupture" description="First guess fine weed pollen"/>
+
         </var_struct>
