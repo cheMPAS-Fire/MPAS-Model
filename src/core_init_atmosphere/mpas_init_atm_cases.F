@@ -8241,7 +8241,17 @@ call mpas_log_write('Done with soil consistency check')
              trim(field % field) == 'GHT' .or. &
              trim(field % field) == 'SOILHGT' .or. &
              trim(field % field) == 'PRES' .or. &
-             trim(field % field) == 'PRESSURE') then
+             trim(field % field) == 'PRESSURE'.or. &
+! Chemistry
+             trim(field % field) == 'MASSDEN' .or. &
+             trim(field % field) == 'SMKF' .or. &
+             trim(field % field) == 'SMKC' .or. &
+             trim(field % field) == 'UNSF' .or. &
+             trim(field % field) == 'UNSC' .or. &
+             trim(field % field) == 'DSTF' .or. &
+             trim(field % field) == 'DSTC' .or. &
+             trim(field % field) == 'SSTF' .or. &
+             trim(field % field) == 'SSTC') then
 
             if (trim(field % field) /= 'SOILHGT') then
 
