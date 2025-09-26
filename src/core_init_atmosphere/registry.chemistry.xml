@@ -97,44 +97,6 @@
 
 
 <!-- **************************************************************************************** -->
-<!-- *************************************** Streams **************************************** -->
-<!-- **************************************************************************************** -->
-
-	<streams>
-<!--
-		<stream name="input"
-                        type="input"
-                        filename_template="x1.40962.grid.nc"
-                        input_interval="initial_only"
-                        immutable="true">
-
-		</stream>
-
-		<stream name="output"
-                        type="output"
-                        filename_template="x1.40962.init.nc"
-                        output_interval="initial_only"
-                        packages="initial_conds"
-                        immutable="true">
-		</stream>
--->
-		<stream name="lbc"
-                        type="output"
-                        filename_template="lbc.$Y-$M-$D_$h.$m.$s.nc"
-                        output_interval="3:00:00"
-                        filename_interval="output_interval"
-                        packages="lbcs"
-                        immutable="true">
-
-			<var name="xtime"/>
-			<var name="Time"/>
-			<var_struct name="lbc_state"/>
-		</stream>
-
-	</streams>
-
-
-<!-- **************************************************************************************** -->
 <!-- ************************************** Variables *************************************** -->
 <!-- **************************************************************************************** -->
 
