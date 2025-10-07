@@ -160,6 +160,8 @@
                                   config_radt_sw_scheme,    &
                                   config_sfclayer_scheme
 
+! logical, pointer:: config_calc_clean_atm_diag
+
  logical, pointer:: config_oml1d
  real(kind=RKIND),pointer:: config_bucket_radt
 
@@ -189,6 +191,7 @@
  call mpas_pool_get_config(domain%configs,'config_bucket_update'    ,config_bucket_update    )
  call mpas_pool_get_config(domain%configs,'config_frac_seaice'      ,config_frac_seaice      ) 
  call mpas_pool_get_config(domain%configs,'config_oml1d'            ,config_oml1d            )
+! call mpas_pool_get_config(domain%configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  if(config_convection_scheme .ne. 'off' .or. &
     config_lsm_scheme        .ne. 'off' .or. &
@@ -251,6 +254,7 @@
        do thread=1,nThreads
           call driver_radiation_sw(itimestep,block%configs,mesh,state,time_lev,diag_physics, &
                                    atm_input,sfc_input,tend_physics,xtime_s, &
+!                                   atm_input,sfc_input,tend_physics,config_calc_clean_atm_diag,xtime_s, &
                                    cellSolveThreadStart(thread),cellSolveThreadEnd(thread))
        end do
 !$OMP END PARALLEL DO
@@ -264,6 +268,7 @@
        do thread=1,nThreads
           call driver_radiation_lw(xtime_s,block%configs,mesh,state,time_lev,diag_physics, &
                                    atm_input,sfc_input,tend_physics, &
+!                                   atm_input,sfc_input,tend_physics,config_calc_clean_atm_diag, &
                                    cellSolveThreadStart(thread),cellSolveThreadEnd(thread))
        end do
 !$OMP END PARALLEL DO

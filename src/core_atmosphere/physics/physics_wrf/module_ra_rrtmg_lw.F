@@ -10711,7 +10711,7 @@ contains
              taucmcl ,ciwpmcl ,clwpmcl , cswpmcl ,reicmcl ,relqmcl , resnmcl , &
              tauaer  , &
              uflx    ,dflx    ,hr      ,uflxc   ,dflxc,  hrc, &
-             uflxcln ,dflxcln, calc_clean_atm_diag )
+             uflxcln ,dflxcln, config_calc_clean_atm_diag )
 
 ! -------- Description --------
 
@@ -10894,7 +10894,7 @@ contains
                                                       !    Dimensions: (ncol,nlay,nbndlw)
                                                       !   for future expansion 
                                                       !   (lw aerosols/scattering not yet available)
-      integer, intent(in) :: calc_clean_atm_diag      ! Control for clean air diagnositic calls for WRF-Chem
+      logical, intent(in) :: config_calc_clean_atm_diag      ! Control for clean air diagnositic calls for WRF-Chem
 
 ! ----- Output -----
 
@@ -11144,12 +11144,11 @@ contains
 ! to be used.  Clear sky calculation is done simultaneously.
 ! For McICA, RTRNMC is called for clear and cloudy calculations.
 
-#if (WRF_CHEM == 1)
         ! Call the radiative transfer routine for "clean" sky first,
         ! passing taug rather than taut so we have no aerosol influence.
         ! We will keep totuclnlfl, totdclnlfl, fnetcln, and htrcln,
         ! and then overwrite the rest with the second call to rtrnmc.
-         if(calc_clean_atm_diag .gt. 0)then
+         if(config_calc_clean_atm_diag)then
              call rtrnmc(nlayers, istart, iend, iout, pz, semiss, ncbands, &
                      cldfmc, taucmc, planklay, planklev, plankbnd, &
                      pwvcm, fracs, taug, &
@@ -11161,12 +11160,6 @@ contains
                 totdclnlfl(k) = 0.0
             end do
          end if
-#else
-         do k = 0, nlayers
-            totuclnlfl(k) = 0.0
-            totdclnlfl(k) = 0.0
-         end do
-#endif
          call rtrnmc(nlayers, istart, iend, iout, pz, semiss, ncbands, &
                      cldfmc, taucmc, planklay, planklev, plankbnd, &
                      pwvcm, fracs, taut, &
@@ -11576,12 +11569,13 @@ CONTAINS
                        qi3d,qs3d,qg3d,cldfra3d,o33d,tsk,emiss,    &
                        xland,xice,snow,xlat,julday,icloud,        &
                        cldovrlp,idcor,o3input,noznlevels,         &
-                       pin,o3clim,glw,olr,lwcf,rthratenlw,        &
+                       pin,o3clim,glw,olr,lwcf,rthratenlw,rthratenlwc, &
                        has_reqc,has_reqi,has_reqs,re_cloud,       &
                        re_ice,re_snow,rre_cloud,rre_ice,rre_snow, &
-                       lwupt,lwuptc,lwdnt,lwdntc,                 &
-                       lwupb,lwupbc,lwdnb,lwdnbc,                 &
+                       lwupt,lwuptc,lwuptcln,lwdnt,lwdntc,lwdntcln,&
+                       lwupb,lwupbc,lwupbcln,lwdnb,lwdnbc,lwdnbcln,&
                        lwupflx, lwupflxc, lwdnflx, lwdnflxc,      &
+                       config_calc_clean_atm_diag,                 & 
                        ids,ide, jds,jde, kds,kde,                 & 
                        ims,ime, jms,jme, kms,kme,                 &
                        its,ite, jts,jte, kts,kte                  &
@@ -11601,6 +11595,7 @@ CONTAINS
  integer,intent(in),optional:: o3input
 
  real,intent(in),dimension(ims:ime,jms:jme):: emiss,tsk,snow,xice,xland,xlat
+ logical,intent(in),optional:: config_calc_clean_atm_diag
 
  real,intent(in),dimension(ims:ime,kms:kme,jms:jme):: t3d,p3d,pi3d
  real,intent(in),dimension(ims:ime,kms:kme,jms:jme):: dz8w,p8w,t8w
@@ -11617,9 +11612,9 @@ CONTAINS
 !--- inout arguments:
  real,intent(inout),dimension(ims:ime,jms:jme):: glw,olr,lwcf
  real,intent(inout),dimension(ims:ime,jms:jme),optional:: &
-    lwupt,lwuptc,lwdnt,lwdntc,lwupb,lwupbc,lwdnb,lwdnbc
+    lwupt,lwuptc,lwdnt,lwdntc,lwupb,lwupbc,lwdnb,lwdnbc,lwuptcln,lwdntcln,lwupbcln,lwdnbcln
 
- real,intent(inout),dimension(ims:ime,kms:kme,jms:jme):: rthratenlw
+ real,intent(inout),dimension(ims:ime,kms:kme,jms:jme):: rthratenlw,rthratenlwc
  
 !--- output arguments:
   real,intent(out),dimension(ims:ime,kms:kme,jms:jme),optional:: &
@@ -11628,7 +11623,7 @@ CONTAINS
      lwupflx,lwupflxc,lwdnflx,lwdnflxc
 
 !local variables and arrays:
- integer:: calc_clean_atm_diag
+! integer:: config_calc_clean_atm_diag
  integer:: nb,ncol,nlay,icld,inflglw,iceflglw,liqflglw
  integer:: iplon,irng,permuteseed
  integer:: pcols,pver
@@ -11759,7 +11754,7 @@ CONTAINS
  liqflglw = 1
 
 !--- initialize option for the calculation of clean air upward and downward fluxes:
- calc_clean_atm_diag = 0
+! config_calc_clean_atm_diag = 0
 
 !--- latitude loop:
  j_loop: do j = jts,jte
@@ -12205,7 +12200,7 @@ CONTAINS
                    emis    , inflglw , iceflglw , liqflglw , cldfmcl  , taucmcl , & 
                    ciwpmcl , clwpmcl , cswpmcl  , reicmcl  , relqmcl  , resnmcl , &
                    tauaer  , uflx    , dflx     , hr       , uflxc    , dflxc   , &
-                   hrc     , uflxcln , dflxcln  , calc_clean_atm_diag)
+                   hrc     , uflxcln , dflxcln  , config_calc_clean_atm_diag)
 
 
 
@@ -12225,11 +12220,22 @@ CONTAINS
           lwupbc(i,j) = uflxc(1,1)
           lwdnb(i,j)  = dflx(1,1)
           lwdnbc(i,j) = dflxc(1,1)
+          ! Directly copied from the WRFv4.6 physics (RRTMG LW)
+          ! Minsu Choi CIRES/NOAA GSL
+          !Output up and down toa fluxes for clean sky
+          if(config_calc_clean_atm_diag)then
+            lwuptcln(i,j)  = uflxcln(1,nlayers+1)
+            lwdntcln(i,j)  = dflxcln(1,nlayers+1)
+            !Output up and down surface fluxes for clean sky
+            lwupbcln(i,j)  = uflxcln(1,1)
+            lwdnbcln(i,j)  = dflxcln(1,1)
+          endif
        endif
 
        if(present(lwupflx)) then
           !output up and down fluxes:
-          do k=kts,nlayers+1
+!          do k=kts,nlayers+1
+          do k=kts,kte+2
              lwupflx(i,k,j)  = uflx(1,k)
              lwupflxc(i,k,j) = uflxc(1,k)
              lwdnflx(i,k,j)  = dflx(1,k)
@@ -12241,6 +12247,8 @@ CONTAINS
        do k = kts, kte
           tten1d(k) = hr(ncol,k)/86400.
           rthratenlw(i,k,j) = tten1d(k)/pi3d(i,k,j)
+          tten1d(k) = hrc(ncol,k)/86400.
+          rthratenlwc(i,k,j) = tten1d(k)/pi3d(i,k,j)
        enddo
 
        !--- output the effective radii for cloud water, cloud ice, and snow:

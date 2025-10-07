@@ -872,12 +872,16 @@
     swcf_p,           &!shortwave cloud forcing at top-of-atmosphere                        [W m-2]
     swdnb_p,          &!all-sky downwelling shortwave flux at bottom-of-atmosphere          [J m-2]
     swdnbc_p,         &!clear-sky downwelling shortwave flux at bottom-of-atmosphere        [J m-2]
+    swdnbcln_p,       &!clean-sky downwelling shortwave flux at bottom-of-atmosphere        [J m-2]
     swdnt_p,          &!all-sky downwelling shortwave flux at top-of-atmosphere             [J m-2]
     swdntc_p,         &!clear-sky downwelling shortwave flux at top-of-atmosphere           [J m-2]
+    swdntcln_p,       &!clean-sky downwelling shortwave flux at top-of-atmosphere           [J m-2]
     swupb_p,          &!all-sky upwelling shortwave flux at bottom-of-atmosphere            [J m-2]
     swupbc_p,         &!clear-sky upwelling shortwave flux at bottom-of-atmosphere          [J m-2]
+    swupbcln_p,       &!clean-sky upwelling shortwave flux at bottom-of-atmosphere          [J m-2]
     swupt_p,          &!all-sky upwelling shortwave flux at top-of-atmosphere               [J m-2]
-    swuptc_p           !clear-sky upwelling shortwave flux at top-of-atmosphere             [J m-2]
+    swuptc_p,         &!clear-sky upwelling shortwave flux at top-of-atmosphere             [J m-2]
+    swuptcln_p         !clean-sky upwelling shortwave flux at top-of-atmosphere             [J m-2]
 
  real(kind=RKIND),dimension(:,:),allocatable:: &
     swvisdir_p,       &!visible direct downward flux                                        [W m-2]
@@ -893,12 +897,14 @@
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     swdnflx_p,        &!
     swdnflxc_p,       &!
+    swdnflxcln_p,     &!
     swupflx_p,        &!
-    swupflxc_p         !
+    swupflxc_p,       &!
+    swupflxcln_p       !
 
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    rthratensw_p       !uncoupled theta tendency due to shortwave radiation                 [K s-1]
-
+    rthratensw_p   !, & !uncoupled theta tendency due to shortwave radiation                 [K s-1]
+!    rthratenswc_p  !uncoupled theta tendency due to clear-sky shortwave radiation        [K s-1]
 !=================================================================================================================
 !... variables and arrays related to parameterization of long-wave radiation:
 !=================================================================================================================
@@ -913,22 +919,29 @@
     lwcf_p,           &!longwave cloud forcing at top-of-atmosphere                         [W m-2]
     lwdnb_p,          &!all-sky downwelling longwave flux at bottom-of-atmosphere           [J m-2]
     lwdnbc_p,         &!clear-sky downwelling longwave flux at bottom-of-atmosphere         [J m-2]
+    lwdnbcln_p,       &!clean-sky downwelling longwave flux at bottom-of-atmosphere         [J m-2]
     lwdnt_p,          &!all-sky downwelling longwave flux at top-of-atmosphere              [J m-2]
     lwdntc_p,         &!clear-sky downwelling longwave flux at top-of-atmosphere            [J m-2]
+    lwdntcln_p,       &!clean-sky downwelling longwave flux at top-of-atmosphere            [J m-2]
     lwupb_p,          &!all-sky upwelling longwave flux at bottom-of-atmosphere             [J m-2]
     lwupbc_p,         &!clear-sky upwelling longwave flux at bottom-of-atmosphere           [J m-2]
+    lwupbcln_p,       &!clean-sky upwelling longwave flux at bottom-of-atmosphere           [J m-2]
     lwupt_p,          &!all-sky upwelling longwave flux at top-of-atmosphere                [J m-2]
     lwuptc_p,         &!clear-sky upwelling longwave flux at top-of-atmosphere              [J m-2]
+    lwuptcln_p,       &!clean-sky upwelling longwave flux at top-of-atmosphere              [J m-2]
     olrtoa_p           !outgoing longwave radiation at top-of-the-atmosphere                [W m-2]
 
   real(kind=RKIND),dimension(:,:,:),allocatable:: &
     lwdnflx_p,        &!
     lwdnflxc_p,       &!
+    lwdnflxcln_p,     &!
     lwupflx_p,        &!
-    lwupflxc_p         !
+    lwupflxc_p,       &!
+    lwupflxcln_p      !
 
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     rthratenlw_p,     &!uncoupled theta tendency due to longwave radiation                  [K s-1]
+    rthratenlwc_p,     &!uncoupled theta tendency due to clear-sky longwave radiation                  [K s-1]
     rrecloud_p,       &!effective radius for cloud water calculated in rrtmg_lwrad             [mu]
     rreice_p,         &!effective radius for cloud ice calculated in rrmtg_lwrad               [mu]
     rresnow_p         !effective radius for snow calculated in rrtmg_lwrad                    [mu]

@@ -1,0 +1,10 @@
+
+Currently Loaded Modules:
+  1) stack-intel/2021.5.0   6) gnu/14.2.0      11) hdf5parallel/1.10.6
+  2) nghttp2/1.57.0         7) intel/2022.1.2  12) netcdf-hdf5parallel/4.7.4
+  3) zlib/1.2.13            8) impi/2022.1.2   13) rrfs/jet.intel
+  4) curl/8.4.0             9) pnetcdf/1.7.0
+  5) cmake/3.23.1          10) szip/2.1
+
+ 
+

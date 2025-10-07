@@ -3552,6 +3552,7 @@ module atm_time_integration
 ! Retrieval of K-eddy mixing array and things needed for second-order fluxes
       
       call mpas_pool_get_array(mesh, 'meshScalingDel2', meshScalingDel2)
+      call mpas_pool_get_array(mesh, 'meshScalingDel4', meshScalingDel4)
       call mpas_pool_get_array(diag, 'kdiff', kdiff)
       call mpas_pool_get_array(diag, 'rho_edge', rho_edge)
 
