@@ -152,7 +152,8 @@
                    config_sst_update,         &
                    config_gvf_update,         &
                    config_sstdiurn_update,    &
-                   config_deepsoiltemp_update
+                   config_deepsoiltemp_update,&
+                   config_calc_clean_atm_diag
 
  character(len=StrKIND),pointer:: config_convection_scheme, &
                                   config_radt_lw_scheme,    &
@@ -202,6 +203,7 @@
  call mpas_pool_get_config(domain%blocklist%configs,'config_sstdiurn_update'    ,config_sstdiurn_update    )
  call mpas_pool_get_config(domain%blocklist%configs,'config_deepsoiltemp_update',config_deepsoiltemp_update)
  call mpas_pool_get_config(domain%blocklist%configs,'config_dust_scheme'        ,config_dust_scheme        )
+ call mpas_pool_get_config(domain%blocklist%configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
 !update the current julian day and current year:
 
@@ -274,6 +276,7 @@
     endif
     call mpas_log_write('--- time to run the LW radiation scheme L_RADLW = $l',logicArgs=(/l_radtlw/))
  endif
+
 
  if(trim(config_radt_sw_scheme) /= "off") then
     l_radtsw = .false.
@@ -411,15 +414,16 @@
  logical,pointer:: config_sst_update
  logical,pointer:: config_frac_seaice
  logical,pointer:: config_microp_re
+ logical,pointer:: config_calc_clean_atm_diag
 
 
  integer,pointer:: cam_dim1
  integer,pointer:: nMonths
  integer,pointer:: nAerosols,nAerLevels,nOznLevels
  integer,pointer:: nCellsSolve,nSoilLevels,nVertLevels,nlcat,nscat
- integer,pointer:: nChem,nkanthro,nkwildfire,nkbiogenic,nkvolcanic,nkreswoodcomb
- integer,pointer:: n_e_ant_in,n_e_bb_in,n_e_bio_in,n_e_vol_in
- integer,pointer:: n_e_ant_out,n_e_bb_out,n_e_bio_out,n_e_dust_out,n_e_ss_out,n_e_vol_out
+ integer,pointer:: nChem,nkanthro,nkwildfire,nkbiogenic,nkvolcanic
+ integer,pointer:: n_e_bb_in
+ integer,pointer:: n_e_bb_out,n_e_dust_out
 
  real(kind=RKIND):: dt
 
@@ -451,6 +455,7 @@
  call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
  call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_get_timeInterval(mpas_get_clock_timestep(clock, ierr), dt=dt)
 
@@ -471,19 +476,11 @@
  call mpas_pool_get_dimension(mesh,'nkwildfire'   ,nkwildfire     )
  call mpas_pool_get_dimension(mesh,'nkbiogenic'   ,nkbiogenic     )
  call mpas_pool_get_dimension(mesh,'nkvolcanic'   ,nkvolcanic     )
- call mpas_pool_get_dimension(mesh,'nkreswoodcomb',nkreswoodcomb       )
 
- call mpas_pool_get_dimension(diag_physics, 'num_e_ant_out',n_e_ant_out  )
  call mpas_pool_get_dimension(diag_physics, 'num_e_bb_out',n_e_bb_out    )
- call mpas_pool_get_dimension(diag_physics, 'num_e_bio_out',n_e_bio_out  )
  call mpas_pool_get_dimension(diag_physics, 'num_e_dust_out',n_e_dust_out)
- call mpas_pool_get_dimension(diag_physics, 'num_e_ss_out',n_e_ss_out    )
- call mpas_pool_get_dimension(diag_physics, 'num_e_vol_out',n_e_vol_out  )
 
- call mpas_pool_get_dimension(emission_input,'num_e_ant_in',n_e_ant_in       )
  call mpas_pool_get_dimension(emission_input,'num_e_bb_in',n_e_bb_in         )
- call mpas_pool_get_dimension(emission_input,'num_e_bio_in',n_e_bio_in       )
- call mpas_pool_get_dimension(emission_input,'num_e_vol_in',n_e_vol_in       )
 
 !initialization of gmt, julian day, and alarms:
 
@@ -717,19 +714,11 @@
  kwildfire   = nkwildfire
  kbiogenic   = nkbiogenic
  kvolcanic   = nkvolcanic
- kreswoodcomb= nkreswoodcomb
-!
- num_e_ant_in= n_e_ant_in
+
  num_e_bb_in = n_e_bb_in
- num_e_bio_in= n_e_bio_in
- num_e_vol_in= n_e_vol_in
-!
- num_e_ant_out = n_e_ant_out
+
  num_e_bb_out  = n_e_bb_out
- num_e_bio_out = n_e_bio_out
  num_e_dust_out= n_e_dust_out
- num_e_ss_out  = n_e_ss_out
- num_e_vol_out = n_e_vol_out
 
  if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off') then
     do_chemistry = .true.

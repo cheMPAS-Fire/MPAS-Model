@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<registry model="mpas" core="atmosphere" core_abbrev="atm" version="8.3.1-2.1">
+<registry model="mpas" core="atmosphere" core_abbrev="atm" version="8.3.0-2.0">
 
 <!-- **************************************************************************************** -->
 <!-- ************************************** Dimensions ************************************** -->
@@ -772,37 +772,53 @@
 			<var name="rvbldiff"/>
 			<var name="i_acswdnb"/>
 			<var name="i_acswdnbc"/>
+			<var name="i_acswdnbcln"/>
 			<var name="i_acswdnt"/>
 			<var name="i_acswdntc"/>
+			<var name="i_acswdntcln"/>
 			<var name="i_acswupb"/>
 			<var name="i_acswupbc"/>
+			<var name="i_acswupbcln"/>
 			<var name="i_acswupt"/>
 			<var name="i_acswuptc"/>
+			<var name="i_acswuptcln"/>
 			<var name="acswdnb"/>
 			<var name="acswdnbc"/>
+			<var name="acswdnbcln"/>
 			<var name="acswdnt"/>
 			<var name="acswdntc"/>
+			<var name="acswdntcln"/>
 			<var name="acswupb"/>
 			<var name="acswupbc"/>
+			<var name="acswupbcln"/>
 			<var name="acswupt"/>
 			<var name="acswuptc"/>
+			<var name="acswuptcln"/>
 			<var name="gsw"/>
 			<var name="i_aclwdnb"/>
 			<var name="i_aclwdnbc"/>
+			<var name="i_aclwdnbcln"/>
 			<var name="i_aclwdnt"/>
 			<var name="i_aclwdntc"/>
+			<var name="i_aclwdntcln"/>
 			<var name="i_aclwupb"/>
 			<var name="i_aclwupbc"/>
+			<var name="i_aclwupbcln"/>
 			<var name="i_aclwupt"/>
 			<var name="i_aclwuptc"/>
+			<var name="i_aclwuptcln"/>
 			<var name="aclwdnb"/>
 			<var name="aclwdnbc"/>
+			<var name="aclwdnbcln"/>
 			<var name="aclwdnt"/>
 			<var name="aclwdntc"/>
+			<var name="aclwdntcln"/>
 			<var name="aclwupb"/>
 			<var name="aclwupbc"/>
+			<var name="aclwupbcln"/>
 			<var name="aclwupt"/>
 			<var name="aclwuptc"/>
+			<var name="aclwuptcln"/>
 			<var name="glw"/>
 			<var name="o3clim"/>
 			<var name="o3vmr"/>
@@ -883,6 +899,7 @@
 			<var name="rnwfablten"/>
 			<var name="rthratensw"/>
 			<var name="rthratenlw"/>
+			<var name="rthratenlwc"/>
 			<var name="vcpool" packages="cu_grell_freitas_li_in"/>
                         <var name="sub3d_rthcuten" packages="cu_grell_freitas_li_in"/>
                         <var name="sub3d_rqvcuten" packages="cu_grell_freitas_li_in"/>
@@ -1503,37 +1520,53 @@
                         <var name="rvbldiff"/>
                         <var name="i_acswdnb"/>
                         <var name="i_acswdnbc"/>
+                        <var name="i_acswdnbcln"/>
                         <var name="i_acswdnt"/>
                         <var name="i_acswdntc"/>
+                        <var name="i_acswdntcln"/>
                         <var name="i_acswupb"/>
                         <var name="i_acswupbc"/>
+                        <var name="i_acswupbcln"/>
                         <var name="i_acswupt"/>
                         <var name="i_acswuptc"/>
+                        <var name="i_acswuptcln"/>
                         <var name="acswdnb"/>
                         <var name="acswdnbc"/>
+                        <var name="acswdnbcln"/>
                         <var name="acswdnt"/>
                         <var name="acswdntc"/>
+                        <var name="acswdntcln"/>
                         <var name="acswupb"/>
                         <var name="acswupbc"/>
+                        <var name="acswupbcln"/>
                         <var name="acswupt"/>
                         <var name="acswuptc"/>
+                        <var name="acswuptcln"/>
                         <var name="gsw"/>
                         <var name="i_aclwdnb"/>
                         <var name="i_aclwdnbc"/>
+                        <var name="i_aclwdnbcln"/>
                         <var name="i_aclwdnt"/>
                         <var name="i_aclwdntc"/>
+                        <var name="i_aclwdntcln"/>
                         <var name="i_aclwupb"/>
                         <var name="i_aclwupbc"/>
+                        <var name="i_aclwupbcln"/>
                         <var name="i_aclwupt"/>
                         <var name="i_aclwuptc"/>
+                        <var name="i_aclwuptcln"/>
                         <var name="aclwdnb"/>
                         <var name="aclwdnbc"/>
+                        <var name="aclwdnbcln"/>
                         <var name="aclwdnt"/>
-                        <var name="aclwdntc"/>
+			<var name="aclwdntc"/>
+                        <var name="aclwdntcln"/>
                         <var name="aclwupb"/>
                         <var name="aclwupbc"/>
+                        <var name="aclwupbcln"/>
                         <var name="aclwupt"/>
                         <var name="aclwuptc"/>
+                        <var name="aclwuptcln"/>
                         <var name="glw"/>
                         <var name="o3clim"/>
                         <var name="o3vmr"/>
@@ -1606,6 +1639,7 @@
                         <var name="rnwfablten"/>
                         <var name="rthratensw"/>
                         <var name="rthratenlw"/>
+                        <var name="rthratenlwc"/>
                         <var name="vcpool" packages="cu_grell_freitas_in"/>
                         <var name="sub3d_rthcuten" packages="cu_grell_freitas_in"/>
                         <var name="sub3d_rqvcuten" packages="cu_grell_freitas_in"/>
@@ -2680,6 +2714,11 @@
                      units="-"
                      description="logical for configuration of sea-surface temperature"
                      possible_values=".true. for time-varying sea-surface temperatures; .false., otherwise"/>
+
+                <nml_option name="config_calc_clean_atm_diag" type="logical" default_value="false"
+                     units="-"
+                     description="logical for clean sky diagnostics"
+		     possible_values=".true. for clean sky/clear sky calculation; .false., otherwise"/>
 
 	        <nml_option name="config_gvf_update" type="logical" default_value="true"
                      units="-"
@@ -3762,11 +3801,17 @@
                 <var name="i_acswdnbc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky downward surface shortwave radiation greater than config_bucket_radt"/>
 
+                <var name="i_acswdnbcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky downward surface shortwave radiation greater than config_bucket_radt"/>
+
                 <var name="i_acswdnt" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated all-sky downward top-of-atmosphere shortwave radiation greater than config_bucket_radt"/>
 
                 <var name="i_acswdntc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky downward top-of-atmosphere shortwave radiation greater than config_bucket_radt"/>
+
+                <var name="i_acswdntcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky downward top-of-atmosphere shortwave radiation greater than config_bucket_radt"/>
 
                 <var name="i_acswupb" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated all-sky upward surface shortwave radiation greater than config_bucket_radt"/>
@@ -3774,11 +3819,17 @@
                 <var name="i_acswupbc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky upward surface shortwave radiation greater than config_bucket_radt"/>
 
+                <var name="i_acswupbcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky upward surface shortwave radiation greater than config_bucket_radt"/>
+
                 <var name="i_acswupt" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated all-sky upward top-of-atmosphere shortwave radiation greater than config_bucket_radt"/>
 
                 <var name="i_acswuptc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky upward top-of-atmosphere shortwave radiation greater than config_bucket_radt"/>
+
+                <var name="i_acswuptcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky upward top-of-atmosphere shortwave radiation greater than config_bucket_radt"/>
 
                 <var name="coszr" type="real" dimensions="nCells Time" units="unitless"
                      description="cosine of zenith solar angle"/>
@@ -3792,11 +3843,17 @@
                 <var name="swdnbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky downward surface shortwave radiation flux"/>
 
+                <var name="swdnbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky downward surface shortwave radiation flux"/>
+
                 <var name="swdnt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky downward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="swdntc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky downward top-of-atmosphere shortwave radiation flux"/>
+
+                <var name="swdntcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky downward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="swupb" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky upward surface shortwave radiation flux"/>
@@ -3804,11 +3861,17 @@
                 <var name="swupbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky upward surface shortwave radiation flux"/>
 
+                <var name="swupbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky upward surface shortwave radiation flux"/>
+
                 <var name="swupt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky upward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="swuptc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky upward top-of-atmosphere shortwave radiation flux"/>
+
+                <var name="swuptcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky upward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="acswdnb" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky downward surface shortwave radiation flux"/>
@@ -3816,11 +3879,17 @@
                 <var name="acswdnbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky downward surface shortwave radiation flux"/>
 
+                <var name="acswdnbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky downward surface shortwave radiation flux"/>
+
                 <var name="acswdnt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky downward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="acswdntc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky downward top-of-atmosphere shortwave radiation flux"/>
+
+                <var name="acswdntcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky downward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="acswupb" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky upward surface shortwave radiation flux"/>
@@ -3828,11 +3897,17 @@
                 <var name="acswupbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky upward surface shortwave radiation flux"/>
 
+                <var name="acswupbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky upward surface shortwave radiation flux"/>
+
                 <var name="acswupt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky upward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="acswuptc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky upward top-of-atmosphere shortwave radiation flux"/>
+
+                <var name="acswuptcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky upward top-of-atmosphere shortwave radiation flux"/>
 
                 <var name="swddir" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="shortwave surface downward direct irradiance"/>
@@ -3853,10 +3928,16 @@
                 <var name="swdnflxc" type="real" dimensions="nVertLevelsP2 nCells Time" units="-"
                      description="-"/>
 
+                <var name="swdnflxcln" type="real" dimensions="nVertLevelsP2 nCells Time" units="-"
+                     description="-"/>
+
                 <var name="swupflx" type="real" dimensions="nVertLevelsP2 nCells Time" units="-"
                      description="-"/>
 
                 <var name="swupflxc" type="real" dimensions="nVertLevelsP2 nCells Time" units="-"
+                     description="-"/>
+
+                <var name="swupflxcln" type="real" dimensions="nVertLevelsP2 nCells Time" units="-"
                      description="-"/>
 
 
@@ -3876,11 +3957,17 @@
                 <var name="i_aclwdnbc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky downward surface longwave radiation greater than config_bucket_radt"/>
 
+                <var name="i_aclwdnbcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky downward surface longwave radiation greater than config_bucket_radt"/>
+
                 <var name="i_aclwdnt" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated all-sky downward top-of-atmosphere longwave radiation greater than config_bucket_radt"/>
 
                 <var name="i_aclwdntc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky downward top-of-atmosphere longwave radiation greater than config_bucket_radt"/>
+
+                <var name="i_aclwdntcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky downward top-of-atmosphere longwave radiation greater than config_bucket_radt"/>
 
                 <var name="i_aclwupb"  type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated all-sky upward surface longwave radiation greater than config_bucket_radt"/>
@@ -3888,11 +3975,17 @@
                 <var name="i_aclwupbc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky upward surface longwave radiation greater than config_bucket_radt"/>
 
+                <var name="i_aclwupbcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky upward surface longwave radiation greater than config_bucket_radt"/>
+
                 <var name="i_aclwupt" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated all-sky upward top-of-atmosphere longwave radiation greater than config_bucket_radt"/>
 
                 <var name="i_aclwuptc" type="integer" dimensions="nCells Time" units="unitless"
                      description="incidence of accumulated clear-sky upward top-of-atmosphere longwave radiation greater than config_bucket_radt"/>
+
+                <var name="i_aclwuptcln" type="integer" dimensions="nCells Time" units="unitless"
+                     description="incidence of accumulated clean-sky upward top-of-atmosphere longwave radiation greater than config_bucket_radt"/>
 
                 <var name="lwcf" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="top-of-atmosphere cloud longwave radiative forcing"/>
@@ -3903,11 +3996,17 @@
                 <var name="lwdnbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky downward surface longwave radiation flux"/>
 
+                <var name="lwdnbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky downward surface longwave radiation flux"/>
+
                 <var name="lwdnt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky downward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="lwdntc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky downward top-of-the-atmosphere longwave radiation flux"/>
+
+                <var name="lwdntcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky downward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="lwupb" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky upward surface longwave radiation flux"/>
@@ -3915,11 +4014,17 @@
                 <var name="lwupbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky upward surface longwave radiation flux"/>
 
+                <var name="lwupbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky upward surface longwave radiation flux"/>
+
                 <var name="lwupt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky upward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="lwuptc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="clear-sky upward top-of-the-atmosphere longwave radiation flux"/>
+
+                <var name="lwuptcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="clean-sky upward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="aclwdnb" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky downward surface longwave radiation flux"/>
@@ -3927,11 +4032,17 @@
                 <var name="aclwdnbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky downward surface longwave radiation flux"/>
 
+                <var name="aclwdnbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky downward surface longwave radiation flux"/>
+
                 <var name="aclwdnt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky downward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="aclwdntc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky downward top-of-the-atmosphere longwave radiation flux"/>
+
+                <var name="aclwdntcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky downward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="aclwupb" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky upward surface longwave radiation flux"/>
@@ -3939,11 +4050,17 @@
                 <var name="aclwupbc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky upward surface longwave radiation flux"/>
 
+                <var name="aclwupbcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky upward surface longwave radiation flux"/>
+
                 <var name="aclwupt" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated all-sky upward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="aclwuptc" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="accumulated clear-sky upward top-of-the-atmosphere longwave radiation flux"/>
+
+                <var name="aclwuptcln" type="real" dimensions="nCells Time" units="W m^{-2}"
+                     description="accumulated clean-sky upward top-of-the-atmosphere longwave radiation flux"/>
 
                 <var name="olrtoa" type="real" dimensions="nCells Time" units="W m^{-2}"
                      description="all-sky top-of-atmosphere outgoing longwave radiation flux"/>
@@ -4387,7 +4504,10 @@
                      description="tendency of potential temperature due to short wave radiation"/>
 
                 <var name="rthratenlw" type="real" dimensions="nVertLevels nCells Time" units="K s^{-1}"
-                     description="tendency of potential temperature due to long wave radiation"/>
+			description="tendency of potential temperature due to long wave radiation"/>
+
+                <var name="rthratenlwc" type="real" dimensions="nVertLevels nCells Time" units="K s^{-1}"
+                     description="tendency of potential temperature due to clear-sky long wave radiation"/>
 #endif
         </var_struct>
 

@@ -8881,9 +8881,8 @@
 ! ----------------------  End,  Zhenxin 2011-06-20    --------------------------------!
              swdkdir,swdkdif,                               & ! jararias, 2013/08/10
              swdkdirc,                                      & ! PAJ
-             calc_clean_atm_diag                            &
+             config_calc_clean_atm_diag                            &
                                                                 )
-
 
 ! ------- Description -------
 
@@ -9080,7 +9079,7 @@
       real(kind=rb), intent(in) :: ecaer(:,:,:)       ! Aerosol optical depth at 0.55 micron (iaer=6 only)
                                                       !    Dimensions: (ncol,nlay,naerec)
                                                       ! (non-delta scaled)      
-      integer, intent(in)       :: calc_clean_atm_diag! Control for clean air diagnositic calls for WRF-Chem
+      logical, intent(in)       :: config_calc_clean_atm_diag! Control for clean air diagnositic calls for WRF-Chem
 
 ! ----- Output -----
 
@@ -9269,6 +9268,8 @@
       real(kind=rb) :: swnflxc(nlay+2)        ! Clear sky shortwave net flux (W/m2)
       real(kind=rb) :: dirdflux(nlay+2)       ! Direct downward shortwave surface flux
       real(kind=rb) :: difdflux(nlay+2)       ! Diffuse downward shortwave surface flux
+      real(kind=rb) :: dirdcflux(nlay+2)      ! Clear sky direct downward shortwave flux
+      real(kind=rb) :: difdcflux(nlay+2)      ! Clear sky diffuse downward shortwave flux
       real(kind=rb) :: uvdflx(nlay+2)         ! Total sky downward shortwave flux, UV/vis  
       real(kind=rb) :: nidflx(nlay+2)         ! Total sky downward shortwave flux, near-IR 
       real(kind=rb) :: dirdnuv(nlay+2)        ! Direct downward shortwave flux, UV/vis
@@ -9564,10 +9565,9 @@
          swhrc(iplon,nlayers) = 0._rb
          swhr(iplon,nlayers) = 0._rb
 
-#if (WRF_CHEM == 1)
          !  Repeat call to 2-stream radiation model using "clean sky"
          !  variables and aerosol tau set to 0
-         if(calc_clean_atm_diag .gt. 0)then
+         if(config_calc_clean_atm_diag)then
             do i=1,nlayers+1
                 zbbcu(i) = 0._rb
                 zbbcd(i) = 0._rb
@@ -9607,14 +9607,6 @@
                swdflxcln(iplon,i) = 0.0
             enddo
          end if
-
-#else
-         do i = 1, nlayers+1
-            swuflxcln(iplon,i) = 0.0
-            swdflxcln(iplon,i) = 0.0
-         enddo
-
-#endif
 ! End longitude loop
       enddo
 
@@ -10030,13 +10022,14 @@ CONTAINS
                        degrad,declin,solcon,xlat,xlong,icloud,         &
                        cldovrlp,idcor,o3input, &
                        noznlevels,pin,o3clim,gsw,swcf,rthratensw,      &
-                       has_reqc,has_reqi,has_reqs,re_cloud,            &
+                       has_reqc,has_reqi,has_reqs,re_cloud,&
                        re_ice,re_snow,                                 &
                        aer_opt,tauaer3d,ssaaer3d,asyaer3d,             &
-                       swupt,swuptc,swdnt,swdntc,                      &
-                       swupb,swupbc,swdnb,swdnbc,                      &
-                       swupflx, swupflxc, swdnflx, swdnflxc,           &
-                       swddir,swddni,swddif,                           &
+                       swupt,swuptc,swuptcln,swdnt,swdntc,swdntcln,    &
+                       swupb,swupbc,swupbcln,swdnb,swdnbc,swdnbcln,    &
+                       swupflx, swupflxc,swupflxcln, swdnflx,          &
+                       swdnflxc,swdnflxcln,                            &
+                       swddir,swddni,swddif,config_calc_clean_atm_diag,       &
                        ids,ide, jds,jde, kds,kde,                      & 
                        ims,ime, jms,jme, kms,kme,                      &
                        its,ite, jts,jte, kts,kte                       &
@@ -10079,9 +10072,11 @@ CONTAINS
 !--- inout arguments:
  real,intent(inout),dimension(ims:ime,jms:jme):: coszr,gsw,swcf
  real,intent(inout),dimension(ims:ime,jms:jme),optional:: &
-    swupt,swuptc,swdnt,swdntc,swupb,swupbc,swdnb,swdnbc
+    swupt,swuptc,swuptcln,swdnt,swdntc,swdntcln,swupb,swupbc,swupbcln,swdnb,swdnbc,swdnbcln
+ real,intent(inout),dimension(ims:ime,jms:jme),optional:: swupflxcln, swdnflxcln
 
- real,intent(inout),dimension(ims:ime,kms:kme,jms:jme):: rthratensw
+ real,intent(inout),dimension(ims:ime,kms:kme,jms:jme)::rthratensw !,rthratenswc
+
 
 !--- output arguments:
   real,intent(out),dimension(ims:ime,jms:jme),optional:: &
@@ -10092,7 +10087,7 @@ CONTAINS
 !local variables and arrays:
  logical:: dorrsw
 
- integer:: calc_clean_atm_diag
+ logical, intent(in):: config_calc_clean_atm_diag
  integer:: na,nb,ncol,nlay,icld,inflgsw,iceflgsw,liqflgsw
  integer:: dyofyr
  integer:: iplon,irng,permuteseed
@@ -10187,7 +10182,7 @@ CONTAINS
  liqflgsw = 1
 
 !--- initialize option for the calculation of clean air upward and downward fluxes:
- calc_clean_atm_diag = 0
+! config_calc_clean_atm_diag = 0
 
 !--- latitude loop:
  j_loop: do j = jts,jte
@@ -10600,7 +10595,7 @@ CONTAINS
                       tauaer    , ssaaer    , asmaer    , ecaer     , swuflx    , swdflx    , &
                       swhr      , swuflxc   , swdflxc   , swhrc     , swuflxcln , swdflxcln , &
                       aer_opt   , sibvisdir , sibvisdif , sibnirdir , sibnirdif , swdkdir   , &
-                      swdkdif   , swdkdirc  , calc_clean_atm_diag)
+                      swdkdif   , swdkdirc  , config_calc_clean_atm_diag)
 
           !--- OUTPUTS:
           gsw(i,j)  = swdflx(1,1) - swuflx(1,1)
@@ -10617,6 +10612,13 @@ CONTAINS
              swupbc(i,j) = swuflxc(1,1)
              swdnb(i,j)  = swdflx(1,1)
              swdnbc(i,j) = swdflxc(1,1)
+             ! Clean diagnostics, Minsu Choi CIRES/NOAA GSL
+            if(config_calc_clean_atm_diag)then
+               swuptcln(i,j)  = swuflxcln(1,kte+2)
+               swdntcln(i,j)  = swdflxcln(1,kte+2)
+               swupbcln(i,j)  = swuflxcln(1,1)
+               swdnbcln(i,j)  = swdflxcln(1,1)
+            end if
           endif
 
           if(present(swddir) .and. present(swddni) .and. present(swddif)) then
@@ -10638,6 +10640,8 @@ CONTAINS
           do k = kts, kte 
              tten1d(k) = swhr(ncol,k)/86400.
              rthratensw(i,k,j) = tten1d(k)/pi3d(i,k,j)
+!             tten1d(k) = swhrc(ncol,k)/86400.
+!             rthratenswc(i,k,j) = tten1d(k)/pi3d(i,k,j)
           enddo
 
        else
@@ -10653,6 +10657,12 @@ CONTAINS
              swupbc(i,j)    = 0.
              swdnb(i,j)     = 0.
              swdnbc(i,j)    = 0.
+             if(config_calc_clean_atm_diag)then
+               swuptcln(i,j)  = 0.
+               swdntcln(i,j)  = 0.
+               swupbcln(i,j)  = 0.
+               swdnbcln(i,j)  = 0.
+             end if
           endif
 
        endif

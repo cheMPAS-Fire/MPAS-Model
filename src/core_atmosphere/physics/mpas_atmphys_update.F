@@ -87,15 +87,22 @@
                                   i_aclwdnb,i_aclwdnbc,i_aclwdnt,i_aclwdntc, &
                                   i_aclwupb,i_aclwupbc,i_aclwupt,i_aclwuptc
 
+ integer,dimension(:),pointer  :: i_acswdnbcln,i_acswdntcln,i_acswupbcln, &
+                                  i_acswuptcln,i_aclwdnbcln,i_aclwdntcln, &
+                                  i_aclwupbcln,i_aclwuptcln
  real(kind=RKIND),pointer:: bucket_radt
  real(kind=RKIND),dimension(:),pointer:: swdnb,swdnbc,swdnt,swdntc,  &
                                          swupb,swupbc,swupt,swuptc,  &
                                          lwdnb,lwdnbc,lwdnt,lwdntc,  &
                                          lwupb,lwupbc,lwupt,lwuptc
+ real(kind=RKIND),dimension(:),pointer:: swdnbcln,swdntcln,swupbcln,swuptcln,&
+                                         lwdnbcln,lwdntcln,lwupbcln,lwuptcln
  real(kind=RKIND),dimension(:),pointer:: acswdnb,acswdnbc,acswdnt,acswdntc,  &
                                          acswupb,acswupbc,acswupt,acswuptc,  &
                                          aclwdnb,aclwdnbc,aclwdnt,aclwdntc,  &
                                          aclwupb,aclwupbc,aclwupt,aclwuptc
+ real(kind=RKIND),dimension(:),pointer:: acswdnbcln,acswdntcln,acswupbcln,acswuptcln,  &
+                                         aclwdnbcln,aclwdntcln,aclwupbcln,aclwuptcln
 
 !local variables and arrays:
  integer:: iCell
@@ -108,74 +115,106 @@
 
  call mpas_pool_get_array(diag_physics,'i_acswdnb' , i_acswdnb )
  call mpas_pool_get_array(diag_physics,'i_acswdnbc', i_acswdnbc)
+ call mpas_pool_get_array(diag_physics,'i_acswdnbcln', i_acswdnbcln)
  call mpas_pool_get_array(diag_physics,'i_acswdnt' , i_acswdnt )
  call mpas_pool_get_array(diag_physics,'i_acswdntc', i_acswdntc)
+ call mpas_pool_get_array(diag_physics,'i_acswdntcln', i_acswdntcln)
  call mpas_pool_get_array(diag_physics,'i_acswupb' , i_acswupb )
  call mpas_pool_get_array(diag_physics,'i_acswupbc', i_acswupbc)
+ call mpas_pool_get_array(diag_physics,'i_acswupbcln', i_acswupbcln)
  call mpas_pool_get_array(diag_physics,'i_acswupt' , i_acswupt )
  call mpas_pool_get_array(diag_physics,'i_acswuptc', i_acswuptc)
+ call mpas_pool_get_array(diag_physics,'i_acswuptcln', i_acswuptcln)
  call mpas_pool_get_array(diag_physics,'i_aclwdnb' , i_aclwdnb )
  call mpas_pool_get_array(diag_physics,'i_aclwdnbc', i_aclwdnbc)
+ call mpas_pool_get_array(diag_physics,'i_aclwdnbcln', i_aclwdnbcln)
  call mpas_pool_get_array(diag_physics,'i_aclwdnt' , i_aclwdnt )
  call mpas_pool_get_array(diag_physics,'i_aclwdntc', i_aclwdntc)
+ call mpas_pool_get_array(diag_physics,'i_aclwdntcln', i_aclwdntcln)
  call mpas_pool_get_array(diag_physics,'i_aclwupb' , i_aclwupb )
  call mpas_pool_get_array(diag_physics,'i_aclwupbc', i_aclwupbc)
+ call mpas_pool_get_array(diag_physics,'i_aclwupbcln', i_aclwupbcln)
  call mpas_pool_get_array(diag_physics,'i_aclwupt' , i_aclwupt )
  call mpas_pool_get_array(diag_physics,'i_aclwuptc', i_aclwuptc)
+ call mpas_pool_get_array(diag_physics,'i_aclwuptcln', i_aclwuptcln)
 
  call mpas_pool_get_array(diag_physics,'acswdnb'   , acswdnb   )
  call mpas_pool_get_array(diag_physics,'acswdnbc'  , acswdnbc  )
+ call mpas_pool_get_array(diag_physics,'acswdnbcln', acswdnbcln)
  call mpas_pool_get_array(diag_physics,'acswdnt'   , acswdnt   )
  call mpas_pool_get_array(diag_physics,'acswdntc'  , acswdntc  )
+ call mpas_pool_get_array(diag_physics,'acswdntcln', acswdntcln)
  call mpas_pool_get_array(diag_physics,'acswupb'   , acswupb   )
  call mpas_pool_get_array(diag_physics,'acswupbc'  , acswupbc  )
+ call mpas_pool_get_array(diag_physics,'acswupbcln', acswupbcln)
  call mpas_pool_get_array(diag_physics,'acswupt'   , acswupt   )
  call mpas_pool_get_array(diag_physics,'acswuptc'  , acswuptc  )
+ call mpas_pool_get_array(diag_physics,'acswuptcln', acswuptcln)
  call mpas_pool_get_array(diag_physics,'aclwdnb'   , aclwdnb   )
  call mpas_pool_get_array(diag_physics,'aclwdnbc'  , aclwdnbc  )
+ call mpas_pool_get_array(diag_physics,'aclwdnbcln', aclwdnbcln)
  call mpas_pool_get_array(diag_physics,'aclwdnt'   , aclwdnt   )
  call mpas_pool_get_array(diag_physics,'aclwdntc'  , aclwdntc  )
+ call mpas_pool_get_array(diag_physics,'aclwdntcln', aclwdntcln)
  call mpas_pool_get_array(diag_physics,'aclwupb'   , aclwupb   )
  call mpas_pool_get_array(diag_physics,'aclwupbc'  , aclwupbc  )
+ call mpas_pool_get_array(diag_physics,'aclwupbcln', aclwupbcln)
  call mpas_pool_get_array(diag_physics,'aclwupt'   , aclwupt   )
  call mpas_pool_get_array(diag_physics,'aclwuptc'  , aclwuptc  )
+ call mpas_pool_get_array(diag_physics,'aclwuptcln', aclwuptcln)
 
  call mpas_pool_get_array(diag_physics,'swdnb'     , swdnb     )
  call mpas_pool_get_array(diag_physics,'swdnbc'    , swdnbc    )
+ call mpas_pool_get_array(diag_physics,'swdnbcln'  , swdnbcln  )
  call mpas_pool_get_array(diag_physics,'swdnt'     , swdnt     )
  call mpas_pool_get_array(diag_physics,'swdntc'    , swdntc    )
+ call mpas_pool_get_array(diag_physics,'swdntcln'  , swdntcln  )
  call mpas_pool_get_array(diag_physics,'swupb'     , swupb     )
  call mpas_pool_get_array(diag_physics,'swupbc'    , swupbc    )
+ call mpas_pool_get_array(diag_physics,'swupbcln'  , swupbcln  )
  call mpas_pool_get_array(diag_physics,'swupt'     , swupt     )
  call mpas_pool_get_array(diag_physics,'swuptc'    , swuptc    )
+ call mpas_pool_get_array(diag_physics,'swuptcln'  , swuptcln  )
  call mpas_pool_get_array(diag_physics,'lwdnb'     , lwdnb     )
  call mpas_pool_get_array(diag_physics,'lwdnbc'    , lwdnbc    )
+ call mpas_pool_get_array(diag_physics,'lwdnbcln'  , lwdnbcln  )
  call mpas_pool_get_array(diag_physics,'lwdnt'     , lwdnt     )
  call mpas_pool_get_array(diag_physics,'lwdntc'    , lwdntc    )
+ call mpas_pool_get_array(diag_physics,'lwdntcln'  , lwdntcln  )
  call mpas_pool_get_array(diag_physics,'lwupb'     , lwupb     )
  call mpas_pool_get_array(diag_physics,'lwupbc'    , lwupbc    )
+ call mpas_pool_get_array(diag_physics,'lwupbcln'  , lwupbcln  )
  call mpas_pool_get_array(diag_physics,'lwupt'     , lwupt     )
  call mpas_pool_get_array(diag_physics,'lwuptc'    , lwuptc    )
+ call mpas_pool_get_array(diag_physics,'lwuptcln'  , lwuptcln  )
 
  do iCell = its, ite
     !short-wave radiation:
     acswdnb(iCell)  = acswdnb (iCell) + swdnb (iCell)*dt_dyn
     acswdnbc(iCell) = acswdnbc(iCell) + swdnbc(iCell)*dt_dyn
+    acswdnbcln(iCell) = acswdnbcln(iCell) + swdnbcln(iCell)*dt_dyn
     acswdnt(iCell)  = acswdnt (iCell) + swdnt (iCell)*dt_dyn
     acswdntc(iCell) = acswdntc(iCell) + swdntc(iCell)*dt_dyn
+    acswdntcln(iCell) = acswdntcln(iCell) + swdntcln(iCell)*dt_dyn
     acswupb(iCell)  = acswupb (iCell) + swupb (iCell)*dt_dyn
     acswupbc(iCell) = acswupbc(iCell) + swupbc(iCell)*dt_dyn
+    acswupbcln(iCell) = acswupbcln(iCell) + swupbcln(iCell)*dt_dyn
     acswupt(iCell)  = acswupt (iCell) + swupt (iCell)*dt_dyn
     acswuptc(iCell) = acswuptc(iCell) + swuptc(iCell)*dt_dyn
+    acswuptcln(iCell) = acswuptcln(iCell) + swuptcln(iCell)*dt_dyn
     !long-wave radiation:
     aclwdnb(iCell)  = aclwdnb (iCell) + lwdnb (iCell)*dt_dyn
     aclwdnbc(iCell) = aclwdnbc(iCell) + lwdnbc(iCell)*dt_dyn
+    aclwdnbcln(iCell) = aclwdnbcln(iCell) + lwdnbcln(iCell)*dt_dyn
     aclwdnt(iCell)  = aclwdnt (iCell) + lwdnt (iCell)*dt_dyn
     aclwdntc(iCell) = aclwdntc(iCell) + lwdntc(iCell)*dt_dyn
+    aclwdntcln(iCell) = aclwdntcln(iCell) + lwdntcln(iCell)*dt_dyn
     aclwupb(iCell)  = aclwupb (iCell) + lwupb (iCell)*dt_dyn
     aclwupbc(iCell) = aclwupbc(iCell) + lwupbc(iCell)*dt_dyn
+    aclwupbcln(iCell) = aclwupbcln(iCell) + lwupbcln(iCell)*dt_dyn
     aclwupt(iCell)  = aclwupt (iCell) + lwupt (iCell)*dt_dyn
     aclwuptc(iCell) = aclwuptc(iCell) + lwuptc(iCell)*dt_dyn
+    aclwuptcln(iCell) = aclwuptcln(iCell) + lwuptcln(iCell)*dt_dyn
  enddo
 
  if(l_acradt .and. bucket_radt.gt.0._RKIND) then
@@ -190,6 +229,10 @@
           i_acswdnbc(iCell) = i_acswdnbc(iCell) + 1
           acswdnbc(iCell) = acswdnbc(iCell) - bucket_radt
        endif   
+       if(acswdnbcln(iCell) .gt. bucket_radt) then
+          i_acswdnbcln(iCell) = i_acswdnbcln(iCell) + 1
+          acswdnbcln(iCell) = acswdnbcln(iCell) - bucket_radt
+       endif   
        if(acswdnt(iCell) .gt. bucket_radt) then
           i_acswdnt(iCell) = i_acswdnt(iCell) + 1
           acswdnt(iCell) = acswdnt(iCell) - bucket_radt
@@ -197,6 +240,10 @@
        if(acswdntc(iCell) .gt. bucket_radt) then
           i_acswdntc(iCell) = i_acswdntc(iCell) + 1
           acswdntc(iCell) = acswdntc(iCell) - bucket_radt
+       endif
+       if(acswdntcln(iCell) .gt. bucket_radt) then
+          i_acswdntcln(iCell) = i_acswdntcln(iCell) + 1
+          acswdntcln(iCell) = acswdntcln(iCell) - bucket_radt
        endif
        if(acswupb(iCell) .gt. bucket_radt) then
           i_acswupb(iCell) = i_acswupb(iCell) + 1
@@ -206,6 +253,10 @@
           i_acswupbc(iCell) = i_acswupbc(iCell) + 1
           acswupbc(iCell) = acswupbc(iCell) - bucket_radt
        endif   
+       if(acswupbcln(iCell) .gt. bucket_radt) then
+          i_acswupbcln(iCell) = i_acswupbcln(iCell) + 1
+          acswupbcln(iCell) = acswupbcln(iCell) - bucket_radt
+       endif   
        if(acswupt(iCell) .gt. bucket_radt) then
           i_acswupt(iCell) = i_acswupt(iCell) + 1
           acswupt(iCell) = acswupt(iCell) - bucket_radt
@@ -213,6 +264,10 @@
        if(acswuptc(iCell) .gt. bucket_radt) then
           i_acswuptc(iCell) = i_acswuptc(iCell) + 1
           acswuptc(iCell) = acswuptc(iCell) - bucket_radt
+       endif
+       if(acswuptcln(iCell) .gt. bucket_radt) then
+          i_acswuptcln(iCell) = i_acswuptcln(iCell) + 1
+          acswuptcln(iCell) = acswuptcln(iCell) - bucket_radt
        endif
        !long-wave radiation:
        if(aclwdnb(iCell) .gt. bucket_radt) then
@@ -223,6 +278,10 @@
           i_aclwdnbc(iCell) = i_aclwdnbc(iCell) + 1
           aclwdnbc(iCell) = aclwdnbc(iCell) - bucket_radt
        endif   
+       if(aclwdnbcln(iCell) .gt. bucket_radt) then
+          i_aclwdnbcln(iCell) = i_aclwdnbcln(iCell) + 1
+          aclwdnbcln(iCell) = aclwdnbcln(iCell) - bucket_radt
+       endif   
        if(aclwdnt(iCell) .gt. bucket_radt) then
           i_aclwdnt(iCell) = i_aclwdnt(iCell) + 1
           aclwdnt(iCell) = aclwdnt(iCell) - bucket_radt
@@ -230,6 +289,10 @@
        if(aclwdntc(iCell) .gt. bucket_radt) then
           i_aclwdntc(iCell) = i_aclwdntc(iCell) + 1
           aclwdntc(iCell) = aclwdntc(iCell) - bucket_radt
+       endif
+       if(aclwdntcln(iCell) .gt. bucket_radt) then
+          i_aclwdntcln(iCell) = i_aclwdntcln(iCell) + 1
+          aclwdntcln(iCell) = aclwdntcln(iCell) - bucket_radt
        endif
        if(aclwupb(iCell) .gt. bucket_radt) then
           i_aclwupb(iCell) = i_aclwupb(iCell) + 1
@@ -239,6 +302,10 @@
           i_aclwupbc(iCell) = i_aclwupbc(iCell) + 1
           aclwupbc(iCell) = aclwupbc(iCell) - bucket_radt
        endif   
+       if(aclwupbcln(iCell) .gt. bucket_radt) then
+          i_aclwupbcln(iCell) = i_aclwupbcln(iCell) + 1
+          aclwupbcln(iCell) = aclwupbcln(iCell) - bucket_radt
+       endif   
        if(aclwupt(iCell) .gt. bucket_radt) then
           i_aclwupt(iCell) = i_aclwupt(iCell) + 1
           aclwupt(iCell) = aclwupt(iCell) - bucket_radt
@@ -246,6 +313,10 @@
        if(aclwuptc(iCell) .gt. bucket_radt) then
           i_aclwuptc(iCell) = i_aclwuptc(iCell) + 1
           aclwuptc(iCell) = aclwuptc(iCell) - bucket_radt
+       endif
+       if(aclwuptcln(iCell) .gt. bucket_radt) then
+          i_aclwuptcln(iCell) = i_aclwuptcln(iCell) + 1
+          aclwuptcln(iCell) = aclwuptcln(iCell) - bucket_radt
        endif
     enddo
 

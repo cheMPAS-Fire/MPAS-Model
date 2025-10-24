@@ -160,6 +160,7 @@
                                   config_radt_sw_scheme,    &
                                   config_sfclayer_scheme
 
+
  logical, pointer:: config_oml1d
  real(kind=RKIND),pointer:: config_bucket_radt
 
