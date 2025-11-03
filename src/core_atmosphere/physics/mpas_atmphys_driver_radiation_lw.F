@@ -425,17 +425,19 @@
     lwcf_p(i,j)     = 0.0_RKIND
     lwdnb_p(i,j)    = 0.0_RKIND
     lwdnbc_p(i,j)   = 0.0_RKIND
-    lwdnbcln_p(i,j) = 0.0_RKIND
     lwdnt_p(i,j)    = 0.0_RKIND
     lwdntc_p(i,j)   = 0.0_RKIND
-    lwdntcln_p(i,j) = 0.0_RKIND
     lwupb_p(i,j)    = 0.0_RKIND
     lwupbc_p(i,j)   = 0.0_RKIND
-    lwupbcln_p(i,j) = 0.0_RKIND
     lwupt_p(i,j)    = 0.0_RKIND
     lwuptc_p(i,j)   = 0.0_RKIND
-    lwuptcln_p(i,j) = 0.0_RKIND
     olrtoa_p(i,j)   = 0.0_RKIND
+    if (config_calc_clean_atm_diag) then
+      lwdnbcln_p(i,j) = 0.0_RKIND
+      lwdntcln_p(i,j) = 0.0_RKIND
+      lwupbcln_p(i,j) = 0.0_RKIND
+      lwuptcln_p(i,j) = 0.0_RKIND
+    end if
  enddo
  
  do k = kts,kte
@@ -537,10 +539,12 @@
        do i = its,ite
           lwdnflx_p(i,k,j)  = 0.0_RKIND
           lwdnflxc_p(i,k,j) = 0.0_RKIND
-          lwdnflxcln_p(i,k,j) = 0.0_RKIND
           lwupflx_p(i,k,j)  = 0.0_RKIND
           lwupflxc_p(i,k,j) = 0.0_RKIND
-          lwupflxcln_p(i,k,j) = 0.0_RKIND
+          if (config_calc_clean_atm_diag) then
+            lwdnflxcln_p(i,k,j) = 0.0_RKIND
+            lwupflxcln_p(i,k,j) = 0.0_RKIND
+          end if
        enddo
        enddo
        enddo
@@ -603,16 +607,12 @@
           swcf_p(i,j)       = 0.0_RKIND
           swdnb_p(i,j)      = 0.0_RKIND
           swdnbc_p(i,j)     = 0.0_RKIND
-          swdnbcln_p(i,j)   = 0.0_RKIND
           swdnt_p(i,j)      = 0.0_RKIND
           swdntc_p(i,j)     = 0.0_RKIND
-          swdntcln_p(i,j)   = 0.0_RKIND
           swupb_p(i,j)      = 0.0_RKIND
           swupbc_p(i,j)     = 0.0_RKIND
-          swupbcln_p(i,j)   = 0.0_RKIND
           swupt_p(i,j)      = 0.0_RKIND
           swuptc_p(i,j)     = 0.0_RKIND
-          swuptcln_p(i,j)   = 0.0_RKIND
        enddo
        do k = kts,kte
        do i = its,ite

@@ -324,10 +324,8 @@
 
        if(allocated(swdnflx_p)    ) deallocate(swdnflx_p    )
        if(allocated(swdnflxc_p)   ) deallocate(swdnflxc_p   )
-       if(allocated(swdnflxcln_p) ) deallocate(swdnflxcln_p )
        if(allocated(swupflx_p)    ) deallocate(swupflx_p    )
        if(allocated(swupflxc_p)   ) deallocate(swupflxc_p   )
-       if(allocated(swupflxcln_p) ) deallocate(swupflxcln_p )
        if (config_calc_clean_atm_diag) then
           if(allocated(swdnflxcln_p) ) deallocate(swdnflxcln_p) !Clean sky
           if(allocated(swupflxcln_p) ) deallocate(swupflxcln_p) !Clean sky
@@ -498,19 +496,21 @@
     swcf_p(i,j)     = 0.0_RKIND
     swdnb_p(i,j)    = 0.0_RKIND
     swdnbc_p(i,j)   = 0.0_RKIND
-    swdnbcln_p(i,j) = 0.0_RKIND
     swdnt_p(i,j)    = 0.0_RKIND
     swdntc_p(i,j)   = 0.0_RKIND
-    swdntcln_p(i,j) = 0.0_RKIND
     swupb_p(i,j)    = 0.0_RKIND
     swupbc_p(i,j)   = 0.0_RKIND
-    swupbcln_p(i,j) = 0.0_RKIND
     swupt_p(i,j)    = 0.0_RKIND
     swuptc_p(i,j)   = 0.0_RKIND
-    swuptcln_p(i,j) = 0.0_RKIND
     swddir_p(i,j)   = 0.0_RKIND
     swddni_p(i,j)   = 0.0_RKIND
     swddif_p(i,j)   = 0.0_RKIND
+    if (config_calc_clean_atm_diag) then
+      swdnbcln_p(i,j) = 0.0_RKIND
+      swdntcln_p(i,j) = 0.0_RKIND
+      swupbcln_p(i,j) = 0.0_RKIND
+      swuptcln_p(i,j) = 0.0_RKIND
+    endif
  enddo
 
  do k = kts,kte
@@ -718,12 +718,14 @@
        do j = jts,jte
        do k = kts,kte+2
        do i = its,ite
-          swdnflx_p(i,k,j)  = 0.0_RKIND
-          swdnflxc_p(i,k,j) = 0.0_RKIND
-          swdnflxcln_p(i,k,j) = 0.0_RKIND  ! Clean diagnostics
-          swupflx_p(i,k,j)  = 0.0_RKIND
-          swupflxc_p(i,k,j) = 0.0_RKIND
-          swupflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
+         swdnflx_p(i,k,j)  = 0.0_RKIND
+         swdnflxc_p(i,k,j) = 0.0_RKIND
+         swupflx_p(i,k,j)  = 0.0_RKIND
+         swupflxc_p(i,k,j) = 0.0_RKIND
+         if (config_calc_clean_atm_diag) then
+           swdnflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
+           swupflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
+         endif
        enddo
        enddo
        enddo
