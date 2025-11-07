@@ -19,7 +19,12 @@
  use mpas_atmphys_driver_radiation_sw,only: init_radiation_sw
  use mpas_atmphys_driver_sfclayer,only: init_sfclayer
  use mpas_atmphys_vars,only: f_qc,f_qr,f_qi,f_qs,f_qg,f_qoz,f_nc,f_ni,f_nifa,f_nwfa,f_nbca, &
-                             f_smoke_fine,f_dust_fine,f_dust_coarse
+                             f_smoke_fine,f_smoke_coarse,&
+                             f_polp_all,f_polp_tree,f_polp_weed,f_polp_grass,&
+                             f_pols_tree,f_pols_weed,f_pols_grass,f_pols_all, &
+                             f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse, &
+                             f_ssalt_fine,f_ssalt_coarse, &
+                             f_no3_a_fine,f_so4_a_fine,f_nh4_a_fine,f_so2,f_nh3,f_ch4
 
  use mpas_atmphys_landuse
  use mpas_atmphys_o3climatology
@@ -123,7 +128,11 @@ use mpas_stream_manager
                    config_radt_lw_scheme,    &
                    config_radt_sw_scheme,    &
                    config_smoke_scheme,      &
-                   config_dust_scheme
+                   config_pollen_scheme,     &
+                   config_dust_scheme,       &
+                   config_anthro_scheme,     &
+                   config_ssalt_scheme,      &
+                   config_sna_scheme
 
  integer,pointer:: nCellsSolve,nLags
  integer,dimension(:),pointer:: i_rainc,i_rainnc
@@ -182,67 +191,68 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_radt_lw_scheme'   ,config_radt_lw_scheme   )
  call mpas_pool_get_config(configs,'config_radt_sw_scheme'   ,config_radt_sw_scheme   )
  call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
+ call mpas_pool_get_config(configs,'config_pollen_scheme'    ,config_pollen_scheme    )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
-! clean diagnostics added by Minsu Choi, CIRES/NOAA GSL 
+ call mpas_pool_get_config(configs,'config_anthro_scheme'    ,config_anthro_scheme    )
+ call mpas_pool_get_config(configs,'config_ssalt_scheme'     ,config_ssalt_scheme     )
+ call mpas_pool_get_config(configs,'config_sna_scheme'       ,config_sna_scheme       )
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
-! if (diag_physics % config_calc_clean_atm_diag .AND. config_aer_ra_feedback <= 0) then
-!   call mpas_log_write('FATAL: Clean sky diagnostics (config_calc_clean_atm_diag) require '// &
-!         'aerosol-radiation feedback to be enabled (config_aer_ra_feedback > 0).')
-!   call mpas_abort()
-! endif
 
  call mpas_pool_get_dimension(mesh,'nCellsSolve',nCellsSolve)
  call mpas_pool_get_dimension(mesh,'nLags'      ,nLags      )
 
  call mpas_pool_get_array(diag_physics,'i_acswdnb'   ,i_acswdnb   )
- call mpas_pool_get_array(diag_physics,'i_acswdnbc'  ,i_acswdnbc  )
- call mpas_pool_get_array(diag_physics,'i_acswdnbcln',i_acswdnbcln)
  call mpas_pool_get_array(diag_physics,'i_acswdnt'   ,i_acswdnt   )
- call mpas_pool_get_array(diag_physics,'i_acswdntc'  ,i_acswdntc  )
- call mpas_pool_get_array(diag_physics,'i_acswdntcln',i_acswdntcln)
  call mpas_pool_get_array(diag_physics,'i_acswupb'   ,i_acswupb   )
- call mpas_pool_get_array(diag_physics,'i_acswupbc'  ,i_acswupbc  )
- call mpas_pool_get_array(diag_physics,'i_acswupbcln',i_acswupbcln)
  call mpas_pool_get_array(diag_physics,'i_acswupt'   ,i_acswupt   )
- call mpas_pool_get_array(diag_physics,'i_acswuptc'  ,i_acswuptc  )
- call mpas_pool_get_array(diag_physics,'i_acswuptcln',i_acswuptcln)
  call mpas_pool_get_array(diag_physics,'i_aclwdnb'   ,i_aclwdnb   )
- call mpas_pool_get_array(diag_physics,'i_aclwdnbc'  ,i_aclwdnbc  )
- call mpas_pool_get_array(diag_physics,'i_aclwdnbcln',i_aclwdnbcln)
  call mpas_pool_get_array(diag_physics,'i_aclwdnt'   ,i_aclwdnt   )
- call mpas_pool_get_array(diag_physics,'i_aclwdntc'  ,i_aclwdntc  )
- call mpas_pool_get_array(diag_physics,'i_aclwdntcln',i_aclwdntcln)
  call mpas_pool_get_array(diag_physics,'i_aclwupb'   ,i_aclwupb   )
- call mpas_pool_get_array(diag_physics,'i_aclwupbc'  ,i_aclwupbc  )
- call mpas_pool_get_array(diag_physics,'i_aclwupbcln',i_aclwupbcln)
  call mpas_pool_get_array(diag_physics,'i_aclwupt'   ,i_aclwupt   )
- call mpas_pool_get_array(diag_physics,'i_aclwuptc'  ,i_aclwuptc  )
- call mpas_pool_get_array(diag_physics,'i_aclwuptcln',i_aclwuptcln)
 
  call mpas_pool_get_array(diag_physics,'acswdnb'     ,acswdnb     )
- call mpas_pool_get_array(diag_physics,'acswdnbc'    ,acswdnbc    )
- call mpas_pool_get_array(diag_physics,'acswdnbcln'  ,acswdnbcln  )
  call mpas_pool_get_array(diag_physics,'acswdnt'     ,acswdnt     )
- call mpas_pool_get_array(diag_physics,'acswdntc'    ,acswdntc    )
- call mpas_pool_get_array(diag_physics,'acswdntcln'  ,acswdntcln  )
  call mpas_pool_get_array(diag_physics,'acswupb'     ,acswupb     )
- call mpas_pool_get_array(diag_physics,'acswupbc'    ,acswupbc    )
- call mpas_pool_get_array(diag_physics,'acswupbcln'  ,acswupbcln  )
  call mpas_pool_get_array(diag_physics,'acswupt'     ,acswupt     )
- call mpas_pool_get_array(diag_physics,'acswuptc'    ,acswuptc    )
- call mpas_pool_get_array(diag_physics,'acswuptcln'  ,acswuptcln  )
  call mpas_pool_get_array(diag_physics,'aclwdnb'     ,aclwdnb     )
- call mpas_pool_get_array(diag_physics,'aclwdnbc'    ,aclwdnbc    )
- call mpas_pool_get_array(diag_physics,'aclwdnbcln'  ,aclwdnbcln  )
  call mpas_pool_get_array(diag_physics,'aclwdnt'     ,aclwdnt     )
- call mpas_pool_get_array(diag_physics,'aclwdntc'    ,aclwdntc    )
- call mpas_pool_get_array(diag_physics,'aclwdntcln'  ,aclwdntcln  )
  call mpas_pool_get_array(diag_physics,'aclwupb'     ,aclwupb     )
- call mpas_pool_get_array(diag_physics,'aclwupbc'    ,aclwupbc    )
- call mpas_pool_get_array(diag_physics,'aclwupbcln'  ,aclwupbcln  )
  call mpas_pool_get_array(diag_physics,'aclwupt'     ,aclwupt     )
- call mpas_pool_get_array(diag_physics,'aclwuptc'    ,aclwuptc    )
- call mpas_pool_get_array(diag_physics,'aclwuptcln'  ,aclwuptcln  )
+
+ if (config_calc_clean_atm_diag) then
+   call mpas_pool_get_array(diag_physics,'i_acswdnbc'  ,i_acswdnbc  )
+   call mpas_pool_get_array(diag_physics,'i_acswdnbcln',i_acswdnbcln)
+   call mpas_pool_get_array(diag_physics,'i_acswdntc'  ,i_acswdntc  )
+   call mpas_pool_get_array(diag_physics,'i_acswdntcln',i_acswdntcln)
+   call mpas_pool_get_array(diag_physics,'i_acswupbc'  ,i_acswupbc  )
+   call mpas_pool_get_array(diag_physics,'i_acswupbcln',i_acswupbcln)
+   call mpas_pool_get_array(diag_physics,'i_acswuptc'  ,i_acswuptc  )
+   call mpas_pool_get_array(diag_physics,'i_acswuptcln',i_acswuptcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwdnbc'  ,i_aclwdnbc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwdnbcln',i_aclwdnbcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwdntc'  ,i_aclwdntc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwdntcln',i_aclwdntcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwupbc'  ,i_aclwupbc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwupbcln',i_aclwupbcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwuptc'  ,i_aclwuptc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwuptcln',i_aclwuptcln)
+   call mpas_pool_get_array(diag_physics,'acswupbc'    ,acswupbc    )
+   call mpas_pool_get_array(diag_physics,'acswupbcln'  ,acswupbcln  )
+   call mpas_pool_get_array(diag_physics,'acswdnbc'    ,acswdnbc    )
+   call mpas_pool_get_array(diag_physics,'acswdnbcln'  ,acswdnbcln  )
+   call mpas_pool_get_array(diag_physics,'acswdntc'    ,acswdntc    )
+   call mpas_pool_get_array(diag_physics,'acswdntcln'  ,acswdntcln  )
+   call mpas_pool_get_array(diag_physics,'acswuptc'    ,acswuptc    )
+   call mpas_pool_get_array(diag_physics,'acswuptcln'  ,acswuptcln  )
+   call mpas_pool_get_array(diag_physics,'aclwdnbc'    ,aclwdnbc    )
+   call mpas_pool_get_array(diag_physics,'aclwdnbcln'  ,aclwdnbcln  )
+   call mpas_pool_get_array(diag_physics,'aclwdntc'    ,aclwdntc    )
+   call mpas_pool_get_array(diag_physics,'aclwdntcln'  ,aclwdntcln  )
+   call mpas_pool_get_array(diag_physics,'aclwupbc'    ,aclwupbc    )
+   call mpas_pool_get_array(diag_physics,'aclwupbcln'  ,aclwupbcln  )
+   call mpas_pool_get_array(diag_physics,'aclwuptc'    ,aclwuptc    )
+   call mpas_pool_get_array(diag_physics,'aclwuptcln'  ,aclwuptcln  )
+ endif
 
  call mpas_pool_get_array(diag_physics,'nsteps_accum',nsteps_accum)
  call mpas_pool_get_array(diag_physics,'ndays_accum' ,ndays_accum )
@@ -284,7 +294,11 @@ use mpas_stream_manager
 !initialization of logical flags for cloud mixing ratios and number concentrations, and aerosols
 !number concentrations from the Thompson cloud microphysics:
  call init_physics_flags(state,f_qc,f_qr,f_qi,f_qs,f_qg,f_qoz,f_nc,f_ni,f_nifa,f_nwfa,f_nbca, &
-                         f_smoke_fine,f_dust_fine,f_dust_coarse)
+                         f_smoke_fine,f_smoke_coarse,f_polp_tree,f_polp_grass,f_polp_weed,   &
+                         f_polp_all,f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed,         &
+                         f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,              &
+                         f_ssalt_fine,f_ssalt_coarse,                                        &
+                         f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4            )
 
 !initialization of counters i_rainc and i_rainnc. i_rainc and i_rainnc track the number of
 !times the accumulated convective (rainc) and grid-scale (rainnc) rain exceed the prescribed
@@ -306,57 +320,59 @@ use mpas_stream_manager
 !the accumulated long and short-wave radiation fluxes exceed their prescribed theshold values.
  if(.not. config_do_restart) then
     do iCell = 1, nCellsSolve
-       i_acswdnb(iCell)  = 0
-       i_acswdnbc(iCell) = 0
-       i_acswdnbcln(iCell) = 0
-       i_acswdnt(iCell)  = 0
-       i_acswdntc(iCell) = 0
-       i_acswdntcln(iCell) = 0
-       i_acswupb(iCell)  = 0
-       i_acswupbc(iCell) = 0
-       i_acswupbcln(iCell) = 0
-       i_acswupt(iCell)  = 0
-       i_acswuptc(iCell) = 0
-       i_acswuptcln(iCell) = 0
+      i_acswdnb(iCell)  = 0
+      i_acswdnt(iCell)  = 0
+      i_acswupb(iCell)  = 0
+      i_acswupt(iCell)  = 0
 
-       i_aclwdnb(iCell)  = 0
-       i_aclwdnbc(iCell) = 0
-       i_aclwdnbcln(iCell) = 0
-       i_aclwdnt(iCell)  = 0
-       i_aclwdntc(iCell) = 0
-       i_aclwdntcln(iCell) = 0
-       i_aclwupb(iCell)  = 0
-       i_aclwupbc(iCell) = 0
-       i_aclwupbcln(iCell) = 0
-       i_aclwupt(iCell)  = 0
-       i_aclwuptc(iCell) = 0
-       i_aclwuptcln(iCell) = 0
+      i_aclwdnb(iCell)  = 0
+      i_aclwdnt(iCell)  = 0
+      i_aclwupb(iCell)  = 0
+      i_aclwupt(iCell)  = 0
 
-       acswdnb(iCell)  = 0._RKIND
-       acswdnbc(iCell) = 0._RKIND
-       acswdnbcln(iCell) = 0._RKIND
-       acswdnt(iCell)  = 0._RKIND
-       acswdntc(iCell) = 0._RKIND
-       acswdntcln(iCell) = 0._RKIND
-       acswupb(iCell)  = 0._RKIND
-       acswupbc(iCell) = 0._RKIND
-       acswupbcln(iCell) = 0._RKIND
-       acswupt(iCell)  = 0._RKIND
-       acswuptc(iCell) = 0._RKIND
-       acswuptcln(iCell) = 0._RKIND
+      acswdnb(iCell)  = 0._RKIND
+      acswdnt(iCell)  = 0._RKIND
+      acswupb(iCell)  = 0._RKIND
+      acswupt(iCell)  = 0._RKIND
 
-       aclwdnb(iCell)  = 0._RKIND
-       aclwdnbc(iCell) = 0._RKIND
-       aclwdnbcln(iCell) = 0._RKIND
-       aclwdnt(iCell)  = 0._RKIND
-       aclwdntc(iCell) = 0._RKIND
-       aclwdntcln(iCell) = 0._RKIND
-       aclwupb(iCell)  = 0._RKIND
-       aclwupbc(iCell) = 0._RKIND
-       aclwupbcln(iCell) = 0._RKIND
-       aclwupt(iCell)  = 0._RKIND
-       aclwuptc(iCell) = 0._RKIND
-       aclwuptcln(iCell) = 0._RKIND
+      aclwdnb(iCell)  = 0._RKIND
+      aclwdnt(iCell)  = 0._RKIND
+      aclwupb(iCell)  = 0._RKIND
+      aclwupt(iCell)  = 0._RKIND
+      if (config_calc_clean_atm_diag) then
+        i_acswdnbc(iCell) = 0
+        i_acswdnbcln(iCell) = 0
+        i_acswdntc(iCell) = 0
+        i_acswdntcln(iCell) = 0
+        i_acswupbc(iCell) = 0
+        i_acswupbcln(iCell) = 0
+        i_acswuptc(iCell) = 0
+        i_acswuptcln(iCell) = 0
+        i_aclwdnbc(iCell) = 0
+        i_aclwdnbcln(iCell) = 0
+        i_aclwdntc(iCell) = 0
+        i_aclwdntcln(iCell) = 0
+        i_aclwupbc(iCell) = 0
+        i_aclwupbcln(iCell) = 0
+        i_aclwuptc(iCell) = 0
+        i_aclwuptcln(iCell) = 0
+        acswdnbc(iCell) = 0._RKIND
+        acswdnbcln(iCell) = 0._RKIND
+        acswdntc(iCell) = 0._RKIND
+        acswdntcln(iCell) = 0._RKIND
+        acswupbc(iCell) = 0._RKIND
+        acswupbcln(iCell) = 0._RKIND
+        acswuptc(iCell) = 0._RKIND
+        acswuptcln(iCell) = 0._RKIND
+        aclwdnbc(iCell) = 0._RKIND
+        aclwdnbcln(iCell) = 0._RKIND
+        aclwdntc(iCell) = 0._RKIND
+        aclwdntcln(iCell) = 0._RKIND
+        aclwupbc(iCell) = 0._RKIND
+        aclwupbcln(iCell) = 0._RKIND
+        aclwuptc(iCell) = 0._RKIND
+        aclwuptcln(iCell) = 0._RKIND
+      endif
     enddo
  endif
 
@@ -510,7 +526,9 @@ use mpas_stream_manager
  endif
 
 !initialization of chemistry processes:
- if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme .ne. 'off') then
+ if(config_smoke_scheme .ne. 'off' .or. config_pollen_scheme .ne. 'off' .or. &
+    config_dust_scheme .ne. 'off'  .or. config_anthro_scheme .ne. 'off' .or. &
+    config_ssalt_scheme .ne. 'off' .or. config_sna_scheme .ne. 'off'         ) then
     call init_smoke(mesh,configs)
  endif
 
@@ -522,7 +540,11 @@ use mpas_stream_manager
 
 !=================================================================================================================
  subroutine init_physics_flags(state,f_qc,f_qr,f_qi,f_qs,f_qg,f_qoz,f_nc,f_ni,f_nifa,f_nwfa,f_nbca, &
-                               f_smoke_fine,f_dust_fine,f_dust_coarse)
+                               f_smoke_fine,f_smoke_coarse,f_polp_tree,f_polp_grass,f_polp_weed,f_polp_all,&
+                               f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed, &
+                               f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,&
+                               f_ssalt_fine,f_ssalt_coarse,&
+                               f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4)
 !=================================================================================================================
 
 !input arguments:
@@ -531,12 +553,22 @@ use mpas_stream_manager
 !output arguments:
  logical,intent(out):: f_qc,f_qr,f_qi,f_qs,f_qg,f_qoz
  logical,intent(out):: f_nc,f_ni,f_nifa,f_nwfa,f_nbca
- logical,intent(out):: f_smoke_fine,f_dust_fine,f_dust_coarse
+ logical,intent(out):: f_smoke_fine,f_smoke_coarse,f_polp_tree,f_polp_grass,f_polp_weed,f_polp_all,&
+                       f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed, &
+                       f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,&
+                       f_ssalt_fine,f_ssalt_coarse,&
+                       f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4
 
 !local pointers:
  integer,pointer:: index_qc,index_qr,index_qi,index_qs,index_qg
  integer,pointer:: index_nc,index_ni,index_nifa,index_nwfa
- integer,pointer:: index_smoke_fine,index_dust_fine,index_dust_coarse
+ integer,pointer:: index_smoke_fine,index_smoke_coarse, &
+                   index_polp_tree,index_polp_grass,index_polp_weed,index_polp_all, &
+                   index_pols_all,index_pols_tree,index_pols_grass,index_pols_weed, &
+                   index_dust_fine,index_dust_coarse,index_unspc_fine,index_unspc_coarse,&
+                   index_ssalt_fine,index_ssalt_coarse, &
+                   index_so4_a_fine,index_no3_a_fine,index_nh4_a_fine,index_nh3,index_so2,index_ch4
+
 
 !-----------------------------------------------------------------------------------------------------------------
 
@@ -548,25 +580,82 @@ use mpas_stream_manager
  f_qg  = .false.
  f_qoz = .false. !qoz is not defined in Registry.xml and f_qoz is initialized to false.
  f_smoke_fine   = .false.
+ f_smoke_coarse = .false.
+ f_polp_tree    = .false.
+ f_polp_grass   = .false.
+ f_polp_weed    = .false.
+ f_polp_all     = .false.
+ f_pols_all     = .false.
+ f_pols_tree    = .false.
+ f_pols_grass   = .false.
+ f_pols_weed    = .false.
  f_dust_fine    = .false.
  f_dust_coarse  = .false.
+ f_unspc_fine   = .false.
+ f_unspc_coarse = .false.
+ f_ssalt_fine   = .false.
+ f_ssalt_coarse = .false.
+ f_so4_a_fine    = .false.
+ f_no3_a_fine    = .false.
+ f_nh4_a_fine    = .false.
+ f_nh3          = .false.
+ f_ch4          = .false.
+ f_so2          = .false.
  call mpas_pool_get_dimension(state,'index_qc',index_qc)
  call mpas_pool_get_dimension(state,'index_qr',index_qr)
  call mpas_pool_get_dimension(state,'index_qi',index_qi)
  call mpas_pool_get_dimension(state,'index_qs',index_qs)
  call mpas_pool_get_dimension(state,'index_qg',index_qg)
  call mpas_pool_get_dimension(state,'index_smoke_fine',index_smoke_fine)
+ call mpas_pool_get_dimension(state,'index_smoke_coarse',index_smoke_coarse)
+ call mpas_pool_get_dimension(state,'index_polp_tree',index_polp_tree)
+ call mpas_pool_get_dimension(state,'index_polp_grass',index_polp_grass)
+ call mpas_pool_get_dimension(state,'index_polp_weed',index_polp_weed)
+ call mpas_pool_get_dimension(state,'index_polp_all',index_polp_all)
+ call mpas_pool_get_dimension(state,'index_pols_all',index_pols_all)
+ call mpas_pool_get_dimension(state,'index_pols_tree',index_pols_tree)
+ call mpas_pool_get_dimension(state,'index_pols_grass',index_pols_grass)
+ call mpas_pool_get_dimension(state,'index_pols_weed',index_pols_weed)
  call mpas_pool_get_dimension(state,'index_dust_fine',index_dust_fine)
  call mpas_pool_get_dimension(state,'index_dust_coarse',index_dust_coarse)
+ call mpas_pool_get_dimension(state,'index_unspc_fine',index_unspc_fine)
+ call mpas_pool_get_dimension(state,'index_unspc_coarse',index_unspc_coarse)
+ call mpas_pool_get_dimension(state,'index_ssalt_fine',index_ssalt_fine)
+ call mpas_pool_get_dimension(state,'index_ssalt_coarse',index_ssalt_coarse)
+ call mpas_pool_get_dimension(state,'index_so4_a_fine',index_so4_a_fine)
+ call mpas_pool_get_dimension(state,'index_no3_a_fine',index_no3_a_fine)
+ call mpas_pool_get_dimension(state,'index_nh4_a_fine',index_nh4_a_fine)
+ call mpas_pool_get_dimension(state,'index_nh3',index_nh3)
+ call mpas_pool_get_dimension(state,'index_so2',index_so2)
+ call mpas_pool_get_dimension(state,'index_ch4',index_ch4)
 
  if(index_qc .gt. -1) f_qc = .true.
  if(index_qr .gt. -1) f_qr = .true.
  if(index_qi .gt. -1) f_qi = .true.
  if(index_qs .gt. -1) f_qs = .true.
  if(index_qg .gt. -1) f_qg = .true.
- if(index_smoke_fine .gt. -1) f_smoke_fine = .true.
+ if(index_smoke_fine   .gt. -1) f_smoke_fine = .true.
+ if(index_smoke_coarse .gt. -1) f_smoke_coarse = .true.
+ if(index_polp_tree    .gt. -1) f_polp_tree = .true.
+ if(index_polp_grass   .gt. -1) f_polp_grass = .true.
+ if(index_polp_weed    .gt. -1) f_polp_weed = .true.
+ if(index_polp_all    .gt. -1)  f_polp_all = .true.
+ if(index_pols_all     .gt. -1) f_pols_all = .true.
+ if(index_pols_tree    .gt. -1) f_pols_tree = .true.
+ if(index_pols_grass   .gt. -1) f_pols_grass = .true.
+ if(index_pols_weed    .gt. -1) f_pols_weed = .true.
  if(index_dust_fine    .gt. -1) f_dust_fine = .true.
  if(index_dust_coarse  .gt. -1) f_dust_coarse = .true.
+ if(index_unspc_fine   .gt. -1) f_unspc_fine = .true.
+ if(index_unspc_coarse .gt. -1) f_unspc_coarse = .true.
+ if(index_ssalt_fine   .gt. -1) f_ssalt_fine = .true.
+ if(index_ssalt_coarse .gt. -1) f_ssalt_coarse = .true.
+ if(index_so4_a_fine    .gt. -1) f_so4_a_fine = .true.
+ if(index_no3_a_fine    .gt. -1) f_no3_a_fine = .true.
+ if(index_nh4_a_fine    .gt. -1) f_nh4_a_fine = .true.
+ if(index_nh3          .gt. -1) f_nh3 = .true.
+ if(index_so2          .gt. -1) f_so2 = .true.
+ if(index_ch4          .gt. -1) f_ch4 = .true.
 
 !initializes the logical assigned to number concentrations:
  f_nc   = .false.

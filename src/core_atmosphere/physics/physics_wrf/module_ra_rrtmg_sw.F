@@ -10029,7 +10029,7 @@ CONTAINS
                        swupb,swupbc,swupbcln,swdnb,swdnbc,swdnbcln,    &
                        swupflx, swupflxc,swupflxcln, swdnflx,          &
                        swdnflxc,swdnflxcln,                            &
-                       swddir,swddni,swddif,config_calc_clean_atm_diag,       &
+                       swddir,swddni,swddif,config_calc_clean_atm_diag,&
                        ids,ide, jds,jde, kds,kde,                      & 
                        ims,ime, jms,jme, kms,kme,                      &
                        its,ite, jts,jte, kts,kte                       &
@@ -10073,7 +10073,7 @@ CONTAINS
  real,intent(inout),dimension(ims:ime,jms:jme):: coszr,gsw,swcf
  real,intent(inout),dimension(ims:ime,jms:jme),optional:: &
     swupt,swuptc,swuptcln,swdnt,swdntc,swdntcln,swupb,swupbc,swupbcln,swdnb,swdnbc,swdnbcln
- real,intent(inout),dimension(ims:ime,jms:jme),optional:: swupflxcln, swdnflxcln
+!real,intent(inout),dimension(ims:ime,jms:jme),optional:: swupflxcln, swdnflxcln
 
  real,intent(inout),dimension(ims:ime,kms:kme,jms:jme)::rthratensw !,rthratenswc
 
@@ -10082,7 +10082,7 @@ CONTAINS
   real,intent(out),dimension(ims:ime,jms:jme),optional:: &
      swddir,swddni,swddif
   real,intent(out),dimension(ims:ime,kms:kme+2,jms:jme ),optional:: &
-     swupflx,swupflxc,swdnflx,swdnflxc
+     swupflx,swupflxc,swdnflx,swdnflxc ,swupflxcln, swdnflxcln
 
 !local variables and arrays:
  logical:: dorrsw
@@ -10181,8 +10181,6 @@ CONTAINS
  iceflgsw = 3
  liqflgsw = 1
 
-!--- initialize option for the calculation of clean air upward and downward fluxes:
-! config_calc_clean_atm_diag = 0
 
 !--- latitude loop:
  j_loop: do j = jts,jte
@@ -10604,16 +10602,17 @@ CONTAINS
           if(present(swupt)) then 
              !output up and down toa fluxes for total and clear sky:
              swupt(i,j)  = swuflx(1,kte+2)
-             swuptc(i,j) = swuflxc(1,kte+2)
              swdnt(i,j)  = swdflx(1,kte+2)
-             swdntc(i,j) = swdflxc(1,kte+2)
              !output up and down surface fluxes for total and clear sky:
              swupb(i,j)  = swuflx(1,1)
-             swupbc(i,j) = swuflxc(1,1)
              swdnb(i,j)  = swdflx(1,1)
-             swdnbc(i,j) = swdflxc(1,1)
              ! Clean diagnostics, Minsu Choi CIRES/NOAA GSL
-            if(config_calc_clean_atm_diag)then
+!            if(config_calc_clean_atm_diag)then
+            if(config_calc_clean_atm_diag .and. present(swuptc))then
+               swuptc(i,j) = swuflxc(1,kte+2)
+               swdntc(i,j) = swdflxc(1,kte+2)
+               swupbc(i,j) = swuflxc(1,1)
+               swdnbc(i,j) = swdflxc(1,1)
                swuptcln(i,j)  = swuflxcln(1,kte+2)
                swdntcln(i,j)  = swdflxcln(1,kte+2)
                swupbcln(i,j)  = swuflxcln(1,1)
@@ -10630,9 +10629,19 @@ CONTAINS
           if(present (swupflx)) then
              do k = kts, kte+2
                 swupflx(i,k,j)  = swuflx(1,k)
-                swupflxc(i,k,j) = swuflxc(1,k)
                 swdnflx(i,k,j)  = swdflx(1,k)
+             enddo
+          endif
+          if(present (swupflxc)) then
+             do k = kts, kte+2
+                swupflxc(i,k,j) = swuflxc(1,k)
                 swdnflxc(i,k,j) = swdflxc(1,k)
+             enddo
+          endif
+          if(present (swupflxcln)) then
+             do k = kts, kte+2
+                swupflxcln(i,k,j) = swuflxcln(1,k)
+                swdnflxcln(i,k,j) = swdflxcln(1,k)
              enddo
           endif
 
@@ -10649,15 +10658,16 @@ CONTAINS
           if(present(swupt)) then 
              !output up and down toa fluxes for total and clear sky:
              swupt(i,j)     = 0.
-             swuptc(i,j)    = 0.
              swdnt(i,j)     = 0.
-             swdntc(i,j)    = 0.
              !output up and down surface fluxes for total and clear sky:
              swupb(i,j)     = 0.
-             swupbc(i,j)    = 0.
              swdnb(i,j)     = 0.
-             swdnbc(i,j)    = 0.
-             if(config_calc_clean_atm_diag)then
+!             if(config_calc_clean_atm_diag)then
+             if(config_calc_clean_atm_diag .and. present(swuptc))then
+               swuptc(i,j)    = 0.
+               swdntc(i,j)    = 0.
+               swupbc(i,j)    = 0.
+               swdnbc(i,j)    = 0.
                swuptcln(i,j)  = 0.
                swdntcln(i,j)  = 0.
                swupbcln(i,j)  = 0.

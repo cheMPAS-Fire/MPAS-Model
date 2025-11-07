@@ -11565,20 +11565,21 @@ CONTAINS
 
 !=================================================================================================================
  subroutine rrtmg_lwrad( &
-                       p3d,p8w,pi3d,t3d,t8w,dz8w,qv3d,qc3d,qr3d,  &
-                       qi3d,qs3d,qg3d,cldfra3d,o33d,tsk,emiss,    &
-                       xland,xice,snow,xlat,julday,icloud,        &
-                       cldovrlp,idcor,o3input,noznlevels,         &
+                       p3d,p8w,pi3d,t3d,t8w,dz8w,qv3d,qc3d,qr3d,   &
+                       qi3d,qs3d,qg3d,cldfra3d,o33d,tsk,emiss,     &
+                       xland,xice,snow,xlat,julday,icloud,         &
+                       cldovrlp,idcor,o3input,noznlevels,          &
                        pin,o3clim,glw,olr,lwcf,rthratenlw,rthratenlwc, &
-                       has_reqc,has_reqi,has_reqs,re_cloud,       &
-                       re_ice,re_snow,rre_cloud,rre_ice,rre_snow, &
+                       has_reqc,has_reqi,has_reqs,re_cloud,        &
+                       re_ice,re_snow,rre_cloud,rre_ice,rre_snow,  &
                        lwupt,lwuptc,lwuptcln,lwdnt,lwdntc,lwdntcln,&
                        lwupb,lwupbc,lwupbcln,lwdnb,lwdnbc,lwdnbcln,&
-                       lwupflx, lwupflxc, lwdnflx, lwdnflxc,      &
+                       lwupflx, lwupflxc, lwupflxcln,              &
+                       lwdnflx, lwdnflxc, lwdnflxcln,              &
                        config_calc_clean_atm_diag,                 & 
-                       ids,ide, jds,jde, kds,kde,                 & 
-                       ims,ime, jms,jme, kms,kme,                 &
-                       its,ite, jts,jte, kts,kte                  &
+                       ids,ide, jds,jde, kds,kde,                  & 
+                       ims,ime, jms,jme, kms,kme,                  &
+                       its,ite, jts,jte, kts,kte                   &
                        )
 
  implicit none
@@ -11620,7 +11621,7 @@ CONTAINS
   real,intent(out),dimension(ims:ime,kms:kme,jms:jme),optional:: &
      rre_cloud,rre_ice,rre_snow
   real,intent(out),dimension(ims:ime,kms:kme+2,jms:jme ),optional:: &
-     lwupflx,lwupflxc,lwdnflx,lwdnflxc
+     lwupflx,lwupflxc,lwdnflx,lwdnflxc,lwupflxcln,lwdnflxcln
 
 !local variables and arrays:
 ! integer:: config_calc_clean_atm_diag
@@ -12212,18 +12213,18 @@ CONTAINS
        if(present(lwupt)) then
           !output up and down toa fluxes for total and clear sky:
           lwupt(i,j)  = uflx(1,nlayers+1)
-          lwuptc(i,j) = uflxc(1,nlayers+1)
           lwdnt(i,j)  = dflx(1,nlayers+1)
-          lwdntc(i,j) = dflxc(1,nlayers+1)
           !output up and down surface fluxes for total and clear sky:
           lwupb(i,j)  = uflx(1,1)
-          lwupbc(i,j) = uflxc(1,1)
           lwdnb(i,j)  = dflx(1,1)
-          lwdnbc(i,j) = dflxc(1,1)
           ! Directly copied from the WRFv4.6 physics (RRTMG LW)
           ! Minsu Choi CIRES/NOAA GSL
           !Output up and down toa fluxes for clean sky
-          if(config_calc_clean_atm_diag)then
+          if(config_calc_clean_atm_diag .and. present(lwuptc))then
+            lwuptc(i,j) = uflxc(1,nlayers+1)
+            lwdntc(i,j) = dflxc(1,nlayers+1)
+            lwupbc(i,j) = uflxc(1,1)
+            lwdnbc(i,j) = dflxc(1,1)
             lwuptcln(i,j)  = uflxcln(1,nlayers+1)
             lwdntcln(i,j)  = dflxcln(1,nlayers+1)
             !Output up and down surface fluxes for clean sky
@@ -12237,9 +12238,19 @@ CONTAINS
 !          do k=kts,nlayers+1
           do k=kts,kte+2
              lwupflx(i,k,j)  = uflx(1,k)
-             lwupflxc(i,k,j) = uflxc(1,k)
              lwdnflx(i,k,j)  = dflx(1,k)
+          enddo
+       endif
+       if(present(lwupflxc)) then
+          do k=kts,kte+2
+             lwupflxc(i,k,j) = uflxc(1,k)
              lwdnflxc(i,k,j) = dflxc(1,k)
+          enddo
+       endif
+       if(present(lwupflxcln)) then
+          do k=kts,kte+2
+             lwupflxcln(i,k,j) = uflxcln(1,k)
+             lwdnflxcln(i,k,j) = dflxcln(1,k)
           enddo
        endif
 
