@@ -97,6 +97,26 @@
 !   Laura D. Fowler (laura@ucar.edu) / 2017-02-16.
 ! * removed the variables f_qv and f_qg in the call to subroutine camrad.
 !   Laura D. Fowler (laura@ucar.edu) / 2024-02-13.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Radiation Diagnostic Outputs/ 2025-11-05/ CIRES/NOAA GSL Atmospheric Composition Branch
+! Minsu Choi, minsu.choi@noaa.gov
+! ------------------------------------------------------------------------
+! All-sky:   Full radiation calculation with clouds and aerosols
+! Clear-sky: Radiation without clouds but with aerosols (suffix: c)
+!            (only available when config_calc_clean_atm_diag = .true.)
+! Clean-sky: Radiation without clouds and without aerosols (suffix: cln)
+!            (only available when config_calc_clean_atm_diag = .true.)
+!
+! Surface diagnostics:
+!   lwdnb, lwdnbc, lwdnbcln  - Downward LW at bottom (surface)
+!   lwupb, lwupbc, lwupbcln  - Upward LW at bottom (surface)
+! Top-of-atmosphere diagnostics:
+!   lwdnt, lwdntc, lwdntcln  - Downward LW at top
+!   lwupt, lwuptc, lwuptcln  - Upward LW at top
+! Profile diagnostics:
+!   lwdnflx, lwdnflxc, lwdnflxcln  - Downward LW flux profile
+!   lwupflx, lwupflxc, lwupflxcln  - Upward LW flux profile
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
  contains
@@ -112,10 +132,12 @@
 
 !local pointers:
  character(len=StrKIND),pointer:: radt_lw_scheme
+ logical,pointer:: config_calc_clean_atm_diag
 
 !-----------------------------------------------------------------------------------------------------------------
 
  call mpas_pool_get_config(configs,'config_radt_lw_scheme',radt_lw_scheme)
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  if(.not.allocated(f_ice)        ) allocate(f_ice(ims:ime,kms:kme,jms:jme)        )
  if(.not.allocated(f_rain)       ) allocate(f_rain(ims:ime,kms:kme,jms:jme)       )
@@ -129,16 +151,23 @@
  if(.not.allocated(glw_p)        ) allocate(glw_p(ims:ime,jms:jme)                )
  if(.not.allocated(lwcf_p)       ) allocate(lwcf_p(ims:ime,jms:jme)               )
  if(.not.allocated(lwdnb_p)      ) allocate(lwdnb_p(ims:ime,jms:jme)              )
- if(.not.allocated(lwdnbc_p)     ) allocate(lwdnbc_p(ims:ime,jms:jme)             )
  if(.not.allocated(lwdnt_p)      ) allocate(lwdnt_p(ims:ime,jms:jme)              )
- if(.not.allocated(lwdntc_p)     ) allocate(lwdntc_p(ims:ime,jms:jme)             )
  if(.not.allocated(lwupb_p)      ) allocate(lwupb_p(ims:ime,jms:jme)              )
- if(.not.allocated(lwupbc_p)     ) allocate(lwupbc_p(ims:ime,jms:jme)             )
  if(.not.allocated(lwupt_p)      ) allocate(lwupt_p(ims:ime,jms:jme)              )
- if(.not.allocated(lwuptc_p)     ) allocate(lwuptc_p(ims:ime,jms:jme)             )
  if(.not.allocated(olrtoa_p)     ) allocate(olrtoa_p(ims:ime,jms:jme)             )
+ if (config_calc_clean_atm_diag) then
+    if(.not.allocated(lwdnbc_p) ) allocate(lwdnbc_p(ims:ime,jms:jme)) ! Clear sky
+    if(.not.allocated(lwdntc_p) ) allocate(lwdntc_p(ims:ime,jms:jme)) ! Clear sky
+    if(.not.allocated(lwupbc_p) ) allocate(lwupbc_p(ims:ime,jms:jme)) ! Clear sky
+    if(.not.allocated(lwuptc_p) ) allocate(lwuptc_p(ims:ime,jms:jme)) ! Clear sky
+    if(.not.allocated(lwdnbcln_p) ) allocate(lwdnbcln_p(ims:ime,jms:jme) ) !Clean sky
+    if(.not.allocated(lwdntcln_p) ) allocate(lwdntcln_p(ims:ime,jms:jme) ) !Clean sky
+    if(.not.allocated(lwupbcln_p) ) allocate(lwupbcln_p(ims:ime,jms:jme) ) !Clean sky
+    if(.not.allocated(lwuptcln_p) ) allocate(lwuptcln_p(ims:ime,jms:jme) ) !Clean sky
+ end if 
 
  if(.not.allocated(rthratenlw_p) ) allocate(rthratenlw_p(ims:ime,kms:kme,jms:jme) )
+ if(.not.allocated(rthratenlwc_p) ) allocate(rthratenlwc_p(ims:ime,kms:kme,jms:jme) )
 
  radiation_lw_select: select case (trim(radt_lw_scheme))
     case("rrtmg_lw")
@@ -151,12 +180,15 @@
        if(.not.allocated(rresnow_p)    ) allocate(rresnow_p(ims:ime,kms:kme,jms:jme)       )
 
        if(.not.allocated(lwdnflx_p)    ) allocate(lwdnflx_p(ims:ime,kms:kme+1,jms:jme)     )
-       if(.not.allocated(lwdnflxc_p)   ) allocate(lwdnflxc_p(ims:ime,kms:kme+1,jms:jme)    )
 
        if(.not.allocated(lwdnflx_p)    ) allocate(lwdnflx_p(ims:ime,kms:kme+1,jms:jme)     )
-       if(.not.allocated(lwdnflxc_p)   ) allocate(lwdnflxc_p(ims:ime,kms:kme+1,jms:jme)    )
        if(.not.allocated(lwupflx_p)    ) allocate(lwupflx_p(ims:ime,kms:kme+1,jms:jme)     )
-       if(.not.allocated(lwupflxc_p)   ) allocate(lwupflxc_p(ims:ime,kms:kme+1,jms:jme)    )
+       if (config_calc_clean_atm_diag) then
+         if(.not.allocated(lwupflxc_p) ) allocate(lwupflxc_p(ims:ime,kms:kme+1,jms:jme))
+         if(.not.allocated(lwdnflxc_p) ) allocate(lwdnflxc_p(ims:ime,kms:kme+1,jms:jme))
+         if(.not.allocated(lwdnflxcln_p) ) allocate(lwdnflxcln_p(ims:ime,kms:kme+1,jms:jme)) !Clean sky
+         if(.not.allocated(lwupflxcln_p) ) allocate(lwupflxcln_p(ims:ime,kms:kme+1,jms:jme)) !Clean sky
+       end if 
 
        if(.not.allocated(pin_p)        ) allocate(pin_p(num_oznlevels)                     )
        if(.not.allocated(o3clim_p)     ) allocate(o3clim_p(ims:ime,1:num_oznlevels,jms:jme))
@@ -217,10 +249,12 @@
 
 !local pointers:
  character(len=StrKIND),pointer:: radt_lw_scheme
+ logical,pointer:: config_calc_clean_atm_diag
 
 !-----------------------------------------------------------------------------------------------------------------
 
  call mpas_pool_get_config(configs,'config_radt_lw_scheme',radt_lw_scheme)
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  if(allocated(f_ice)        ) deallocate(f_ice        )
  if(allocated(f_rain)       ) deallocate(f_rain       )
@@ -232,16 +266,23 @@
  if(allocated(glw_p)        ) deallocate(glw_p        )
  if(allocated(lwcf_p)       ) deallocate(lwcf_p       )
  if(allocated(lwdnb_p)      ) deallocate(lwdnb_p      )
- if(allocated(lwdnbc_p)     ) deallocate(lwdnbc_p     )
  if(allocated(lwdnt_p)      ) deallocate(lwdnt_p      )
- if(allocated(lwdntc_p)     ) deallocate(lwdntc_p     )
  if(allocated(lwupb_p)      ) deallocate(lwupb_p      )
- if(allocated(lwupbc_p)     ) deallocate(lwupbc_p     )
  if(allocated(lwupt_p)      ) deallocate(lwupt_p      )
- if(allocated(lwuptc_p)     ) deallocate(lwuptc_p     )
  if(allocated(olrtoa_p)     ) deallocate(olrtoa_p     )
+ if (config_calc_clean_atm_diag) then
+    if(allocated(lwdnbc_p) ) deallocate(lwdnbc_p     )
+    if(allocated(lwdntc_p) ) deallocate(lwdntc_p     )
+    if(allocated(lwupbc_p) ) deallocate(lwupbc_p     )
+    if(allocated(lwuptc_p) ) deallocate(lwuptc_p     )
+    if(allocated(lwdnbcln_p) ) deallocate(lwdnbcln_p) !Clean sky
+    if(allocated(lwdntcln_p) ) deallocate(lwdntcln_p) !Clean sky
+    if(allocated(lwupbcln_p) ) deallocate(lwupbcln_p) !Clean sky
+    if(allocated(lwuptcln_p) ) deallocate(lwuptcln_p) !Clean sky
+ end if 
  
  if(allocated(rthratenlw_p) ) deallocate(rthratenlw_p )
+ if(allocated(rthratenlwc_p) ) deallocate(rthratenlwc_p )
 
  radiation_lw_select: select case (trim(radt_lw_scheme))
     case("rrtmg_lw")
@@ -253,9 +294,13 @@
        if(allocated(rresnow_p)    ) deallocate(rresnow_p    )
 
        if(allocated(lwdnflx_p)    ) deallocate(lwdnflx_p    )
-       if(allocated(lwdnflxc_p)   ) deallocate(lwdnflxc_p   )
        if(allocated(lwupflx_p)    ) deallocate(lwupflx_p    )
-       if(allocated(lwupflxc_p)   ) deallocate(lwupflxc_p   )
+       if (config_calc_clean_atm_diag) then
+         if(allocated(lwdnflxc_p)   ) deallocate(lwdnflxc_p ) ! clear-sky
+         if(allocated(lwupflxc_p)   ) deallocate(lwupflxc_p ) ! clear-sky
+         if(allocated(lwdnflxcln_p) ) deallocate(lwdnflxcln_p) !Clean sky
+         if(allocated(lwupflxcln_p) ) deallocate(lwupflxcln_p) !Clean sky
+       end if 
 
        if(allocated(pin_p)        ) deallocate(pin_p        )
        if(allocated(o3clim_p)     ) deallocate(o3clim_p     )
@@ -319,6 +364,7 @@
 
 !local pointers:
  logical,pointer:: config_o3climatology
+ logical,pointer:: config_calc_clean_atm_diag
  logical,pointer:: config_microp_re
  character(len=StrKIND),pointer:: radt_lw_scheme
  character(len=StrKIND),pointer:: microp_scheme
@@ -342,6 +388,7 @@
  call mpas_pool_get_config(configs,'config_o3climatology' ,config_o3climatology)
  call mpas_pool_get_config(configs,'config_radt_lw_scheme',radt_lw_scheme      )
  call mpas_pool_get_config(configs,'config_microp_scheme' ,microp_scheme       )
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_pool_get_array(mesh,'latCell',latCell)
  call mpas_pool_get_array(mesh,'lonCell',lonCell)
@@ -396,19 +443,26 @@
     glw_p(i,j)      = 0.0_RKIND
     lwcf_p(i,j)     = 0.0_RKIND
     lwdnb_p(i,j)    = 0.0_RKIND
-    lwdnbc_p(i,j)   = 0.0_RKIND
     lwdnt_p(i,j)    = 0.0_RKIND
-    lwdntc_p(i,j)   = 0.0_RKIND
     lwupb_p(i,j)    = 0.0_RKIND
-    lwupbc_p(i,j)   = 0.0_RKIND
     lwupt_p(i,j)    = 0.0_RKIND
-    lwuptc_p(i,j)   = 0.0_RKIND
     olrtoa_p(i,j)   = 0.0_RKIND
+    if (config_calc_clean_atm_diag) then
+      lwdnbc_p(i,j)   = 0.0_RKIND
+      lwdntc_p(i,j)   = 0.0_RKIND
+      lwupbc_p(i,j)   = 0.0_RKIND
+      lwuptc_p(i,j)   = 0.0_RKIND
+      lwdnbcln_p(i,j) = 0.0_RKIND
+      lwdntcln_p(i,j) = 0.0_RKIND
+      lwupbcln_p(i,j) = 0.0_RKIND
+      lwuptcln_p(i,j) = 0.0_RKIND
+    end if
  enddo
  
  do k = kts,kte
  do i = its,ite
     rthratenlw_p(i,k,j) = 0.0_RKIND
+    rthratenlwc_p(i,k,j) = 0.0_RKIND
  enddo
  enddo
  enddo
@@ -503,9 +557,13 @@
        do k = kts,kte+2
        do i = its,ite
           lwdnflx_p(i,k,j)  = 0.0_RKIND
-          lwdnflxc_p(i,k,j) = 0.0_RKIND
           lwupflx_p(i,k,j)  = 0.0_RKIND
-          lwupflxc_p(i,k,j) = 0.0_RKIND
+          if (config_calc_clean_atm_diag) then
+            lwdnflxcln_p(i,k,j) = 0.0_RKIND
+            lwupflxcln_p(i,k,j) = 0.0_RKIND
+            lwdnflxc_p(i,k,j) = 0.0_RKIND
+            lwupflxc_p(i,k,j) = 0.0_RKIND
+          end if
        enddo
        enddo
        enddo
@@ -667,12 +725,14 @@
 
 !local pointers:
  logical,pointer:: config_microp_re
+ logical,pointer:: config_calc_clean_atm_diag
  character(len=StrKIND),pointer:: radt_lw_scheme
  character(len=StrKIND),pointer:: microp_scheme
 
  real(kind=RKIND),dimension(:),pointer :: glw,lwcf,lwdnb,lwdnbc,lwdnt,lwdntc,lwupb,lwupbc, &
                                           lwupt,lwuptc,olrtoa
- real(kind=RKIND),dimension(:,:),pointer:: rthratenlw
+ real(kind=RKIND),dimension(:),pointer :: lwdnbcln,lwdntcln,lwupbcln,lwuptcln
+ real(kind=RKIND),dimension(:,:),pointer:: rthratenlw, rthratenlwc
  real(kind=RKIND),dimension(:,:),pointer:: rre_cloud,rre_ice,rre_snow
 
 !local variables and arrays:
@@ -685,40 +745,58 @@
  call mpas_pool_get_config(configs,'config_microp_re'     ,config_microp_re)
  call mpas_pool_get_config(configs,'config_microp_scheme' ,microp_scheme   )
  call mpas_pool_get_config(configs,'config_radt_lw_scheme',radt_lw_scheme  )
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_pool_get_array(diag_physics,'glw'   ,glw   )
  call mpas_pool_get_array(diag_physics,'lwcf'  ,lwcf  )
  call mpas_pool_get_array(diag_physics,'lwdnb' ,lwdnb )
- call mpas_pool_get_array(diag_physics,'lwdnbc',lwdnbc)
  call mpas_pool_get_array(diag_physics,'lwdnt' ,lwdnt )
- call mpas_pool_get_array(diag_physics,'lwdntc',lwdntc)
  call mpas_pool_get_array(diag_physics,'lwupb' ,lwupb )
- call mpas_pool_get_array(diag_physics,'lwupbc',lwupbc)
  call mpas_pool_get_array(diag_physics,'lwupt' ,lwupt )
- call mpas_pool_get_array(diag_physics,'lwuptc',lwuptc)
  call mpas_pool_get_array(diag_physics,'olrtoa',olrtoa)
 
  call mpas_pool_get_array(tend_physics,'rthratenlw',rthratenlw)
+
+ if (config_calc_clean_atm_diag) then
+   call mpas_pool_get_array(diag_physics,'lwdnbc',lwdnbc)
+   call mpas_pool_get_array(diag_physics,'lwdntc',lwdntc)
+   call mpas_pool_get_array(diag_physics,'lwupbc',lwupbc)
+   call mpas_pool_get_array(diag_physics,'lwuptc',lwuptc)
+   call mpas_pool_get_array(diag_physics,'lwdnbcln',lwdnbcln)
+   call mpas_pool_get_array(diag_physics,'lwdntcln',lwdntcln)
+   call mpas_pool_get_array(diag_physics,'lwupbcln',lwupbcln)
+   call mpas_pool_get_array(diag_physics,'lwuptcln',lwuptcln)
+   call mpas_pool_get_array(tend_physics,'rthratenlwc',rthratenlwc)
+ endif
 
  do j = jts,jte
  do i = its,ite
     glw(i)    = glw_p(i,j)
     lwcf(i)   = lwcf_p(i,j)
     lwdnb(i)  = lwdnb_p(i,j)
-    lwdnbc(i) = lwdnbc_p(i,j)
     lwdnt(i)  = lwdnt_p(i,j)
-    lwdntc(i) = lwdntc_p(i,j)
     lwupb(i)  = lwupb_p(i,j)
-    lwupbc(i) = lwupbc_p(i,j)
     lwupt(i)  = lwupt_p(i,j)
-    lwuptc(i) = lwuptc_p(i,j)
     olrtoa(i) = olrtoa_p(i,j)
+   if (config_calc_clean_atm_diag) then
+     lwdnbc(i) = lwdnbc_p(i,j)
+     lwdnbcln(i) = lwdnbcln_p(i,j)
+     lwdntc(i) = lwdntc_p(i,j)
+     lwdntcln(i) = lwdntcln_p(i,j)
+     lwupbc(i) = lwupbc_p(i,j)
+     lwupbcln(i) = lwupbcln_p(i,j)
+     lwuptc(i) = lwuptc_p(i,j)
+     lwuptcln(i) = lwuptcln_p(i,j)
+   endif
  enddo
 
  do k = kts,kte
  do i = its,ite
     rthratenlw(k,i) = rthratenlw_p(i,k,j)
- enddo
+    if (config_calc_clean_atm_diag) then
+      rthratenlwc(k,i) = rthratenlwc_p(i,k,j)
+    endif
+  enddo
  enddo
  enddo
 
@@ -891,6 +969,7 @@
 
 !local pointers:
  logical,pointer:: config_o3climatology
+ logical,pointer:: config_calc_clean_atm_diag
  character(len=StrKIND),pointer:: radt_lw_scheme
  character(len=StrKIND),pointer:: radt_cld_overlap,radt_cld_dcorrlen
 
@@ -906,8 +985,7 @@
  call mpas_pool_get_config(configs,'config_radt_lw_scheme'   ,radt_lw_scheme      )
  call mpas_pool_get_config(configs,'config_radt_cld_overlap' ,radt_cld_overlap    )
  call mpas_pool_get_config(configs,'config_radt_cld_dcorrlen',radt_cld_dcorrlen   )
-
-!copy MPAS arrays to local arrays:
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
  call radiation_lw_from_MPAS(xtime_s,configs,mesh,state,time_lev,diag_physics,atm_input,sfc_input,its,ite)
 
 !call to longwave radiation scheme:
@@ -931,7 +1009,8 @@
        endif
 
        call mpas_timer_start('rrtmg_lwrad')
-       call rrtmg_lwrad( &
+       if (config_calc_clean_atm_diag) then
+         call rrtmg_lwrad( &
             p3d      = pres_hyd_p  , p8w        = pres2_hyd_p   , pi3d      = pi_p       , &
             t3d      = t_p         , t8w        = t2_p          , dz8w      = dz_p       , &
             qv3d     = qvrad_p     , qc3d       = qcrad_p       , qi3d      = qirad_p    , &
@@ -941,17 +1020,46 @@
             icloud   = icloud      , cldovrlp   = cldovrlp      , idcor     = idcor      , &
             o3input  = o3input     , noznlevels = num_oznlevels , pin       = pin_p      , &
             o3clim   = o3clim_p    , glw        = glw_p         , olr       = olrtoa_p   , &
-            lwcf     = lwcf_p      , rthratenlw = rthratenlw_p  , has_reqc  = has_reqc   , &
+            lwcf     = lwcf_p      , rthratenlw = rthratenlw_p  , rthratenlwc = rthratenlwc_p, &
+            has_reqc  = has_reqc   , &
             has_reqi = has_reqi    , has_reqs   = has_reqs      , re_cloud  = recloud_p  , &
             re_ice   = reice_p     , re_snow    = resnow_p      , rre_cloud = rrecloud_p , &
             rre_ice  = rreice_p    , rre_snow   = rresnow_p     , lwupt     = lwupt_p    , &
-            lwuptc   = lwuptc_p    , lwdnt      = lwdnt_p       , lwdntc    = lwdntc_p   , &
-            lwupb    = lwupb_p     , lwupbc     = lwupbc_p      , lwdnb     = lwdnb_p    , &
-            lwdnbc   = lwdnbc_p    ,                                                       &
+            lwuptc   = lwuptc_p    , lwuptcln   = lwuptcln_p    , lwdnt     = lwdnt_p    , &
+            lwdntc   = lwdntc_p    , lwdntcln   = lwdntcln_p    , lwupb     = lwupb_p    , &
+            lwupbc   = lwupbc_p    , lwupbcln   = lwupbcln_p , &
+            lwdnb    = lwdnb_p     , lwdnbc     = lwdnbc_p      , lwdnbcln  = lwdnbcln_p , &
+            lwupflx   = lwupflx_p  , lwupflxc   = lwupflxc_p    , lwupflxcln = lwupflxcln_p, &
+            lwdnflx   = lwdnflx_p  , lwdnflxc   = lwdnflxc_p    , lwdnflxcln = lwdnflxcln_p, &  
+            config_calc_clean_atm_diag = config_calc_clean_atm_diag, &
             ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,        &
             ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,        &
             its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte          &
                        )
+       else
+         call rrtmg_lwrad( &
+            p3d      = pres_hyd_p  , p8w        = pres2_hyd_p   , pi3d      = pi_p       , &
+            t3d      = t_p         , t8w        = t2_p          , dz8w      = dz_p       , &
+            qv3d     = qvrad_p     , qc3d       = qcrad_p       , qi3d      = qirad_p    , &
+            qs3d     = qsrad_p     , cldfra3d   = cldfrac_p     , tsk       = tsk_p      , &
+            emiss    = sfc_emiss_p , xland      = xland_p       , xice      = xice_p     , &
+            snow     = snow_p      , xlat       = xlat_p        , julday    = julday     , &
+            icloud   = icloud      , cldovrlp   = cldovrlp      , idcor     = idcor      , &
+            o3input  = o3input     , noznlevels = num_oznlevels , pin       = pin_p      , &
+            o3clim   = o3clim_p    , glw        = glw_p         , olr       = olrtoa_p   , &
+            lwcf     = lwcf_p      , rthratenlw = rthratenlw_p  , rthratenlwc = rthratenlwc_p, &
+            has_reqc  = has_reqc   , &
+            has_reqi = has_reqi    , has_reqs   = has_reqs      , re_cloud  = recloud_p  , &
+            re_ice   = reice_p     , re_snow    = resnow_p      , rre_cloud = rrecloud_p , &
+            rre_ice  = rreice_p    , rre_snow   = rresnow_p     , lwupt     = lwupt_p    , &
+            lwdnt    = lwdnt_p     , lwupb      = lwupb_p       , lwdnb     = lwdnb_p    , &
+            lwupflx  = lwupflx_p   , lwdnflx    = lwdnflx_p     , &
+            config_calc_clean_atm_diag = config_calc_clean_atm_diag, &
+            ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,        &
+            ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,        &
+            its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte          &
+             )
+       endif
        call mpas_timer_stop('rrtmg_lwrad')
 
     case ("cam_lw")

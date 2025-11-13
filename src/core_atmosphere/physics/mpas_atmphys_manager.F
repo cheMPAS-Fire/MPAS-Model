@@ -152,7 +152,8 @@
                    config_sst_update,         &
                    config_gvf_update,         &
                    config_sstdiurn_update,    &
-                   config_deepsoiltemp_update
+                   config_deepsoiltemp_update,&
+                   config_calc_clean_atm_diag
 
  character(len=StrKIND),pointer:: config_convection_scheme, &
                                   config_radt_lw_scheme,    &
@@ -202,6 +203,7 @@
  call mpas_pool_get_config(domain%blocklist%configs,'config_sstdiurn_update'    ,config_sstdiurn_update    )
  call mpas_pool_get_config(domain%blocklist%configs,'config_deepsoiltemp_update',config_deepsoiltemp_update)
  call mpas_pool_get_config(domain%blocklist%configs,'config_dust_scheme'        ,config_dust_scheme        )
+ call mpas_pool_get_config(domain%blocklist%configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
 !update the current julian day and current year:
 
@@ -411,6 +413,7 @@
  logical,pointer:: config_sst_update
  logical,pointer:: config_frac_seaice
  logical,pointer:: config_microp_re
+ logical,pointer:: config_calc_clean_atm_diag
 
 
  integer,pointer:: cam_dim1
@@ -451,6 +454,7 @@
  call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
  call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_get_timeInterval(mpas_get_clock_timestep(clock, ierr), dt=dt)
 

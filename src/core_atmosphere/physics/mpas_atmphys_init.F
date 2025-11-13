@@ -116,7 +116,8 @@ use mpas_stream_manager
  logical,pointer:: config_do_restart,    &
                    config_do_DAcycling,  &
                    config_o3climatology, &
-                   config_oml1d
+                   config_oml1d,&
+                   config_calc_clean_atm_diag
 
  character(len=StrKIND),pointer::            &
                    config_convection_scheme, &
@@ -139,11 +140,15 @@ use mpas_stream_manager
                                 i_acswupb,i_acswupbc,i_acswupt,i_acswuptc, &
                                 i_aclwdnb,i_aclwdnbc,i_aclwdnt,i_aclwdntc, &
                                 i_aclwupb,i_aclwupbc,i_aclwupt,i_aclwuptc
+ integer,dimension(:),pointer:: i_acswdnbcln,i_acswdntcln,i_acswuptcln,i_aclwdnbcln, &
+                                i_aclwdntcln,i_aclwupbcln,i_aclwuptcln,i_acswupbcln
 
  real(kind=RKIND),dimension(:),pointer:: acswdnb,acswdnbc,acswdnt,acswdntc, &
                                          acswupb,acswupbc,acswupt,acswuptc, &
                                          aclwdnb,aclwdnbc,aclwdnt,aclwdntc, &
                                          aclwupb,aclwupbc,aclwupt,aclwuptc
+ real(kind=RKIND),dimension(:),pointer:: acswdnbcln,acswdntcln,acswupbcln,&
+                                         acswuptcln,aclwdnbcln,aclwupbcln,aclwuptcln,aclwdntcln
  real(kind=RKIND),dimension(:),pointer:: nsteps_accum,ndays_accum,tday_accum, &
                                          tyear_accum,tyear_mean
  real(kind=RKIND),dimension(:),pointer:: sst,sstsk,tmn,xice,xicem
@@ -191,43 +196,63 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_anthro_scheme'    ,config_anthro_scheme    )
  call mpas_pool_get_config(configs,'config_ssalt_scheme'     ,config_ssalt_scheme     )
  call mpas_pool_get_config(configs,'config_sna_scheme'       ,config_sna_scheme       )
+ call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_pool_get_dimension(mesh,'nCellsSolve',nCellsSolve)
  call mpas_pool_get_dimension(mesh,'nLags'      ,nLags      )
 
  call mpas_pool_get_array(diag_physics,'i_acswdnb'   ,i_acswdnb   )
- call mpas_pool_get_array(diag_physics,'i_acswdnbc'  ,i_acswdnbc  )
  call mpas_pool_get_array(diag_physics,'i_acswdnt'   ,i_acswdnt   )
- call mpas_pool_get_array(diag_physics,'i_acswdntc'  ,i_acswdntc  )
  call mpas_pool_get_array(diag_physics,'i_acswupb'   ,i_acswupb   )
- call mpas_pool_get_array(diag_physics,'i_acswupbc'  ,i_acswupbc  )
  call mpas_pool_get_array(diag_physics,'i_acswupt'   ,i_acswupt   )
- call mpas_pool_get_array(diag_physics,'i_acswuptc'  ,i_acswuptc  )
  call mpas_pool_get_array(diag_physics,'i_aclwdnb'   ,i_aclwdnb   )
- call mpas_pool_get_array(diag_physics,'i_aclwdnbc'  ,i_aclwdnbc  )
  call mpas_pool_get_array(diag_physics,'i_aclwdnt'   ,i_aclwdnt   )
- call mpas_pool_get_array(diag_physics,'i_aclwdntc'  ,i_aclwdntc  )
  call mpas_pool_get_array(diag_physics,'i_aclwupb'   ,i_aclwupb   )
- call mpas_pool_get_array(diag_physics,'i_aclwupbc'  ,i_aclwupbc  )
  call mpas_pool_get_array(diag_physics,'i_aclwupt'   ,i_aclwupt   )
- call mpas_pool_get_array(diag_physics,'i_aclwuptc'  ,i_aclwuptc  )
 
  call mpas_pool_get_array(diag_physics,'acswdnb'     ,acswdnb     )
- call mpas_pool_get_array(diag_physics,'acswdnbc'    ,acswdnbc    )
  call mpas_pool_get_array(diag_physics,'acswdnt'     ,acswdnt     )
- call mpas_pool_get_array(diag_physics,'acswdntc'    ,acswdntc    )
  call mpas_pool_get_array(diag_physics,'acswupb'     ,acswupb     )
- call mpas_pool_get_array(diag_physics,'acswupbc'    ,acswupbc    )
  call mpas_pool_get_array(diag_physics,'acswupt'     ,acswupt     )
- call mpas_pool_get_array(diag_physics,'acswuptc'    ,acswuptc    )
  call mpas_pool_get_array(diag_physics,'aclwdnb'     ,aclwdnb     )
- call mpas_pool_get_array(diag_physics,'aclwdnbc'    ,aclwdnbc    )
  call mpas_pool_get_array(diag_physics,'aclwdnt'     ,aclwdnt     )
- call mpas_pool_get_array(diag_physics,'aclwdntc'    ,aclwdntc    )
  call mpas_pool_get_array(diag_physics,'aclwupb'     ,aclwupb     )
- call mpas_pool_get_array(diag_physics,'aclwupbc'    ,aclwupbc    )
  call mpas_pool_get_array(diag_physics,'aclwupt'     ,aclwupt     )
- call mpas_pool_get_array(diag_physics,'aclwuptc'    ,aclwuptc    )
+
+ if (config_calc_clean_atm_diag) then
+   call mpas_pool_get_array(diag_physics,'i_acswdnbc'  ,i_acswdnbc  )
+   call mpas_pool_get_array(diag_physics,'i_acswdnbcln',i_acswdnbcln)
+   call mpas_pool_get_array(diag_physics,'i_acswdntc'  ,i_acswdntc  )
+   call mpas_pool_get_array(diag_physics,'i_acswdntcln',i_acswdntcln)
+   call mpas_pool_get_array(diag_physics,'i_acswupbc'  ,i_acswupbc  )
+   call mpas_pool_get_array(diag_physics,'i_acswupbcln',i_acswupbcln)
+   call mpas_pool_get_array(diag_physics,'i_acswuptc'  ,i_acswuptc  )
+   call mpas_pool_get_array(diag_physics,'i_acswuptcln',i_acswuptcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwdnbc'  ,i_aclwdnbc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwdnbcln',i_aclwdnbcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwdntc'  ,i_aclwdntc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwdntcln',i_aclwdntcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwupbc'  ,i_aclwupbc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwupbcln',i_aclwupbcln)
+   call mpas_pool_get_array(diag_physics,'i_aclwuptc'  ,i_aclwuptc  )
+   call mpas_pool_get_array(diag_physics,'i_aclwuptcln',i_aclwuptcln)
+   call mpas_pool_get_array(diag_physics,'acswupbc'    ,acswupbc    )
+   call mpas_pool_get_array(diag_physics,'acswupbcln'  ,acswupbcln  )
+   call mpas_pool_get_array(diag_physics,'acswdnbc'    ,acswdnbc    )
+   call mpas_pool_get_array(diag_physics,'acswdnbcln'  ,acswdnbcln  )
+   call mpas_pool_get_array(diag_physics,'acswdntc'    ,acswdntc    )
+   call mpas_pool_get_array(diag_physics,'acswdntcln'  ,acswdntcln  )
+   call mpas_pool_get_array(diag_physics,'acswuptc'    ,acswuptc    )
+   call mpas_pool_get_array(diag_physics,'acswuptcln'  ,acswuptcln  )
+   call mpas_pool_get_array(diag_physics,'aclwdnbc'    ,aclwdnbc    )
+   call mpas_pool_get_array(diag_physics,'aclwdnbcln'  ,aclwdnbcln  )
+   call mpas_pool_get_array(diag_physics,'aclwdntc'    ,aclwdntc    )
+   call mpas_pool_get_array(diag_physics,'aclwdntcln'  ,aclwdntcln  )
+   call mpas_pool_get_array(diag_physics,'aclwupbc'    ,aclwupbc    )
+   call mpas_pool_get_array(diag_physics,'aclwupbcln'  ,aclwupbcln  )
+   call mpas_pool_get_array(diag_physics,'aclwuptc'    ,aclwuptc    )
+   call mpas_pool_get_array(diag_physics,'aclwuptcln'  ,aclwuptcln  )
+ endif
 
  call mpas_pool_get_array(diag_physics,'nsteps_accum',nsteps_accum)
  call mpas_pool_get_array(diag_physics,'ndays_accum' ,ndays_accum )
@@ -295,41 +320,59 @@ use mpas_stream_manager
 !the accumulated long and short-wave radiation fluxes exceed their prescribed theshold values.
  if(.not. config_do_restart) then
     do iCell = 1, nCellsSolve
-       i_acswdnb(iCell)  = 0
-       i_acswdnbc(iCell) = 0
-       i_acswdnt(iCell)  = 0
-       i_acswdntc(iCell) = 0
-       i_acswupb(iCell)  = 0
-       i_acswupbc(iCell) = 0
-       i_acswupt(iCell)  = 0
-       i_acswuptc(iCell) = 0
+      i_acswdnb(iCell)  = 0
+      i_acswdnt(iCell)  = 0
+      i_acswupb(iCell)  = 0
+      i_acswupt(iCell)  = 0
 
-       i_aclwdnb(iCell)  = 0
-       i_aclwdnbc(iCell) = 0
-       i_aclwdnt(iCell)  = 0
-       i_aclwdntc(iCell) = 0
-       i_aclwupb(iCell)  = 0
-       i_aclwupbc(iCell) = 0
-       i_aclwupt(iCell)  = 0
-       i_aclwuptc(iCell) = 0
+      i_aclwdnb(iCell)  = 0
+      i_aclwdnt(iCell)  = 0
+      i_aclwupb(iCell)  = 0
+      i_aclwupt(iCell)  = 0
 
-       acswdnb(iCell)  = 0._RKIND
-       acswdnbc(iCell) = 0._RKIND
-       acswdnt(iCell)  = 0._RKIND
-       acswdntc(iCell) = 0._RKIND
-       acswupb(iCell)  = 0._RKIND
-       acswupbc(iCell) = 0._RKIND
-       acswupt(iCell)  = 0._RKIND
-       acswuptc(iCell) = 0._RKIND
+      acswdnb(iCell)  = 0._RKIND
+      acswdnt(iCell)  = 0._RKIND
+      acswupb(iCell)  = 0._RKIND
+      acswupt(iCell)  = 0._RKIND
 
-       aclwdnb(iCell)  = 0._RKIND
-       aclwdnbc(iCell) = 0._RKIND
-       aclwdnt(iCell)  = 0._RKIND
-       aclwdntc(iCell) = 0._RKIND
-       aclwupb(iCell)  = 0._RKIND
-       aclwupbc(iCell) = 0._RKIND
-       aclwupt(iCell)  = 0._RKIND
-       aclwuptc(iCell) = 0._RKIND
+      aclwdnb(iCell)  = 0._RKIND
+      aclwdnt(iCell)  = 0._RKIND
+      aclwupb(iCell)  = 0._RKIND
+      aclwupt(iCell)  = 0._RKIND
+      if (config_calc_clean_atm_diag) then
+        i_acswdnbc(iCell) = 0
+        i_acswdnbcln(iCell) = 0
+        i_acswdntc(iCell) = 0
+        i_acswdntcln(iCell) = 0
+        i_acswupbc(iCell) = 0
+        i_acswupbcln(iCell) = 0
+        i_acswuptc(iCell) = 0
+        i_acswuptcln(iCell) = 0
+        i_aclwdnbc(iCell) = 0
+        i_aclwdnbcln(iCell) = 0
+        i_aclwdntc(iCell) = 0
+        i_aclwdntcln(iCell) = 0
+        i_aclwupbc(iCell) = 0
+        i_aclwupbcln(iCell) = 0
+        i_aclwuptc(iCell) = 0
+        i_aclwuptcln(iCell) = 0
+        acswdnbc(iCell) = 0._RKIND
+        acswdnbcln(iCell) = 0._RKIND
+        acswdntc(iCell) = 0._RKIND
+        acswdntcln(iCell) = 0._RKIND
+        acswupbc(iCell) = 0._RKIND
+        acswupbcln(iCell) = 0._RKIND
+        acswuptc(iCell) = 0._RKIND
+        acswuptcln(iCell) = 0._RKIND
+        aclwdnbc(iCell) = 0._RKIND
+        aclwdnbcln(iCell) = 0._RKIND
+        aclwdntc(iCell) = 0._RKIND
+        aclwdntcln(iCell) = 0._RKIND
+        aclwupbc(iCell) = 0._RKIND
+        aclwupbcln(iCell) = 0._RKIND
+        aclwuptc(iCell) = 0._RKIND
+        aclwuptcln(iCell) = 0._RKIND
+      endif
     enddo
  endif
 
