@@ -68,6 +68,7 @@
  call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
  call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
  call mpas_pool_get_config(configs,'bb_input_prevh',bb_input_prevh)
+ ! nblocks is calculated here for allocation
  nblocks = 24 / bb_input_prevh
 
  call mpas_pool_get_config(configs,'online_rwc_emis',online_rwc_emis)
