@@ -217,6 +217,18 @@
             units="-"
             description="scale factor for pollen emissions"
             possible_values="Positive real values"/>
+       <nml_option name="tree_pollen_emis_scale_factor" type="real" default_value="1.0" in_defaults="false"
+            units="-"
+            description="scale factor for tree pollen emissions"
+            possible_values="Positive real values"/>
+       <nml_option name="grass_pollen_emis_scale_factor" type="real" default_value="1.0" in_defaults="false"
+            units="-"
+            description="scale factor for grass pollen emissions"
+            possible_values="Positive real values"/>
+       <nml_option name="weed_pollen_emis_scale_factor" type="real" default_value="1.0" in_defaults="false"
+            units="-"
+            description="scale factor for weed pollen emissions"
+            possible_values="Positive real values"/>
 
    </nml_record>
 
