@@ -217,6 +217,18 @@
             units="-"
             description="scale factor for pollen emissions"
             possible_values="Positive real values"/>
+       <nml_option name="tree_pollen_emis_scale_factor" type="real" default_value="1.0" in_defaults="false"
+            units="-"
+            description="scale factor for tree pollen emissions"
+            possible_values="Positive real values"/>
+       <nml_option name="grass_pollen_emis_scale_factor" type="real" default_value="1.0" in_defaults="false"
+            units="-"
+            description="scale factor for grass pollen emissions"
+            possible_values="Positive real values"/>
+       <nml_option name="weed_pollen_emis_scale_factor" type="real" default_value="1.0" in_defaults="false"
+            units="-"
+            description="scale factor for weed pollen emissions"
+            possible_values="Positive real values"/>
 
    </nml_record>
 
@@ -348,106 +360,106 @@
 <!-- ================================ -->
    <var_struct name="state" time_levs="2">
       <var_array name="scalars" type="real" dimensions="nVertLevels nCells Time">
-         <var name="smoke_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="smoke_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine smoke mixing ratio"
               packages="mpas_smoke_in;mpas_anthro_in"/>
 
-         <var name="smoke_coarse" array_group="chemistry" units="kg kg^{-1}"
+         <var name="smoke_coarse" array_group="chemistry" units="ug kg^{-1}"
               description="coarse smoke mixing ratio"
               packages="mpas_smoke_in;mpas_anthro_in"/>
 
-         <var name="dust_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="dust_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine dust mixing ratio"
               packages="mpas_dust_in;mpas_anthro_in"/>
 
-         <var name="dust_coarse" array_group="chemistry" units="kg kg^{-1}"
+         <var name="dust_coarse" array_group="chemistry" units="ug kg^{-1}"
               description="coarse dust mixing ratio"
               packages="mpas_dust_in;mpas_anthro_in"/>
-         <var name="polp_tree" array_group="chemistry" units="kg kg^{-1}"
+         <var name="polp_tree" array_group="chemistry" units="ug kg^{-1}"
               description="coarse tree pollen mixing ratio"
               packages="speciated_pollen_primary;speciated_pollen_rupture"/>
  
-         <var name="polp_grass" array_group="chemistry" units="kg kg^{-1}"
+         <var name="polp_grass" array_group="chemistry" units="ug kg^{-1}"
               description="coarse grass pollen mixing ratio"
               packages="speciated_pollen_primary;speciated_pollen_rupture"/>
 
-         <var name="polp_weed" array_group="chemistry" units="kg kg^{-1}"
+         <var name="polp_weed" array_group="chemistry" units="ug kg^{-1}"
               description="coarse weed pollen mixing ratio"
               packages="speciated_pollen_primary;speciated_pollen_rupture"/>
 
-         <var name="polp_all" array_group="chemistry" units="kg kg^{-1}"
+         <var name="polp_all" array_group="chemistry" units="ug kg^{-1}"
               description="combined primary pollen mixing ratio"
               packages="simple_pollen"/>
 
-         <var name="pols_all" array_group="chemistry" units="kg kg^{-1}"
+         <var name="pols_all" array_group="chemistry" units="ug kg^{-1}"
               description="combined ruptured pollen mixing ratio"
               packages="simple_pollen;speciated_pollen_primary"/>
 
-         <var name="pols_tree" array_group="chemistry" units="kg kg^{-1}"
+         <var name="pols_tree" array_group="chemistry" units="ug kg^{-1}"
               description="fine tree pollen mixing ratio"
               packages="speciated_pollen_rupture"/>
 
-         <var name="pols_grass" array_group="chemistry" units="kg kg^{-1}"
+         <var name="pols_grass" array_group="chemistry" units="ug kg^{-1}"
               description="fine grass pollen mixing ratio"
               packages="speciated_pollen_rupture"/>
 
-         <var name="pols_weed" array_group="chemistry" units="kg kg^{-1}"
+         <var name="pols_weed" array_group="chemistry" units="ug kg^{-1}"
               description="fine weed pollen mixing ratio"
               packages="speciated_pollen_rupture"/>
 
-         <var name="mold_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="mold_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine mold mixing ratio"
               packages="mpas_mold_in"/>
 
-         <var name="bact_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="bact_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine bacteria mixing ratio"
               packages="mpas_bact_in"/>
 
-         <var name="dms" array_group="chemistry" units="kg kg^{-1}"
+         <var name="dms" array_group="chemistry" units="ug kg^{-1}"
               description="dimethyl-sulfide mixing ratio"
               packages="mpas_dms_in"/>
 
-         <var name="plastic_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="plastic_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine microplastic mixing ratio"
               packages="mpas_plastic_in"/>
 
-         <var name="ssalt_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="ssalt_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine sea salt mixing ratio"
               packages="mpas_ssalt_in"/>
 
-         <var name="ssalt_coarse" array_group="chemistry" units="kg kg^{-1}"
+         <var name="ssalt_coarse" array_group="chemistry" units="ug kg^{-1}"
               description="coarse sea salt mixing ratio"
               packages="mpas_ssalt_in"/>
 
-         <var name="unspc_ultrafine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="unspc_ultrafine" array_group="chemistry" units="ug kg^{-1}"
               description="ultrafine anthropogenic primary aerosol mixing ration"
               packages="mpas_aerosols_in"/>
 
-         <var name="unspc_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="unspc_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine anthropogenic primary aerosol mixing ration"
               packages="mpas_anthro_in"/>
 
-         <var name="unspc_coarse" array_group="chemistry" units="kg kg^{-1}"
+         <var name="unspc_coarse" array_group="chemistry" units="ug kg^{-1}"
               description="coarse anthropogenic primary aerosol"
               packages="mpas_anthro_in"/>
 
-         <var name="vash_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="vash_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine volcanic ash"
               packages="mpas_volc_in"/>
 
-         <var name="vash_coarse" array_group="chemistry" units="kg kg^{-1}"
+         <var name="vash_coarse" array_group="chemistry" units="ug kg^{-1}"
               description="coarse volcanic ash"
               packages="mpas_volc_in"/>
 
-         <var name="so4_a_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="so4_a_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine sulfate aerosol"
               packages="mpas_aerosols_in;mpas_sna_in"/>
 
-         <var name="no3_a_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="no3_a_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine nitrate aerosol"
               packages="mpas_aerosols_in;mpas_sna_in"/>
 
-         <var name="nh4_a_fine" array_group="chemistry" units="kg kg^{-1}"
+         <var name="nh4_a_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine ammonium aerosol"
               packages="mpas_aerosols_in;mpas_sna_in"/>
 
@@ -669,16 +681,16 @@
       <var name="coef_bb_dc" type="real" dimensions="nCells Time" units="-"
            description="coefficient of diurnal cycle of biomass burning emissions"
            packages="mpas_smoke_in"/>
-      <var name="frp_in" type="real" dimensions="nCells Time" units="MW"
+      <var name="frp_in" type="real" dimensions="nCells Time" units="W"
            description="Input fire radiative power"
            packages="mpas_smoke_in"/>
-      <var name="frp_out" type="real" dimensions="nCells Time" units="MW"
+      <var name="frp_out" type="real" dimensions="nCells Time" units="W"
            description="Output fire radiative power"
            packages="mpas_smoke_in"/>
-      <var name="fre_in" type="real" dimensions="nCells Time" units="MJs"
+      <var name="fre_in" type="real" dimensions="nCells Time" units="Js"
            description="Input fire radiative energy"
            packages="mpas_smoke_in"/>
-      <var name="fre_out" type="real" dimensions="nCells Time" units="MJs"
+      <var name="fre_out" type="real" dimensions="nCells Time" units="Js"
            description="Output fire radiative energy"
            packages="mpas_smoke_in"/>
       <var name="hwp" type="real" dimensions="nCells Time" units="-"
@@ -687,13 +699,13 @@
       <var name="hwp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="-"
            description="Hourly Wildfire Potential over the last 24 hours"
            packages="mpas_smoke_in"/>
-      <var name="frp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="MW"
+      <var name="frp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="W"
            description="Fire Radiative Power over the last 24 hours"
            packages="mpas_smoke_in"/>
-      <var name="fre_prev24" type="real" dimensions="nCells TWENTYFOUR" units="MJs"
+      <var name="fre_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
            description="Fire Radiative Energy over the last 24 hours"
            packages="mpas_smoke_in"/>
-      <var name="fmc_prev24" type="real" dimensions="nCells TWENTYFOUR" units="MJs"
+      <var name="fmc_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
            description="Fuel Moisture Content over the last 24 hours"
            packages="mpas_smoke_in"/>
       <var name="totprcp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="m" 

@@ -1322,6 +1322,9 @@
  real(kind=RKIND),pointer       :: dust_alpha, dust_gamma
  real(kind=RKIND),pointer       :: dust_drylimit_factor, dust_moist_correction
  real(kind=RKIND),pointer       :: pollen_emis_scale_factor,  num_pols_per_polp
+ real(kind=RKIND),pointer       :: tree_pollen_emis_scale_factor,  &
+                                   grass_pollen_emis_scale_factor, &
+                                   weed_pollen_emis_scale_factor
 
  integer                        :: i,j,k,nblocks
 
@@ -1379,6 +1382,9 @@
 ! Namelist: pollen
  call mpas_pool_get_config(configs,'num_pols_per_polp',num_pols_per_polp)
  call mpas_pool_get_config(configs,'pollen_emis_scale_factor',pollen_emis_scale_factor)
+ call mpas_pool_get_config(configs,'tree_pollen_emis_scale_factor',tree_pollen_emis_scale_factor)
+ call mpas_pool_get_config(configs,'grass_pollen_emis_scale_factor',grass_pollen_emis_scale_factor)
+ call mpas_pool_get_config(configs,'weed_pollen_emis_scale_factor',weed_pollen_emis_scale_factor)
 ! Indexes: emissions in
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_dust_fine',index_e_ant_in_dust_fine)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_dust_coarse', index_e_ant_in_dust_coarse)
@@ -1641,6 +1647,9 @@
            bb_beta = bb_beta,   bb_input_prevh = bb_input_prevh,                         &
 ! --- Namelist: Pollen
            pollen_emis_scale_factor = pollen_emis_scale_factor,                          &
+           tree_pollen_emis_scale_factor = tree_pollen_emis_scale_factor,                &
+           grass_pollen_emis_scale_factor = grass_pollen_emis_scale_factor,              &
+           weed_pollen_emis_scale_factor = weed_pollen_emis_scale_factor,                &
            num_pols_per_polp = num_pols_per_polp,                                        &
 ! --- Namelist: Dry/Wet deposition and settling
            wetdep_ls_alpha        = wetdep_ls_alpha, plumerise_opt = plumerise_opt,      &
