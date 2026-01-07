@@ -1271,7 +1271,6 @@
  integer,pointer :: index_e_bb_in_so2
  integer,pointer :: index_e_bb_in_nh3
 
- integer,pointer :: index_e_ant_in_dust_ultrafine, index_e_ant_in_dust_fine, index_e_ant_in_dust_coarse
  integer,pointer :: index_e_ant_in_smoke_ultrafine, index_e_ant_in_smoke_fine, index_e_ant_in_smoke_coarse
  integer,pointer :: index_e_ant_in_unspc_ultrafine, index_e_ant_in_unspc_fine, index_e_ant_in_unspc_coarse
  integer,pointer :: index_e_ant_in_no3_a_fine, index_e_ant_in_so4_a_fine
@@ -1296,7 +1295,6 @@
 
  integer,pointer :: index_e_dust_out_dust_ultrafine, index_e_dust_out_dust_fine, index_e_dust_out_dust_coarse
 
- integer,pointer :: index_e_ant_out_dust_ultrafine, index_e_ant_out_dust_fine, index_e_ant_out_dust_coarse
  integer,pointer :: index_e_ant_out_unspc_ultrafine, index_e_ant_out_unspc_fine, index_e_ant_out_unspc_coarse
  integer,pointer :: index_e_ant_out_smoke_ultrafine, index_e_ant_out_smoke_fine, index_e_ant_out_smoke_coarse
  integer,pointer :: index_e_ant_out_no3_a_fine, index_e_ant_out_so4_a_fine
@@ -1421,9 +1419,6 @@
  call mpas_pool_get_config(configs,'grass_pollen_emis_scale_factor',grass_pollen_emis_scale_factor)
  call mpas_pool_get_config(configs,'weed_pollen_emis_scale_factor',weed_pollen_emis_scale_factor)
 ! Indexes: emissions in
- call mpas_pool_get_dimension(emission_input,'index_e_ant_in_dust_ultrafine',index_e_ant_in_dust_ultrafine)
- call mpas_pool_get_dimension(emission_input,'index_e_ant_in_dust_fine',index_e_ant_in_dust_fine)
- call mpas_pool_get_dimension(emission_input,'index_e_ant_in_dust_coarse', index_e_ant_in_dust_coarse)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_smoke_ultrafine', index_e_ant_in_smoke_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_smoke_fine', index_e_ant_in_smoke_fine)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_smoke_coarse',index_e_ant_in_smoke_coarse)
@@ -1455,9 +1450,6 @@
  call mpas_pool_get_dimension(emission_input,'index_e_vol_in_vash_fine',index_e_vol_in_vash_fine)
  call mpas_pool_get_dimension(emission_input,'index_e_vol_in_vash_coarse',index_e_vol_in_vash_coarse)
 ! Indexes: emissions out
- call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_dust_ultrafine',index_e_ant_out_dust_ultrafine)
- call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_dust_fine',index_e_ant_out_dust_fine)
- call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_dust_coarse',index_e_ant_out_dust_coarse)
  call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_smoke_ultrafine',index_e_ant_out_smoke_ultrafine)
  call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_smoke_fine',index_e_ant_out_smoke_fine)
  call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_smoke_coarse',index_e_ant_out_smoke_coarse)
@@ -1559,7 +1551,6 @@
 !        
  if (config_anthro_scheme .ne. 'off' .and. &
     (index_unspc_ultrafine .gt. 0 .or. index_unspc_fine .gt. 0 .or. index_unspc_coarse .gt. 0 .or. &
-     index_dust_ultrafine .gt. 0 .or. index_dust_fine .gt. 0 .or. index_dust_coarse .gt. 0 .or.   &
      index_smoke_ultrafine .gt. 0 .or. index_smoke_fine .gt. 0 .or. index_smoke_coarse            )) then
       do_mpas_anthro= .true.
  endif
@@ -1640,9 +1631,6 @@
            index_e_bb_in_so2            = index_e_bb_in_so2,                             &
            index_e_bb_in_nh3            = index_e_bb_in_nh3,                             &
            index_e_bb_in_co             = index_e_bb_in_co,                             &
-           index_e_ant_in_dust_ultrafine     = index_e_ant_in_dust_ultrafine,                      &
-           index_e_ant_in_dust_fine     = index_e_ant_in_dust_fine,                      &
-           index_e_ant_in_dust_coarse   = index_e_ant_in_dust_coarse,                    &
            index_e_ant_in_unspc_ultrafine    = index_e_ant_in_unspc_ultrafine,                     &
            index_e_ant_in_unspc_fine    = index_e_ant_in_unspc_fine,                     &
            index_e_ant_in_unspc_coarse  = index_e_ant_in_unspc_coarse,                   &
@@ -1671,9 +1659,6 @@
            index_e_bb_out_so2           = index_e_bb_out_so2,                            &
            index_e_bb_out_nh3           = index_e_bb_out_nh3,                            &
            index_e_bb_out_co            = index_e_bb_out_co,                            &
-           index_e_ant_out_dust_ultrafine    = index_e_ant_out_dust_ultrafine,                     &
-           index_e_ant_out_dust_fine    = index_e_ant_out_dust_fine,                     &
-           index_e_ant_out_dust_coarse  = index_e_ant_out_dust_coarse,                   &
            index_e_ant_out_unspc_ultrafine   =index_e_ant_out_unspc_ultrafine,                    &
            index_e_ant_out_unspc_fine   = index_e_ant_out_unspc_fine,                    &
            index_e_ant_out_unspc_coarse = index_e_ant_out_unspc_coarse,                  &

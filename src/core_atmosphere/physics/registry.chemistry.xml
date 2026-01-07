@@ -28,13 +28,13 @@
 
    <packages>
 	 <package name="mpas_smoke_fine"          
-		 active_when="config_smoke_scheme .ne. 'off' .or. ( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ))"
+		 active_when="config_smoke_scheme .ne. 'off' .or. config_rwc_emis .ne. 0"
 		 description="parameterization of fine smoke"/>
 	 <package name="mpas_smoke_ultrafine"
-		 active_when="config_ultrafine .and. (config_smoke_scheme .ne. 'off' .or. ( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) )))"
+		 active when="config_ultrafine .and. (config_smoke_scheme .ne. 'off' .or. config_rwc_emis .ne. 0)"
 		 description="parameterization of ultrafine smoke"/>
 	 <package name="mpas_smoke_coarse"
-		 active_when="config_coarse .and. (config_smoke_scheme .ne. 'off' .or. ( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) )))"
+		 active when="config_coarse .and. (config_smoke_scheme .ne. 'off' .or. config_rwc_emis .ne. 0)"
 		 description="parameterization of coarse smoke"/>
 	 <package name="mpas_smoke_in"
 		 active_when="config_smoke_scheme .ne. 'off'"
@@ -43,10 +43,10 @@
 		 active_when="config_dust_scheme .ne. 'off'"
 		 description="parameterization of fine and coarse dust"/>
 	 <package name="mpas_dust_ultrafine"
-		 active_when="config_ultrafine .and. (config_smoke_scheme .ne. 'off' .or. ( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) )) .or. config_dust_scheme .ne. 'off')"
+		 active_when="config_ultrafine .and. config_dust_scheme .ne. 'off'"
 		 description="parameterization of ultrafine dust"/>
 	 <package name="mpas_anthro_in"
-		 active_when="config_anthro_scheme .ne. 'off'"
+		 active_when="config_anthro_scheme .ne. 'off' .or. config_rwc_emis .ne. 0"
 		 description="parameterization of anthropogenic emissions"/>
 	 <package name="mpas_anthro_aero_in"
 		 active_when="( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ))"
@@ -470,11 +470,11 @@
 
          <var name="dust_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine dust mixing ratio"
-              packages="mpas_dust_in;mpas_anthro_aero_in"/>
+              packages="mpas_dust_in"/>
 
          <var name="dust_coarse" array_group="chemistry" units="ug kg^{-1}"
               description="coarse dust mixing ratio"
-		 packages="mpas_dust_in;mpas_anthro_aero_in"/>
+		 packages="mpas_dust_in"/>
 
          <var name="polp_tree" array_group="chemistry" units="ug kg^{-1}"
               description="coarse tree pollen mixing ratio"
@@ -631,19 +631,10 @@
               packages="mpas_smoke_ultrafine"/>
          <var name="e_ant_in_smoke_fine" name_in_code="e_ant_in_smoke_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic fine smoke emissions"
-              packages="mpas_anthro_aero_in"/>
+              packages="mpas_smoke_fine"/>
          <var name="e_ant_in_smoke_coarse" name_in_code="e_ant_in_smoke_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic coarse smoke emissions"
               packages="mpas_smoke_coarse"/>
-         <var name="e_ant_in_dust_ultrafine" name_in_code="e_ant_in_dust_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input anthropogenic ultrafine dust emissions"
-              packages="mpas_dust_ultrafine"/>
-         <var name="e_ant_in_dust_fine" name_in_code="e_ant_in_dust_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input anthropogenic fine dust emissions"
-              packages="mpas_anthro_aero_in"/>
-         <var name="e_ant_in_dust_coarse" name_in_code="e_ant_in_dust_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input anthropogenic coarse dust emissions"
-              packages="mpas_anthro_aero_in"/>
          <var name="e_ant_in_no3_a_fine" name_in_code="e_ant_in_no3_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic fine nitrate emissions"
 	      packages="mpas_sna_in"/>
@@ -721,15 +712,6 @@
       </var_array>
    <!--Anthropogenic-->
       <var_array name="e_ant_out" type="real" dimensions="nVertLevels nCells Time" packages="mpas_anthro_in">
-         <var name="e_ant_out_dust_ultrafine" name_in_code="e_ant_out_dust_ultrafine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
-              description="ouput anthropogenic ultrafine dust emissions"
-              packages="mpas_dust_ultrafine"/>
-         <var name="e_ant_out_dust_fine" name_in_code="e_ant_out_dust_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
-              description="ouput anthropogenic fine dust emissions"
-              packages="mpas_anthro_aero_in"/>
-         <var name="e_ant_out_dust_coarse" name_in_code="e_ant_out_dust_coarse" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
-              description="output anthropogenic coarse dust emissions"
-              packages="mpas_anthro_aero_in"/>
          <var name="e_ant_out_unspc_ultrafine" name_in_code="e_ant_out_unspc_ultrafine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output anthropogenic ultrafine unspeciated emissions"
               packages="mpas_unspc_ultrafine"/>
@@ -744,7 +726,7 @@
               packages="mpas_smoke_ultrafine"/>
          <var name="e_ant_out_smoke_fine" name_in_code="e_ant_out_smoke_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output anthropogenic fine smoke emissions"
-              packages="mpas_anthro_aero_in"/>
+              packages="mpas_smoke_fine"/>
          <var name="e_ant_out_smoke_coarse" name_in_code="e_ant_out_smoke_coarse" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output anthropogenic coarse smoke emissions"
               packages="mpas_smoke_coarse"/>
@@ -968,7 +950,7 @@
 	       packages="mpas_dust_ultrafine"/>
          <var name="tend_dust_fine" name_in_code="dust_fine" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of fine dust mass per unit volume divided by d(zeta)/dz"
-               packages="mpas_dust_in;mpas_anthro_aero_in"/>
+               packages="mpas_dust_in"/>
           <var name="tend_dust_coarse" name_in_code="dust_coarse" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of fine dust mass per unit volume divided by d(zeta)/dz"
                packages="mpas_dust_in"/>
@@ -1043,9 +1025,9 @@
               description="Lateral boundary tendency of coarse smoke mixing ratio"/>
          <var name="lbc_dust_ultrafine" name_in_code="dust_ultrafine" array_group="chemistry"  packages="mpas_dust_ultrafine" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of ultrafine dust mixing ratio"/>
-         <var name="lbc_dust_fine" name_in_code="dust_fine" array_group="chemistry"  packages="mpas_dust_in;mpas_anthro_aero_in" units="kg kg^{-1} s^{-1}"
+         <var name="lbc_dust_fine" name_in_code="dust_fine" array_group="chemistry"  packages="mpas_dust_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of fine dust mixing ratio"/>
-         <var name="lbc_dust_coarse" name_in_code="dust_coarse" array_group="chemistry"  packages="mpas_dust_in;mpas_anthro_aero_in" units="kg kg^{-1} s^{-1}"
+         <var name="lbc_dust_coarse" name_in_code="dust_coarse" array_group="chemistry"  packages="mpas_dust_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of coarse dust mixing ratio"/>
          <var name="lbc_polp_tree" name_in_code="polp_tree" array_group="chemistry"  packages="speciated_pollen_primary" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of coarse tree pollen mixing ratio"/>
