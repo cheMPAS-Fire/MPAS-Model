@@ -126,10 +126,7 @@
     if(.not.allocated(hwp_p)       )         allocate(hwp_p(ims:ime,jms:jme))
     if(.not.allocated(coef_bb_dc_p))         allocate(coef_bb_dc_p(ims:ime,jms:jme))
     if(.not.allocated(aod3d_smoke_p))        allocate(aod3d_smoke_p(ims:ime,kms:kme,jms:jme))
-    if (ebb_dcycle .eq. 1 ) then
-       if(.not.allocated(frp_in_p)    )         allocate(frp_in_p(ims:ime,jms:jme))
-       if(.not.allocated(fre_in_p)            )  allocate(fre_in_p(ims:ime,jms:jme))
-    else
+    if (ebb_dcycle .eq. 2 ) then
        if(.not.allocated(totprcp_prev24_p))  allocate(totprcp_prev24_p(ims:ime,jms:jme)) !should be always 2d
        if(.not.allocated(hwp_avg_p)       )  allocate(hwp_avg_p(ims:ime,jms:jme,nblocks))
        if(.not.allocated(frp_avg_p)       )  allocate(frp_avg_p(ims:ime,jms:jme,nblocks))
@@ -142,6 +139,9 @@
        if(.not.allocated(efs_rsmold_p)    )  allocate(efs_rsmold_p(ims:ime,jms:jme)) !EFs for residual smoldering
        if(.not.allocated(fire_end_hr_p)   )  allocate(fire_end_hr_p(ims:ime,jms:jme))
        if(.not.allocated(fire_ef_out_p)   )  allocate(fire_ef_out_p(ims:ime,jms:jme))
+    else
+       if(.not.allocated(frp_in_p)    )         allocate(frp_in_p(ims:ime,jms:jme))
+       if(.not.allocated(fre_in_p)            )  allocate(fre_in_p(ims:ime,jms:jme))
     endif
     if (add_fire_heat_flux) then 
        if(.not.allocated(hfx_bb_p)           )  allocate(hfx_bb_p(ims:ime,jms:jme))
@@ -534,10 +534,7 @@
          call mpas_pool_get_array(diag_physics,'fre_out',fre_out)
          call mpas_pool_get_array(diag_physics,'hwp',hwp)
          call mpas_pool_get_array(diag_physics,'coef_bb_dc',coef_bb_dc)
-         if ( ebb_dcycle .eq. 1 ) then
-            call mpas_pool_get_array(diag_physics,'frp_in',frp_in)
-            call mpas_pool_get_array(diag_physics,'fre_in',fre_in)
-         else
+         if ( ebb_dcycle .eq. 2 ) then
             call mpas_pool_get_array(diag_physics,'totprcp_prev24',totprcp_prev24)
             call mpas_pool_get_array(diag_physics,'hwp_prev24',hwp_prev24)
             call mpas_pool_get_array(diag_physics,'frp_prev24',frp_prev24)
@@ -549,6 +546,9 @@
             call mpas_pool_get_array(diag_physics,'efs_flam',efs_flam)
             call mpas_pool_get_array(diag_physics,'efs_rsmold',efs_rsmold)
             call mpas_pool_get_array(diag_physics,'fire_ef_out',fire_ef_out)
+         else
+            call mpas_pool_get_array(diag_physics,'frp_in',frp_in)
+            call mpas_pool_get_array(diag_physics,'fre_in',fre_in)
          endif
          if ( plumerise_opt .gt. 0 ) then
             call mpas_pool_get_array(diag_physics,'min_bb_plume',min_bb_plume)
@@ -688,16 +688,16 @@
           fre_out_p(i,j) = fre_out(i)
           hwp_p(i,j)     = hwp(i)
           coef_bb_dc_p(i,j) = coef_bb_dc(i)
-          if ( ebb_dcycle .eq. 1 ) then
+          if ( ebb_dcycle .eq. 2 ) then
+             eco_id_p     (i,j)  = eco_id(i)
+             efs_smold_p  (i,j)  = efs_smold(i)
+             efs_flam_p   (i,j)  = efs_flam(i)
+             efs_rsmold_p (i,j)  = efs_rsmold(i)
+             fire_ef_out_p(i,j)  = fire_ef_out(i)
+             fire_end_hr_p(i,j)  = fire_end_hr(i)
+          else
              frp_in_p(i,j)  = frp_in(i)
              fre_in_p(i,j)  = fre_in(i)
-          else
-          eco_id_p     (i,j)  = eco_id(i)
-          efs_smold_p  (i,j)  = efs_smold(i)
-          efs_flam_p   (i,j)  = efs_flam(i)
-          efs_rsmold_p (i,j)  = efs_rsmold(i)
-          fire_ef_out_p(i,j)  = fire_ef_out(i)
-          fire_end_hr_p(i,j)  = fire_end_hr(i)
           endif
           if ( plumerise_opt .gt. 0 ) then
              min_bb_plume_p(i,j) = 0
