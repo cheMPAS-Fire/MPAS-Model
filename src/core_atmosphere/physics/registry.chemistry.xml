@@ -687,7 +687,7 @@
    <var_struct name="diag_physics" time_levs="1">
 <!-- OUTPUT EMISSIONS -->
    <!--Biomass burning-->
-      <var_array name="e_bb_out" type="real" dimensions="nVertLevels nCells Time">
+      <var_array name="e_bb_out" type="real" dimensions="nVertLevels nCells Time" packages="mpas_smoke_in">
          <var name="e_bb_out_smoke_fine" name_in_code="e_bb_out_smoke_fine" array_group="bb_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output biomass burning fine smoke emissions"
               packages="mpas_smoke_fine"/>

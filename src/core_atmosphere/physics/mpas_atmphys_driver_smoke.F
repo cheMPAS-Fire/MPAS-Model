@@ -562,16 +562,16 @@
             call mpas_pool_get_array(diag_physics,'qfx_bb',qfx_bb)
          endif
       endif
-      if ( num_e_ant_out .gt. 0 ) then
+      if ( num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
          call mpas_pool_get_array(diag_physics, 'e_ant_out',e_ant_out)
       endif
-      if ( num_e_bb_out .gt. 0 ) then
+      if ( num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
          call mpas_pool_get_array(diag_physics, 'e_bb_out',e_bb_out)
       endif
       if ( num_e_bio_out .gt. 0 ) then
          call mpas_pool_get_array(diag_physics, 'e_bio_out',e_bio_out)
       endif
-      if ( num_e_dust_out .gt. 0 ) then
+      if ( num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
          call mpas_pool_get_array(diag_physics, 'e_dust_out',e_dust_out)
       endif
       if ( num_e_ss_out .gt. 0 ) then
@@ -620,7 +620,7 @@
        enddo
       endif
 
-      if ( num_e_ant_in .gt. 0 ) then
+      if ( num_e_ant_in .gt. 0 .and. config_anthro_scheme .ne. 'off') then
        do n = 1, num_e_ant_in
        do j = jts, jte
        do k = 1, kanthro
@@ -632,7 +632,7 @@
        enddo
       endif     
 !
-     if ( num_e_bb_in .gt. 0 ) then 
+     if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off') then 
       do n = 1, num_e_bb_in
       do j = jts, jte
       do k = 1, kwildfire
@@ -862,7 +862,7 @@
      
 
 
-      if (num_e_ant_out .gt. 0 ) then
+      if (num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
       do n = 1, num_e_ant_out
       do j = jts, jte
       do k = kts, kte
@@ -873,7 +873,7 @@
       enddo
       enddo
       endif
-      if (num_e_bb_out .gt. 0 ) then
+      if (num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
       do n = 1, num_e_bb_out
       do j = jts, jte
       do k = kts, kte
@@ -895,7 +895,7 @@
       enddo
       enddo
       endif
-      if (num_e_dust_out .gt. 0 ) then
+      if (num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
       do n = 1, num_e_dust_out
       do j = jts, jte
       do k = kts, kte
@@ -1113,7 +1113,7 @@
       enddo
       enddo
 
-      if (num_e_ant_out .gt. 0 ) then
+      if (num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
       do n = 1, num_e_ant_out
       do j = jts,jte
       do k = kts,kte
@@ -1125,7 +1125,7 @@
       enddo
       endif
 
-      if (num_e_bb_out .gt. 0 ) then
+      if (num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
       do n = 1, num_e_bb_out
       do j = jts,jte
       do k = kts,kte
@@ -1149,7 +1149,7 @@
       enddo
       endif
       !
-      if (num_e_dust_out .gt. 0 ) then
+      if (num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
       do n = 1, num_e_dust_out
       do j = jts,jte
       do k = kts,kte
