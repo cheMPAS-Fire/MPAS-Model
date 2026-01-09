@@ -688,6 +688,9 @@
 <!-- OUTPUT EMISSIONS -->
    <!--Biomass burning-->
       <var_array name="e_bb_out" type="real" dimensions="nVertLevels nCells Time" packages="mpas_smoke_in">
+         <var name="e_bb_out_smoke_ultrafine" name_in_code="e_bb_out_smoke_ultrafine" array_group="bb_out_aerosols" units="ug m^{-2} s^{-1}"
+              description="output biomass burning ultrafine smoke emissions"
+              packages="mpas_smoke_ultrafine"/>
          <var name="e_bb_out_smoke_fine" name_in_code="e_bb_out_smoke_fine" array_group="bb_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output biomass burning fine smoke emissions"
               packages="mpas_smoke_fine"/>
