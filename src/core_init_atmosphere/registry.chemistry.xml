@@ -49,8 +49,6 @@
            units="-"
            description="configuration for mpas sulfate nitrate ammonium model"
            possible_values="`on',`off'"/>
-=======
->>>>>>> origin/gsl/develop
       <nml_option name="num_chem" type="integer" default_value="0"
            units="-"
            description="Number of chemical tracers"
