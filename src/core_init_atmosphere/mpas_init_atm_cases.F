@@ -4200,6 +4200,7 @@ module init_atm_cases
       integer, pointer :: config_theta_adv_order
       real (kind=RKIND), pointer :: config_coef_3rd_order
       logical, pointer :: config_blend_bdy_terrain
+      logical, pointer :: config_coarse
       character (len=StrKIND), pointer :: config_smoke_scheme, config_dust_scheme, &
                                           config_ssalt_scheme, config_anthro_scheme
 
@@ -4313,6 +4314,7 @@ module init_atm_cases
       call mpas_pool_get_config(configs, 'config_dust_scheme', config_dust_scheme)
       call mpas_pool_get_config(configs, 'config_ssalt_scheme', config_ssalt_scheme)
       call mpas_pool_get_config(configs, 'config_anthro_scheme', config_anthro_scheme)
+      call mpas_pool_get_config(configs, 'config_coarse',config_coarse)
       
       
       call mpas_pool_get_config(configs, 'config_extrap_airtemp', config_extrap_airtemp)
@@ -7953,7 +7955,7 @@ call mpas_log_write('Done with soil consistency check')
       integer, pointer :: index_nwfa, index_nifa
 ! Chemistry
       integer, pointer :: index_smoke_fine => null(), index_dust_fine => null(), index_dust_coarse => null(), &
-                          index_unspc_fine => null(), index_unspc_coarase => null(), &
+                          index_unspc_fine => null(), index_unspc_coarse => null(), &
                           index_ssalt_fine => null(), index_ssalt_coarse => null()
 
 
@@ -7998,6 +8000,8 @@ call mpas_log_write('Done with soil consistency check')
 
       character (len=StrKIND), pointer :: config_extrap_airtemp
       character (len=StrKIND), pointer :: config_smoke_scheme, config_dust_scheme
+      character (len=StrKIND), pointer :: config_anthro_scheme, config_ssalt_scheme 
+      logical, pointer :: config_coarse
       integer :: extrap_airtemp
 
       real (kind=RKIND), dimension(:), pointer :: latCell, lonCell
@@ -8188,9 +8192,9 @@ call mpas_log_write('Done with soil consistency check')
          call mpas_pool_get_dimension(lbc_state, 'index_lbc_dust_coarse', index_dust_coarse)
       endif
       if ( config_anthro_scheme .ne. 'off' ) then
-         call mpas_pool_get_dimension(lbc_state, 'index_lbc_anthro_fine', index_anthro_fine)
+         call mpas_pool_get_dimension(lbc_state, 'index_lbc_unspc_fine', index_unspc_fine)
          if (config_coarse) then
-             call mpas_pool_get_dimension(lbc_state, 'index_lbc_anthro_coarse', index_anthro_coarse)
+             call mpas_pool_get_dimension(lbc_state, 'index_lbc_unspc_coarse', index_unspc_coarse)
          endif
       endif
 
