@@ -132,7 +132,8 @@ use mpas_stream_manager
                    config_dust_scheme,       &
                    config_anthro_scheme,     &
                    config_ssalt_scheme,      &
-                   config_sna_scheme
+                   config_sna_scheme,        &
+                   config_rwc_scheme
 
  integer,pointer:: nCellsSolve,nLags
  integer,dimension(:),pointer:: i_rainc,i_rainnc
@@ -196,6 +197,7 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_anthro_scheme'    ,config_anthro_scheme    )
  call mpas_pool_get_config(configs,'config_ssalt_scheme'     ,config_ssalt_scheme     )
  call mpas_pool_get_config(configs,'config_sna_scheme'       ,config_sna_scheme       )
+ call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme      )
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_pool_get_dimension(mesh,'nCellsSolve',nCellsSolve)
@@ -528,7 +530,8 @@ use mpas_stream_manager
 !initialization of chemistry processes:
  if(config_smoke_scheme .ne. 'off' .or. config_pollen_scheme .ne. 'off' .or. &
     config_dust_scheme .ne. 'off'  .or. config_anthro_scheme .ne. 'off' .or. &
-    config_ssalt_scheme .ne. 'off' .or. config_sna_scheme .ne. 'off'         ) then
+    config_ssalt_scheme .ne. 'off' .or. config_sna_scheme .ne. 'off'    .or. &
+    config_rwc_scheme .ne. 'off'   ) then
     call init_smoke(mesh,configs)
  endif
 
