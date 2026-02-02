@@ -866,7 +866,7 @@
       do j = jts, jte
       do k = kts, kte
       do i = its, ite
-         e_ant_out_p(i,k,j,n) = e_ant_out(n,k,i)
+         e_ant_out_p(i,k,j,n) = 0._RKIND !e_ant_out(n,k,i)
       enddo
       enddo
       enddo
@@ -961,6 +961,7 @@
  real(kind=RKIND),dimension(:),    pointer:: aod550
  real(kind=RKIND),dimension(:,:,:),pointer:: e_ant_out, e_bb_out, e_bio_out, &
                                              e_vol_out, e_dust_out, e_ss_out
+ real(kind=RKIND),dimension(:),pointer :: aero_emis_for_enhmix
  integer,dimension(:),pointer:: min_bb_plume, max_bb_plume
  
  integer,pointer :: chemistry_start,chemistry_end
@@ -993,6 +994,7 @@
  call mpas_pool_get_array(diag_physics,'drydep_flux',drydep_flux)
 
  call mpas_pool_get_array(diag_physics,'vis',vis)
+ call mpas_pool_get_array(diag_physics,'aero_emis_for_enhmix',aero_emis_for_enhmix)
 
  call mpas_pool_get_array(tend_physics,'tend_chem_settle',tend_chem_settle)
 
@@ -1112,12 +1114,18 @@
       enddo
       enddo
 
+! Initialize output emissions for MYNN enhanced mixing
+      do i=its,ite
+         aero_emis_for_enhmix(i) = 0._RKIND
+      enddo
+
       if ( num_e_ant_out .gt. 0 ) then
       do n = 1, num_e_ant_out
       do j = jts,jte
       do k = kts,kte
       do i = its,ite
             e_ant_out(n,k,i) = e_ant_out_p(i,k,j,n)
+            aero_emis_for_enhmix(i) = aero_emis_for_enhmix(i) + e_ant_out_p(i,k,j,n) 
       enddo
       enddo
       enddo
