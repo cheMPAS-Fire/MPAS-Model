@@ -45,6 +45,7 @@
  character(len=StrKIND),pointer :: config_ssalt_scheme
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
+ character(len=StrKIND),pointer :: config_rwc_scheme
 
  integer, pointer :: ebb_dcycle
  integer, pointer :: wetdep_ls_opt
@@ -52,7 +53,6 @@
  integer, pointer :: plumerise_opt
  logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
  integer, pointer :: bb_input_prevh
- integer, pointer :: config_rwc_emis
  integer:: i,k,j,nblocks
 
  call mpas_pool_get_config(configs,'config_smoke_scheme', config_smoke_scheme)
@@ -62,6 +62,7 @@
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
 
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
@@ -71,7 +72,6 @@
  ! nblocks is calculated here for allocation
  nblocks = 24 / bb_input_prevh
 
- call mpas_pool_get_config(configs,'config_rwc_emis',config_rwc_emis)
 
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
@@ -182,34 +182,33 @@
  if ( num_e_ant_in .gt. 0 .and. config_anthro_scheme .ne. 'off' ) then
     if(.not.allocated(e_ant_in_p))          allocate(e_ant_in_p(ims:ime,1:kanthro,jms:jme,1:num_e_ant_in))
  endif
- if ( num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off' ) then
+ if ( num_e_ant_out .gt. 0 ) then
     if(.not.allocated(e_ant_out_p))         allocate(e_ant_out_p (ims:ime,kms:kme,jms:jme,1:num_e_ant_out) )
  endif
- if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off' ) then
+ if ( num_e_bb_in .gt. 0 ) then
     if(.not.allocated(e_bb_in_p))           allocate(e_bb_in_p (ims:ime,1:kwildfire,jms:jme,1:num_e_bb_in) )
  endif
- if ( num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off' ) then
+ if ( num_e_bb_out .gt. 0 ) then
     if(.not.allocated(e_bb_out_p))          allocate(e_bb_out_p  (ims:ime,kms:kme,jms:jme,1:num_e_bb_out)  )
  endif
- if ( num_e_bio_in .gt. 0 .and. config_pollen_scheme .ne. 'off' ) then
+ if ( num_e_bio_in .gt. 0 ) then
     if(.not.allocated(e_bio_in_p))          allocate(e_bio_in_p(ims:ime,1:kbiogenic ,jms:jme,1:num_e_bio_in))
  endif
- if ( num_e_bio_out .gt. 0 .and. config_pollen_scheme .ne. 'off' ) then
+ if ( num_e_bio_out .gt. 0 ) then
     if(.not.allocated(e_bio_out_p))         allocate(e_bio_out_p (ims:ime,kms:kme,jms:jme,1:num_e_bio_out) )
  endif
- if ( num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off' ) then
+ if ( num_e_dust_out .gt. 0 ) then
     if(.not.allocated(e_dust_out_p))        allocate(e_dust_out_p(ims:ime,kms:kme,jms:jme,1:num_e_dust_out))
  endif
- if ( num_e_vol_in .gt. 0 .and. config_volc_scheme .ne. 'off' ) then
+ if ( num_e_vol_in .gt. 0 ) then
     if(.not.allocated(e_vol_in_p))          allocate(e_vol_in_p(ims:ime,1:kvolcanic ,jms:jme,1:num_e_vol_in))
  endif
- if ( num_e_vol_out .gt. 0 .and. config_volc_scheme .ne. 'off' ) then
+ if ( num_e_vol_out .gt. 0 ) then
     if(.not.allocated(e_vol_out_p))         allocate(e_vol_out_p (ims:ime,kms:kme,jms:jme,1:num_e_vol_out) )
  endif
- if ( num_e_ss_out .gt. 0 .and. config_ssalt_scheme .ne. 'off' ) then
+ if ( num_e_ss_out .gt. 0 ) then
     if(.not.allocated(e_ss_out_p))          allocate(e_ss_out_p  (ims:ime,kms:kme,jms:jme,1:num_e_ss_out)  )
  endif
-
 
  if (config_sna_scheme .ne. 'off' ) then
     if(.not.allocated(nifa_p))    allocate(nifa_p(ims:ime,kms:kme,jms:jme))
@@ -217,7 +216,7 @@
     if(.not.allocated(hno3_bkgd_p)) allocate(hno3_bkgd_p(ims:ime,kms:kme,jms:jme))
  endif
 
- if ( config_rwc_emis .gt. 0 ) then
+ if ( config_rwc_scheme .ne. 'off' ) then
       if(.not.allocated(RWC_denominator_p))               allocate(RWC_denominator_p(ims:ime,jms:jme))
       if(.not.allocated(RWC_annual_sum_p))                allocate(RWC_annual_sum_p(ims:ime,1:kreswoodcomb,jms:jme))
       if(.not.allocated(RWC_annual_sum_smoke_fine_p))     allocate(RWC_annual_sum_smoke_fine_p(ims:ime,1:kreswoodcomb,jms:jme))
@@ -405,12 +404,12 @@
       character(len=StrKIND),pointer :: config_ssalt_scheme
       character(len=StrKIND),pointer :: config_volc_scheme
       character(len=StrKIND),pointer :: config_sna_scheme
+      character(len=StrKIND),pointer :: config_rwc_scheme
       character(len=StrKIND),pointer :: config_convection_scheme
       integer, pointer :: wetdep_ls_opt
       integer, pointer :: drydep_opt
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
-      integer, pointer :: config_rwc_emis
      
       real(kind=RKIND),dimension(:,:,:),pointer :: scalars
       real(kind=RKIND),dimension(:,:,:),pointer :: chem
@@ -437,7 +436,7 @@
       call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
       call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
 
-      call mpas_pool_get_config(configs,'config_rwc_emis',config_rwc_emis)
+      call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
 
       call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
       call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
@@ -520,7 +519,7 @@
       if (config_volc_scheme .ne. 'off' .and. num_e_vol_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_vol_in', e_vol_in)
       endif
-      if (config_rwc_emis .gt. 0 ) then
+      if (config_rwc_scheme .ne. 'off' ) then
          call mpas_pool_get_array(diag_physics,'RWC_denominator',RWC_denominator)
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum',RWC_annual_sum)
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum_smoke_fine',RWC_annual_sum_smoke_fine)
@@ -562,16 +561,16 @@
             call mpas_pool_get_array(diag_physics,'qfx_bb',qfx_bb)
          endif
       endif
-      if ( num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
+      if ( num_e_ant_out .gt. 0 ) then
          call mpas_pool_get_array(diag_physics, 'e_ant_out',e_ant_out)
       endif
-      if ( num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
+      if ( num_e_bb_out .gt. 0 ) then
          call mpas_pool_get_array(diag_physics, 'e_bb_out',e_bb_out)
       endif
       if ( num_e_bio_out .gt. 0 ) then
          call mpas_pool_get_array(diag_physics, 'e_bio_out',e_bio_out)
       endif
-      if ( num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
+      if ( num_e_dust_out .gt. 0 ) then
          call mpas_pool_get_array(diag_physics, 'e_dust_out',e_dust_out)
       endif
       if ( num_e_ss_out .gt. 0 ) then
@@ -714,7 +713,7 @@
       enddo
       endif
       !
-      if ( config_rwc_emis .gt. 0 ) then
+      if ( config_rwc_scheme .ne. 'off' ) then
         do j = jts, jte
         do k = 1,kreswoodcomb
         do i = its, ite
@@ -862,7 +861,7 @@
      
 
 
-      if (num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
+      if (num_e_ant_out .gt. 0 ) then
       do n = 1, num_e_ant_out
       do j = jts, jte
       do k = kts, kte
@@ -873,7 +872,7 @@
       enddo
       enddo
       endif
-      if (num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
+      if (num_e_bb_out .gt. 0 ) then
       do n = 1, num_e_bb_out
       do j = jts, jte
       do k = kts, kte
@@ -895,7 +894,7 @@
       enddo
       enddo
       endif
-      if (num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
+      if (num_e_dust_out .gt. 0 ) then
       do n = 1, num_e_dust_out
       do j = jts, jte
       do k = kts, kte
@@ -1113,7 +1112,7 @@
       enddo
       enddo
 
-      if (num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
+      if ( num_e_ant_out .gt. 0 ) then
       do n = 1, num_e_ant_out
       do j = jts,jte
       do k = kts,kte
@@ -1125,7 +1124,7 @@
       enddo
       endif
 
-      if (num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
+      if ( num_e_bb_out .gt. 0) then
       do n = 1, num_e_bb_out
       do j = jts,jte
       do k = kts,kte
@@ -1137,7 +1136,7 @@
       enddo
       endif
      !
-      if (num_e_bio_out .gt. 0 ) then
+      if ( num_e_bio_out .gt. 0 ) then
       do n = 1, num_e_bio_out
       do j = jts,jte
       do k = kts,kte
@@ -1149,7 +1148,7 @@
       enddo
       endif
       !
-      if (num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
+      if (num_e_dust_out .gt. 0) then
       do n = 1, num_e_dust_out
       do j = jts,jte
       do k = kts,kte
@@ -1322,6 +1321,7 @@
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_methane_scheme
  character(len=StrKIND),pointer :: config_bact_scheme
+ character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_extra_chemical_tracers
  logical,pointer :: config_ultrafine, config_coarse
  integer,pointer                :: hwp_method
@@ -1341,7 +1341,6 @@
  logical,pointer                :: add_fire_heat_flux
  logical,pointer                :: add_fire_moist_flux
  integer,pointer                :: plumerisefire_frq
- integer,pointer                :: config_rwc_emis
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
  real(kind=RKIND),pointer       :: dust_alpha, dust_gamma
  real(kind=RKIND),pointer       :: dust_drylimit_factor, dust_moist_correction
@@ -1353,7 +1352,7 @@
                                    do_mpas_dust,do_mpas_anthro,  &
                                    do_mpas_ssalt, do_mpas_volc,  &
                                    do_mpas_sna, do_mpas_methane, &
-                                   do_mpas_hab
+                                   do_mpas_hab, do_mpas_rwc
  integer                        :: i,j,k,nblocks
 
  do_mpas_smoke  = .false.
@@ -1365,6 +1364,7 @@
  do_mpas_sna    = .false.
  do_mpas_methane= .false.
  do_mpas_hab    = .false.
+ do_mpas_rwc    = .false.
  nblocks        = 1
 
 !copy MPAS arrays to local arrays:
@@ -1400,7 +1400,7 @@
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
  call mpas_pool_get_config(configs,'bb_beta',bb_beta)
  call mpas_pool_get_config(configs,'bb_qv_scale_factor',bb_qv_scale_factor)
- call mpas_pool_get_config(configs,'config_rwc_emis',config_rwc_emis)
+ call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'rwc_emis_scale_factor',rwc_emis_scale_factor)
 ! Namelist: Wet/dry deposition
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
@@ -1538,6 +1538,11 @@
         nblocks = 24 / bb_input_prevh
      endif
  endif
+ if (config_rwc_scheme .ne. 'off' .and. (index_smoke_fine .gt. 0 .or. &
+     index_smoke_coarse .gt. 0 .or. index_unspc_fine .gt. 0 .or. &
+     index_unspc_coarse .gt. 0 )) then
+     do_mpas_rwc = .true.
+endif
 !        
  if (config_dust_scheme   .ne. 'off'  .and. &
     (index_dust_fine .gt. 0 .or. index_dust_coarse .gt. 0 )) then
@@ -1717,7 +1722,7 @@
            do_mpas_pollen= do_mpas_pollen, do_mpas_anthro = do_mpas_anthro,              &
            do_mpas_ssalt = do_mpas_ssalt,  do_mpas_volc   = do_mpas_volc,                &
            do_mpas_sna   = do_mpas_sna,    do_mpas_methane= do_mpas_methane,             &
-           do_mpas_hab   = do_mpas_hab,                                                  &
+           do_mpas_hab   = do_mpas_hab,    do_mpas_rwc = do_mpas_rwc,                    &
 ! --- Namelist: Wildfire
            plume_wind_eff         = plume_wind_eff,  plume_alpha   = plume_alpha,        &
            bb_emis_scale_factor   = bb_emis_scale_factor,                                &
@@ -1741,7 +1746,6 @@
            dust_drylimit_factor  = dust_drylimit_factor,                                 &
            dust_moist_correction = dust_moist_correction,                                &
 ! --- Namelist: Other
-           online_rwc_emis = config_rwc_emis    ,                                        &
            rwc_emis_scale_factor = rwc_emis_scale_factor,                                &
 ! --- Met variables
            nifa           = nifa_p,              nwfa    = nwfa_p,                       &

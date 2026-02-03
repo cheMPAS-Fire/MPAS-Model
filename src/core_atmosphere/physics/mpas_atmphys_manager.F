@@ -400,7 +400,10 @@
                                   config_radt_lw_scheme,    &
                                   config_radt_sw_scheme,    &
                                   config_smoke_scheme,      &
-                                  config_dust_scheme
+                                  config_dust_scheme,       &
+                                  config_pollen_scheme,     &
+                                  config_anthro_scheme,     &
+                                  config_rwc_scheme
 
  character(len=StrKIND),pointer:: config_conv_interval,     &
                                   config_pbl_interval,      &
@@ -454,6 +457,9 @@
  call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
  call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
+ call mpas_pool_get_config(configs,'config_pollen_scheme'    ,config_pollen_scheme    )
+ call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme)
+ call mpas_pool_get_config(configs,'config_anthro_scheme'    ,config_anthro_scheme      )
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  call mpas_get_timeInterval(mpas_get_clock_timestep(clock, ierr), dt=dt)
@@ -735,7 +741,9 @@
  num_e_ss_out  = n_e_ss_out
  num_e_vol_out = n_e_vol_out
 
- if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off') then
+ if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off' .or. &
+    config_anthro_scheme .ne. 'off' .or. config_pollen_scheme .ne. 'off' .or. &
+    config_rwc_scheme .ne. 'off' ) then
     do_chemistry = .true.
  else
     do_chemistry = .false.
