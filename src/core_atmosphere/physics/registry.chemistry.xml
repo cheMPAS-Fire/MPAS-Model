@@ -333,6 +333,7 @@
               filename_template="history.$Y-$M-$D_$h.$m.$s.nc"
               output_interval="6:00:00"
               runtime_format="separate_file">
+              <var name="aero_emis_for_enhmix"/>
 	      <var name="swdnb"/>
               <var name="swdnbc"/>
               <var name="aod3d_smoke"/>
@@ -845,6 +846,8 @@
       <var name="fre_out" type="real" dimensions="nCells Time" units="Js"
            description="Output fire radiative energy"
            packages="mpas_smoke_in"/>
+      <var name="aero_emis_for_enhmix" type="real" dimensions="nCells Time" units="ug m^{-2} s^{-1}"
+           description="total output aerosol emissions for use in enhancxed mixing"/>
       <var name="hwp" type="real" dimensions="nCells Time" units="-"
            description="Hourly Wildfire Potential"
            packages="mpas_smoke_in"/>
