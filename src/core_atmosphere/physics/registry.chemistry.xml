@@ -228,6 +228,10 @@
            units="-"
            description="Algorithm choice for plumerise"
            possible_values="Positive integer values"/>
+      <nml_option name="plumerise_opt_rwc" type="integer" default_value="0"
+           units="-"
+           description="Algorithm choice for plumerise of RWC emisisons"
+           possible_values="Positive integer values"/>
       <nml_option name="plume_wind_eff" type="integer" default_value="0"
            units="-"
            description="Algorithm choice for wind effects in plumerise"
@@ -352,6 +356,7 @@
               <var name="PM10"/>
               <var name="max_bb_plume"/>
               <var name="min_bb_plume"/>
+              <var name="max_rwc_plume"/>
               <var name="coef_bb_dc"/>
               <var name="fire_hist"/>
               <var name="fire_peak_hr"/>
@@ -822,6 +827,9 @@
       <var name="max_bb_plume" type="integer" dimensions="nCells Time" units="-"
            description="maximumum biomass burning plumerise injection level"
            packages="mpas_smoke_in"/>
+      <var name="max_rwc_plume" type="integer" dimensions="nCells Time" units="-"
+           description="maximumum RWC plumerise injection level"
+           packages="mpas_rwc_in"/>
       <var name="fire_type" type="integer" dimensions="nCells Time" units="-"
            description="type of fire"
            packages="mpas_smoke_in"/>

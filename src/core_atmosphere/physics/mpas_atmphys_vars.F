@@ -287,7 +287,8 @@
     hwp_avg_p
  integer,dimension(:,:),allocatable:: &
     min_bb_plume_p, &!
-    max_bb_plume_p
+    max_bb_plume_p, &!
+    max_rwc_plume_p
 ! Input dust 2D fields - JLS
  real(kind=RKIND),dimension(:,:),allocatable:: &
     clayfrac_in_p,       &!

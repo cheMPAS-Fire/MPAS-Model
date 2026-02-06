@@ -223,6 +223,7 @@
       if(.not.allocated(RWC_annual_sum_smoke_coarse_p))   allocate(RWC_annual_sum_smoke_coarse_p(ims:ime,1:kreswoodcomb,jms:jme))
       if(.not.allocated(RWC_annual_sum_unspc_fine_p))     allocate(RWC_annual_sum_unspc_fine_p(ims:ime,1:kreswoodcomb,jms:jme))
       if(.not.allocated(RWC_annual_sum_unspc_coarse_p))   allocate(RWC_annual_sum_unspc_coarse_p(ims:ime,1:kreswoodcomb,jms:jme))
+      if(.not.allocated(max_rwc_plume_p))                 allocate(max_rwc_plume_p(ims:ime,jms:jme))
  endif
 
 
@@ -382,7 +383,7 @@
       real(kind=RKIND),dimension(:),pointer      :: efs_smold,efs_flam, efs_rsmold !JR eco regiona nd EF map
       integer,dimension(:),pointer               :: eco_id
       real(kind=RKIND),dimension(:),pointer      :: hfx_bb, qfx_bb, frac_grid_burned
-      integer,dimension(:),pointer               :: min_bb_plume, max_bb_plume
+      integer,dimension(:),pointer               :: min_bb_plume, max_bb_plume, max_rwc_plume
       real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, uthres_sg_in, &
                                                     sep_in, albedo_drag, feff
       real(kind=RKIND),dimension(:),pointer      :: RWC_denominator
@@ -526,6 +527,7 @@
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum_smoke_coarse',RWC_annual_sum_smoke_coarse)
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum_unspc_fine',RWC_annual_sum_unspc_fine)
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum_unspc_coarse',RWC_annual_sum_unspc_coarse)
+         call mpas_pool_get_array(diag_physics,'max_rwc_plume',max_rwc_plume)
       endif
 
       if (config_smoke_scheme .ne. 'off' ) then
@@ -728,8 +730,10 @@
         do j = jts, jte
         do i = its, ite
             RWC_denominator_p(i,j) = RWC_denominator(i)
+            max_rwc_plume_p(i,j) = 0
         enddo
         enddo
+      
       endif
       !
 
@@ -962,7 +966,7 @@
  real(kind=RKIND),dimension(:,:,:),pointer:: e_ant_out, e_bb_out, e_bio_out, &
                                              e_vol_out, e_dust_out, e_ss_out
  real(kind=RKIND),dimension(:),pointer :: aero_emis_for_enhmix
- integer,dimension(:),pointer:: min_bb_plume, max_bb_plume
+ integer,dimension(:),pointer:: min_bb_plume, max_bb_plume, max_rwc_plume
  
  integer,pointer :: chemistry_start,chemistry_end
  integer,pointer                :: index_nifa, index_nwfa
@@ -974,6 +978,7 @@
  character(len=StrKIND),pointer :: config_ssalt_scheme
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
+ character(len=StrKIND),pointer :: config_rwc_scheme
  integer, pointer :: wetdep_ls_opt
  integer, pointer :: drydep_opt
  integer, pointer :: plumerise_opt
@@ -1007,6 +1012,7 @@
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
@@ -1218,6 +1224,15 @@
          endif
      enddo
      enddo
+     
+     if ( config_rwc_scheme .ne. 'off' ) then  
+         call mpas_pool_get_array(diag_physics,'max_rwc_plume',max_rwc_plume)
+         do j = jts,jte
+         do i = its,ite
+            max_rwc_plume(i) = max_rwc_plume_p(i,j)
+         enddo
+         enddo
+     endif
 
  end subroutine smoke_to_MPAS
 
@@ -1336,7 +1351,7 @@
  real(kind=RKIND),pointer       :: hwp_alpha
  integer,pointer                :: wetdep_ls_opt
  real(kind=RKIND),pointer       :: wetdep_ls_alpha
- integer,pointer                :: plumerise_opt
+ integer,pointer                :: plumerise_opt, plumerise_opt_rwc
  integer,pointer                :: plume_wind_eff
  real(kind=RKIND),pointer       :: plume_alpha
  real(kind=RKIND),pointer       :: bb_emis_scale_factor, bb_qv_scale_factor
@@ -1397,6 +1412,7 @@
  call mpas_pool_get_config(configs,'hwp_method',hwp_method)
  call mpas_pool_get_config(configs,'hwp_alpha',hwp_alpha)
  call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
+ call mpas_pool_get_config(configs,'plumerise_opt_rwc',plumerise_opt_rwc)
  call mpas_pool_get_config(configs,'plume_wind_eff',plume_wind_eff)
  call mpas_pool_get_config(configs,'plume_alpha',plume_alpha)
  call mpas_pool_get_config(configs,'bb_emis_scale_factor',bb_emis_scale_factor)
@@ -1717,6 +1733,7 @@ endif
            RWC_annual_sum_smoke_coarse = RWC_annual_sum_smoke_coarse_p,                  &
            RWC_annual_sum_unspc_fine = RWC_annual_sum_unspc_fine_p,                      &
            RWC_annual_sum_unspc_coarse = RWC_annual_sum_unspc_coarse_p,                  &
+           max_rwc_plume = max_rwc_plume_p,                                              &
 ! --- Dust related arrays
            sandfrac_in    = sandfrac_in_p, clayfrac_in    = clayfrac_in_p,               &
            uthres_in      = uthres_in_p,   uthres_sg_in   = uthres_sg_in_p,              &
@@ -1755,6 +1772,7 @@ endif
            dust_moist_correction = dust_moist_correction,                                &
 ! --- Namelist: Other
            rwc_emis_scale_factor = rwc_emis_scale_factor,                                &
+           plumerise_opt_rwc = plumerise_opt_rwc,                                        &
 ! --- Met variables
            nifa           = nifa_p,              nwfa    = nwfa_p,                       &
            ktau    = itimestep   , dt       = dt_dyn     , dxcell   = dx_p       ,       &
