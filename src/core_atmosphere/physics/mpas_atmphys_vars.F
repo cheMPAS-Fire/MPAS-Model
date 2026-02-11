@@ -909,8 +909,7 @@
     swupflxcln_p       !
 
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    rthratensw_p   !, & !uncoupled theta tendency due to shortwave radiation                 [K s-1]
-!    rthratenswc_p  !uncoupled theta tendency due to clear-sky shortwave radiation        [K s-1]
+    rthratensw_p       !uncoupled theta tendency due to shortwave radiation                 [K s-1]
 !=================================================================================================================
 !... variables and arrays related to parameterization of long-wave radiation:
 !=================================================================================================================
