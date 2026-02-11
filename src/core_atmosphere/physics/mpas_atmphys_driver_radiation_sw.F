@@ -22,6 +22,8 @@
  use module_ra_rrtmg_sw_aerosols
  use module_ra_cam
  use module_ra_rrtmg_sw
+ use mpas_smoke_wrapper 
+
 
  implicit none
  private
@@ -97,26 +99,6 @@
 !   the optical properties of "water-friendly" and "ice-friendly" aerosols from the Thompson cloud microphysics
 !   scheme.
 !   Laura D. Fowler (laura@ucar.edu) / 2024-05-16.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! Radiation Diagnostic Outputs/ 2025-11-05/ CIRES/NOAA GSL Atmospheric Composition Branch
-! Minsu Choi, minsu.choi@noaa.gov
-! ------------------------------------------------------------------------
-! All-sky:   Full radiation calculation with clouds and aerosols
-! Clear-sky: Radiation without clouds but with aerosols (suffix: c)
-!            (only available when config_calc_clean_atm_diag = .true.)
-! Clean-sky: Radiation without clouds and without aerosols (suffix: cln)
-!            (only available when config_calc_clean_atm_diag = .true.)
-!
-! Surface diagnostics:
-!   swdnb, swdnbc, swdnbcln  - Downward SW at bottom (surface)
-!   swupb, swupbc, swupbcln  - Upward SW at bottom (surface)
-! Top-of-atmosphere diagnostics:
-!   swdnt, swdntc, swdntcln  - Downward SW at top
-!   swupt, swuptc, swuptcln  - Upward SW at top
-! Profile diagnostics:
-!   swdnflx, swdnflxc, swdnflxcln  - Downward SW flux profile
-!   swupflx, swupflxc, swupflxcln  - Upward SW flux profile
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
  contains
@@ -134,13 +116,11 @@
  character(len=StrKIND),pointer:: mp_scheme,     &
                                   radt_sw_scheme
  logical,pointer:: config_tempo_aerosolaware
- logical,pointer:: config_calc_clean_atm_diag
 !-----------------------------------------------------------------------------------------------------------------
 
  call mpas_pool_get_config(configs,'config_microp_scheme' ,mp_scheme     )
  call mpas_pool_get_config(configs,'config_radt_sw_scheme',radt_sw_scheme)
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
- call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
       
  if(.not.allocated(f_ice)        ) allocate(f_ice(ims:ime,kms:kme,jms:jme)        )
  if(.not.allocated(f_rain)       ) allocate(f_rain(ims:ime,kms:kme,jms:jme)       )
@@ -158,21 +138,20 @@
  if(.not.allocated(gsw_p)        ) allocate(gsw_p(ims:ime,jms:jme)                )
  if(.not.allocated(swcf_p)       ) allocate(swcf_p(ims:ime,jms:jme)               )
  if(.not.allocated(swdnb_p)      ) allocate(swdnb_p(ims:ime,jms:jme)              )
+ if(.not.allocated(swdnbc_p)     ) allocate(swdnbc_p(ims:ime,jms:jme)             )
+ if(.not.allocated(swdnbcln_p)   ) allocate(swdnbcln_p(ims:ime,jms:jme)           ) !Clean sky testing
  if(.not.allocated(swdnt_p)      ) allocate(swdnt_p(ims:ime,jms:jme)              )
+ if(.not.allocated(swdntc_p)     ) allocate(swdntc_p(ims:ime,jms:jme)             )
+ if(.not.allocated(swdntcln_p)   ) allocate(swdntcln_p(ims:ime,jms:jme)           ) !Clean sky testing
  if(.not.allocated(swupb_p)      ) allocate(swupb_p(ims:ime,jms:jme)              )
+ if(.not.allocated(swupbc_p)     ) allocate(swupbc_p(ims:ime,jms:jme)             )
+ if(.not.allocated(swupbcln_p)   ) allocate(swupbcln_p(ims:ime,jms:jme)           ) !Clean sky testing
  if(.not.allocated(swupt_p)      ) allocate(swupt_p(ims:ime,jms:jme)              )
-
- if (config_calc_clean_atm_diag) then
-   if(.not.allocated(swdnbc_p)) allocate(swdnbc_p(ims:ime,jms:jme) ) ! clear sky
-   if(.not.allocated(swdntc_p)) allocate(swdntc_p(ims:ime,jms:jme) ) ! clear sky
-   if(.not.allocated(swupbc_p)) allocate(swupbc_p(ims:ime,jms:jme) ) ! clear sky
-   if(.not.allocated(swuptc_p)) allocate(swuptc_p(ims:ime,jms:jme) ) ! clear sky
-   if(.not.allocated(swdnbcln_p) ) allocate(swdnbcln_p(ims:ime,jms:jme) ) !Clean sky
-   if(.not.allocated(swdntcln_p) ) allocate(swdntcln_p(ims:ime,jms:jme) ) !Clean sky
-   if(.not.allocated(swupbcln_p) ) allocate(swupbcln_p(ims:ime,jms:jme) ) !Clean sky
-   if(.not.allocated(swuptcln_p) ) allocate(swuptcln_p(ims:ime,jms:jme) ) !Clean sky
- end if 
+ if(.not.allocated(swuptc_p)     ) allocate(swuptc_p(ims:ime,jms:jme)             )
+ if(.not.allocated(swuptcln_p)   ) allocate(swuptcln_p(ims:ime,jms:jme)           ) !Clean sky testing
+ 
  if(.not.allocated(rthratensw_p) ) allocate(rthratensw_p(ims:ime,kms:kme,jms:jme) )
+! if(.not.allocated(rthratenswc_p) ) allocate(rthratenswc_p(ims:ime,kms:kme,jms:jme) )
 
  radiation_sw_select: select case (trim(radt_sw_scheme))
     case("rrtmg_sw")
@@ -194,13 +173,11 @@
        if(.not.allocated(swddif_p)     ) allocate(swddif_p(ims:ime,jms:jme)                )
 
        if(.not.allocated(swdnflx_p)    ) allocate(swdnflx_p(ims:ime,kms:kme+1,jms:jme)     )
+       if(.not.allocated(swdnflxc_p)   ) allocate(swdnflxc_p(ims:ime,kms:kme+1,jms:jme)    )
+       if(.not.allocated(swdnflxcln_p) ) allocate(swdnflxcln_p(ims:ime,kms:kme+1,jms:jme)  ) !Clean sky testing
        if(.not.allocated(swupflx_p)    ) allocate(swupflx_p(ims:ime,kms:kme+1,jms:jme)     )
-       if (config_calc_clean_atm_diag) then
-         if(.not.allocated(swdnflxc_p)   ) allocate(swdnflxc_p(ims:ime,kms:kme+1,jms:jme)    )
-         if(.not.allocated(swupflxc_p)   ) allocate(swupflxc_p(ims:ime,kms:kme+1,jms:jme)    )
-         if(.not.allocated(swdnflxcln_p) ) allocate(swdnflxcln_p(ims:ime,kms:kme+1,jms:jme)) !Clean sky
-         if(.not.allocated(swupflxcln_p) ) allocate(swupflxcln_p(ims:ime,kms:kme+1,jms:jme)) !Clean sky
-       end if 
+       if(.not.allocated(swupflxc_p)   ) allocate(swupflxc_p(ims:ime,kms:kme+1,jms:jme)    )
+       if(.not.allocated(swupflxcln_p) ) allocate(swupflxcln_p(ims:ime,kms:kme+1,jms:jme)  ) !Clean sky testing
 
        if(.not.allocated(pin_p)        ) allocate(pin_p(num_oznlevels)                     )
        if(.not.allocated(o3clim_p)     ) allocate(o3clim_p(ims:ime,1:num_oznlevels,jms:jme))
@@ -208,6 +185,9 @@
        if(.not.allocated(tauaer_p)     ) allocate(tauaer_p(ims:ime,kms:kme,jms:jme,nbndsw) )
        if(.not.allocated(ssaaer_p)     ) allocate(ssaaer_p(ims:ime,kms:kme,jms:jme,nbndsw) )
        if(.not.allocated(asyaer_p)     ) allocate(asyaer_p(ims:ime,kms:kme,jms:jme,nbndsw) )
+       if(.not.allocated(taod5503d_sim_p)) allocate(taod5503d_sim_p(ims:ime,kms:kme,jms:jme)   )
+       if(.not.allocated(taod5502d_sim_p)) allocate(taod5502d_sim_p(ims:ime,kms:kme)   )
+
 
        aerosol_select: select case(mp_scheme)
           case("mp_thompson_aerosols")
@@ -284,14 +264,12 @@
  character(len=StrKIND),pointer:: mp_scheme,     &
                                   radt_sw_scheme
  logical,pointer:: config_tempo_aerosolaware
- logical,pointer:: config_calc_clean_atm_diag
 
 !-----------------------------------------------------------------------------------------------------------------
 
  call mpas_pool_get_config(configs,'config_microp_scheme' ,mp_scheme     )
  call mpas_pool_get_config(configs,'config_radt_sw_scheme',radt_sw_scheme)
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)     
- call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
 
  if(allocated(f_ice)        ) deallocate(f_ice        )
  if(allocated(f_rain)       ) deallocate(f_rain       )
@@ -306,19 +284,17 @@
  if(allocated(gsw_p)        ) deallocate(gsw_p        )
  if(allocated(swcf_p)       ) deallocate(swcf_p       )
  if(allocated(swdnb_p)      ) deallocate(swdnb_p      )
+ if(allocated(swdnbc_p)     ) deallocate(swdnbc_p     )
+ if(allocated(swdnbcln_p)   ) deallocate(swdnbcln_p   )!Clean sky
  if(allocated(swdnt_p)      ) deallocate(swdnt_p      )
+ if(allocated(swdntc_p)     ) deallocate(swdntc_p     )
+ if(allocated(swdntcln_p)   ) deallocate(swdntcln_p   )!Clean sky
  if(allocated(swupb_p)      ) deallocate(swupb_p      )
+ if(allocated(swupbc_p)     ) deallocate(swupbc_p     )
+ if(allocated(swupbcln_p)   ) deallocate(swupbcln_p   )!Clean sky
  if(allocated(swupt_p)      ) deallocate(swupt_p      )
- if (config_calc_clean_atm_diag) then
-   if(allocated(swdnbc_p) ) deallocate(swdnbc_p) !Clear sky
-   if(allocated(swdntc_p) ) deallocate(swdntc_p) !Clear sky
-   if(allocated(swupbc_p) ) deallocate(swupbc_p) !Clear sky
-   if(allocated(swuptc_p) ) deallocate(swuptc_p) !Clear sky
-   if(allocated(swdnbcln_p) ) deallocate(swdnbcln_p) !Clean sky
-   if(allocated(swdntcln_p) ) deallocate(swdntcln_p) !Clean sky
-   if(allocated(swupbcln_p) ) deallocate(swupbcln_p) !Clean sky
-   if(allocated(swuptcln_p) ) deallocate(swuptcln_p) !Clean sky
- end if 
+ if(allocated(swuptc_p)     ) deallocate(swuptc_p     )
+ if(allocated(swuptcln_p)   ) deallocate(swuptcln_p   )!Clean sky
  
  if(allocated(rthratensw_p) ) deallocate(rthratensw_p )
 ! if(allocated(rthratenswc_p) ) deallocate(rthratenswc_p )
@@ -343,13 +319,11 @@
        if(allocated(swddif_p)     ) deallocate(swddif_p     )
 
        if(allocated(swdnflx_p)    ) deallocate(swdnflx_p    )
+       if(allocated(swdnflxc_p)   ) deallocate(swdnflxc_p   )
+       if(allocated(swdnflxcln_p) ) deallocate(swdnflxcln_p )
        if(allocated(swupflx_p)    ) deallocate(swupflx_p    )
-       if (config_calc_clean_atm_diag) then
-         if(allocated(swdnflxc_p)   ) deallocate(swdnflxc_p) !Clear sky
-         if(allocated(swupflxc_p)   ) deallocate(swupflxc_p) !Clear sky
-         if(allocated(swdnflxcln_p) ) deallocate(swdnflxcln_p) !Clean sky
-         if(allocated(swupflxcln_p) ) deallocate(swupflxcln_p) !Clean sky
-       end if 
+       if(allocated(swupflxc_p)   ) deallocate(swupflxc_p   )
+       if(allocated(swupflxcln_p) ) deallocate(swupflxcln_p )
 
        if(allocated(pin_p)        ) deallocate(pin_p        )
        if(allocated(o3clim_p)     ) deallocate(o3clim_p     )
@@ -357,6 +331,9 @@
        if(allocated(tauaer_p)     ) deallocate(tauaer_p     )
        if(allocated(ssaaer_p)     ) deallocate(ssaaer_p     )
        if(allocated(asyaer_p)     ) deallocate(asyaer_p     )
+       if(allocated(taod5503d_sim_p)) deallocate(taod5503d_sim_p)
+       if(allocated(taod5502d_sim_p)) deallocate(taod5502d_sim_p)
+
 
        aerosol_select: select case(mp_scheme)
           case("mp_thompson","mp_thompson_aerosols")
@@ -430,13 +407,15 @@
  real(kind=RKIND),intent(in):: xtime_s
 
 !local variables:
- integer:: i,j,k,n
+ integer:: i,j,k,n, i0,k0,n0
 
 !local pointers:
  logical,pointer:: config_o3climatology
  logical,pointer:: config_microp_re
  logical,pointer:: config_tempo_aerosolaware
  logical,pointer:: config_calc_clean_atm_diag
+ integer,pointer:: aero_dir_rad_fdb
+ character(len=StrKIND),pointer :: config_smoke_scheme
  character(len=StrKIND),pointer:: radt_sw_scheme
  character(len=StrKIND),pointer:: microp_scheme
 
@@ -444,12 +423,20 @@
  real(kind=RKIND),dimension(:),pointer    :: skintemp,snow,xice,xland
  real(kind=RKIND),dimension(:),pointer    :: m_ps,pin
  real(kind=RKIND),dimension(:),pointer    :: sfc_albedo,sfc_emiss
- real(kind=RKIND),dimension(:),pointer    :: taod5502d
+ real(kind=RKIND),dimension(:),pointer    :: taod5502d, taod5502d_sim
  real(kind=RKIND),dimension(:,:),pointer  :: zgrid
  real(kind=RKIND),dimension(:,:),pointer  :: cldfrac,m_hybi,o3clim
  real(kind=RKIND),dimension(:,:),pointer  :: re_cloud,re_ice,re_snow
- real(kind=RKIND),dimension(:,:),pointer  :: taod5503d
+ real(kind=RKIND),dimension(:,:),pointer  :: taod5503d, taod5503d_sim
  real(kind=RKIND),dimension(:,:,:),pointer:: aerosols,ozmixm
+ real(kind=RKIND),dimension(:,:,:),pointer :: tauaer_sw
+ real(kind=RKIND),dimension(:,:,:),pointer :: ssaaer_sw
+ real(kind=RKIND),dimension(:,:,:),pointer :: asyaer_sw
+ ! ------------------------------------------------------------------
+ ! Variables for CASE 1: Simplified approach for aerosol ext (1/km)
+ ! ------------------------------------------------------------------
+ real(kind=RKIND),dimension(:,:,:),pointer :: aod3d_simple_radi_p
+ real(kind=RKIND), dimension(:,:), pointer :: aod3d_simple_pool_ptr
 
 !-----------------------------------------------------------------------------------------------------------------
 
@@ -458,8 +445,9 @@
  call mpas_pool_get_config(configs,'config_radt_sw_scheme',radt_sw_scheme      )
  call mpas_pool_get_config(configs,'config_microp_scheme' ,microp_scheme       )
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
- call mpas_pool_get_config(configs,'config_calc_clean_atm_diag',config_calc_clean_atm_diag)
-
+ call mpas_pool_get_config(configs,'config_smoke_scheme',config_smoke_scheme)
+ call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
+      
  call mpas_pool_get_array(mesh,'latCell',latCell)
  call mpas_pool_get_array(mesh,'lonCell',lonCell)
 
@@ -479,6 +467,11 @@
  call mpas_pool_get_array(diag_physics,'o3clim'    ,o3clim    )
  call mpas_pool_get_array(diag_physics,'m_hybi'    ,m_hybi    )
  call mpas_pool_get_array(diag_physics,'m_ps'      ,m_ps      )
+
+ call mpas_pool_get_array(diag_physics, 'tauaer_sw', tauaer_sw, time_lev)
+ call mpas_pool_get_array(diag_physics, 'ssaaer_sw', ssaaer_sw, time_lev)
+ call mpas_pool_get_array(diag_physics, 'asyaer_sw', asyaer_sw, time_lev)
+ call mpas_pool_get_array(diag_physics, 'aod3d_simple', aod3d_simple_pool_ptr)
 
  do j = jts,jte
  do i = its,ite
@@ -516,44 +509,44 @@
     gsw_p(i,j)      = 0.0_RKIND
     swcf_p(i,j)     = 0.0_RKIND
     swdnb_p(i,j)    = 0.0_RKIND
+    swdnbc_p(i,j)   = 0.0_RKIND
+    swdnbcln_p(i,j) = 0.0_RKIND
     swdnt_p(i,j)    = 0.0_RKIND
+    swdntc_p(i,j)   = 0.0_RKIND
+    swdntcln_p(i,j) = 0.0_RKIND
     swupb_p(i,j)    = 0.0_RKIND
+    swupbc_p(i,j)   = 0.0_RKIND
+    swupbcln_p(i,j) = 0.0_RKIND
     swupt_p(i,j)    = 0.0_RKIND
+    swuptc_p(i,j)   = 0.0_RKIND
+    swuptcln_p(i,j) = 0.0_RKIND
     swddir_p(i,j)   = 0.0_RKIND
     swddni_p(i,j)   = 0.0_RKIND
     swddif_p(i,j)   = 0.0_RKIND
-    if (config_calc_clean_atm_diag) then
-      swdnbc_p(i,j)   = 0.0_RKIND
-      swdntc_p(i,j)   = 0.0_RKIND
-      swupbc_p(i,j)   = 0.0_RKIND
-      swuptc_p(i,j)   = 0.0_RKIND
-      swdnbcln_p(i,j) = 0.0_RKIND
-      swdntcln_p(i,j) = 0.0_RKIND
-      swupbcln_p(i,j) = 0.0_RKIND
-      swuptcln_p(i,j) = 0.0_RKIND
-    endif
  enddo
 
  do k = kts,kte
  do i = its,ite
     rthratensw_p(i,k,j) = 0.0_RKIND
-!    rthratenswc_p(i,k,j) = 0.0_RKIND
  enddo
  enddo
  enddo
 
+! In-house version, initialize w/ default no aerosol
  aer_opt = 0
  do n = 1,nbndsw
- do j = jts,jte
- do k = kts,kte
- do i = its,ite
-    tauaer_p(i,k,j,n) = 0._RKIND
-    ssaaer_p(i,k,j,n) = 1._RKIND
-    asyaer_p(i,k,j,n) = 0._RKIND
+   do j = jts,jte
+     do k = kts,kte
+       do i = its,ite
+         tauaer_p(i,k,j,n) = 0._RKIND
+         ssaaer_p(i,k,j,n) = 1._RKIND
+         asyaer_p(i,k,j,n) = 0._RKIND
+       enddo
+     enddo
+   enddo
  enddo
- enddo
- enddo
- enddo
+! endif
+
 
  radiation_sw_select: select case (trim(radt_sw_scheme))
 
@@ -736,17 +729,105 @@
           case default
        end select aerosol_select
 
+!----------------------------------------------------------------------------------
+! In-house version, overwrite with Mie optics
+! Code has been written by Minsu Choi, CIRES/NOAA GSL
+! January, 2026.
+! Under devleopment for chemistry - microphysics coupling
+! However, current version simply overwrite the direct feedback part with several
+! different option
+! Minsu.Choi@noaa.gov, Minsu.Choi@colorado.edu
+!----------------------------------------------------------------------------------
+
+       select case (aero_dir_rad_fdb)
+      ! --- Case 1: Simple AOD (In-house Parameterization) ---
+       case (1)
+          call mpas_pool_get_array(mesh,'zgrid',zgrid)
+!          call mpas_pool_get_array(diag_physics,'taod5502d_sim',taod5502d_sim)
+!          call mpas_pool_get_array(diag_physics,'taod5503d_sim',taod5503d_sim)
+       
+          !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k)
+          do j = jts,jte
+             do i = its,ite
+                ! Set surface height and aerosol type based on landmask
+                ht_p(i,j) = zgrid(1,i)
+                if(xland_p(i,j) == 1._RKIND) then
+                   taer_type_p(i,j) = 1
+                else
+                   taer_type_p(i,j) = 3
+                endif
+       
+                taod5502d_sim_p(i,j) = 0._RKIND
+       
+                do k = kts,kte
+                   taod5503d_sim_p(i,k,j) = aod3d_simple_pool_ptr(k,i)
+                   taod5502d_sim_p(i,j) = taod5502d_sim_p(i,j) + taod5503d_sim_p(i,k,j)
+                enddo
+             enddo
+          enddo
+          !$OMP END PARALLEL DO
+       
+          aer_opt = 0
+          call calc_aerosol_rrtmg_sw( &
+                   ht       = ht_p,          dz8w     = dz_p,            &
+                   p        = pres_hyd_p,    t3d      = t_p,             &
+                   qv3d     = qv_p,                                      &
+                   tauaer   = tauaer_p,      ssaaer   = ssaaer_p,        &
+                   asyaer   = asyaer_p,                                  &
+                   aod5503d = taod5503d_sim_p,                           &
+                   aod5502d = taod5502d_sim_p,                           &
+                   aer_type = taer_type_p,                               &
+                   aer_aod550_opt = 1, aer_angexp_opt = 3,               &
+                   aer_ssa_opt = 3,    aer_asy_opt = 3,                  &
+                   aer_aod550_val=0.,  aer_angexp_val=0.,                &
+                   aer_ssa_val=0.,     aer_asy_val=0.,                   &
+                   ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme, &
+                   its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte )
+       
+       ! --- Case 2: Mie Calculation (SMOKE driver) ---
+       case (2)
+          aer_opt = 0
+          !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+          do n = 1,nbndsw
+             do j = jts,jte
+             do k = kts,kte
+             do i = its,ite
+                tauaer_p(i,k,j,n) = tauaer_sw(n,k,i)
+                ssaaer_p(i,k,j,n) = ssaaer_sw(n,k,i)
+                asyaer_p(i,k,j,n) = asyaer_sw(n,k,i)
+             enddo
+             enddo
+             enddo
+          enddo
+          !$OMP END PARALLEL DO
+
+       case default  
+          aer_opt = 0
+          !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+          do n = 1,nbndsw
+             do j = jts,jte
+             do k = kts,kte
+             do i = its,ite
+                tauaer_p(i,k,j,n) = 0.0_RKIND 
+                ssaaer_p(i,k,j,n) = 1.0_RKIND 
+                asyaer_p(i,k,j,n) = 0.0_RKIND 
+             enddo
+             enddo
+             enddo
+          enddo
+          !$OMP END PARALLEL DO
+       end select
+
+
        do j = jts,jte
        do k = kts,kte+2
        do i = its,ite
-         swdnflx_p(i,k,j)  = 0.0_RKIND
-         swupflx_p(i,k,j)  = 0.0_RKIND
-         if (config_calc_clean_atm_diag) then
-           swdnflxc_p(i,k,j) = 0.0_RKIND
-           swupflxc_p(i,k,j) = 0.0_RKIND
-           swdnflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
-           swupflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
-         endif
+          swdnflx_p(i,k,j)  = 0.0_RKIND
+          swdnflxc_p(i,k,j) = 0.0_RKIND
+          swdnflxcln_p(i,k,j) = 0.0_RKIND  ! Clean diagnostics
+          swupflx_p(i,k,j)  = 0.0_RKIND
+          swupflxc_p(i,k,j) = 0.0_RKIND
+          swupflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
        enddo
        enddo
        enddo
@@ -866,11 +947,10 @@
  end subroutine radiation_sw_from_MPAS
 
 !=================================================================================================================
- subroutine radiation_sw_to_MPAS(configs,diag_physics,tend_physics,its,ite)
+ subroutine radiation_sw_to_MPAS(diag_physics,tend_physics,its,ite)
 !=================================================================================================================
 
 !input arguments:
- type(mpas_pool_type),intent(in):: configs
  type(mpas_pool_type),intent(inout):: diag_physics
  type(mpas_pool_type),intent(inout):: tend_physics
 
@@ -885,34 +965,31 @@
                                            swddif
  real(kind=RKIND),dimension(:),pointer  :: swdnbcln, swdntcln, swuptcln, swupbcln                                   
  real(kind=RKIND),dimension(:,:),pointer:: rthratensw !,rthratenswc
- logical,pointer:: config_calc_clean_atm_diag
 
 !-----------------------------------------------------------------------------------------------------------------
 !call mpas_log_write(' ')
 !call mpas_log_write('--- enter subroutine radiation_sw_to_MPAS:')
- call mpas_pool_get_config(configs,'config_calc_clean_atm_diag',config_calc_clean_atm_diag)
+
  call mpas_pool_get_array(diag_physics,'coszr'     ,coszr     )
  call mpas_pool_get_array(diag_physics,'gsw'       ,gsw       )
  call mpas_pool_get_array(diag_physics,'swcf'      ,swcf      )
  call mpas_pool_get_array(diag_physics,'swdnb'     ,swdnb     )
+ call mpas_pool_get_array(diag_physics,'swdnbc'    ,swdnbc    )
+ call mpas_pool_get_array(diag_physics,'swdnbcln'  ,swdnbcln  ) ! Clean Diagnostic
  call mpas_pool_get_array(diag_physics,'swdnt'     ,swdnt     )
+ call mpas_pool_get_array(diag_physics,'swdntc'    ,swdntc    )
+ call mpas_pool_get_array(diag_physics,'swdntcln'  ,swdntcln  ) ! Clean Diagnostic
  call mpas_pool_get_array(diag_physics,'swupb'     ,swupb     )
+ call mpas_pool_get_array(diag_physics,'swupbc'    ,swupbc    )
+ call mpas_pool_get_array(diag_physics,'swupbcln'  ,swupbcln  ) ! Clean Diagnostic
  call mpas_pool_get_array(diag_physics,'swupt'     ,swupt     )
+ call mpas_pool_get_array(diag_physics,'swuptc'    ,swuptc    )
+ call mpas_pool_get_array(diag_physics,'swuptcln'  ,swuptcln  ) ! Clean Diagnostic
  call mpas_pool_get_array(diag_physics,'swddir'    ,swddir    )
  call mpas_pool_get_array(diag_physics,'swddni'    ,swddni    )
  call mpas_pool_get_array(diag_physics,'swddif'    ,swddif    )
  call mpas_pool_get_array(tend_physics,'rthratensw',rthratensw)
 ! call mpas_pool_get_array(tend_physics,'rthratenswc',rthratenswc)
- if (config_calc_clean_atm_diag) then
-   call mpas_pool_get_array(diag_physics,'swdnbc'    ,swdnbc    ) ! Clear Diagnostic
-   call mpas_pool_get_array(diag_physics,'swdntc'    ,swdntc    ) ! Clear Diagnostic
-   call mpas_pool_get_array(diag_physics,'swupbc'    ,swupbc    ) ! Clear Diagnostic
-   call mpas_pool_get_array(diag_physics,'swuptc'    ,swuptc    ) ! Clear Diagnostic
-   call mpas_pool_get_array(diag_physics,'swdnbcln'  ,swdnbcln  ) ! Clean Diagnostic
-   call mpas_pool_get_array(diag_physics,'swdntcln'  ,swdntcln  ) ! Clean Diagnostic
-   call mpas_pool_get_array(diag_physics,'swupbcln'  ,swupbcln  ) ! Clean Diagnostic
-   call mpas_pool_get_array(diag_physics,'swuptcln'  ,swuptcln  ) ! Clean Diagnostic
- endif
 
  do j = jts,jte
  do i = its,ite
@@ -920,22 +997,20 @@
     gsw(i)    = gsw_p(i,j)
     swcf(i)   = swcf_p(i,j)
     swdnb(i)  = swdnb_p(i,j)
+    swdnbc(i) = swdnbc_p(i,j)
+    swdnbcln(i) = swdnbcln_p(i,j)
     swdnt(i)  = swdnt_p(i,j)
+    swdntc(i) = swdntc_p(i,j)
+    swdntcln(i) = swdntcln_p(i,j)
     swupb(i)  = swupb_p(i,j)
+    swupbc(i) = swupbc_p(i,j)
+    swupbcln(i) = swupbcln_p(i,j)
     swupt(i)  = swupt_p(i,j)
+    swuptc(i) = swuptc_p(i,j)
+    swuptcln(i) = swuptcln_p(i,j)
     swddir(i) = swddir_p(i,j)
     swddni(i) = swddni_p(i,j)
     swddif(i) = swddif_p(i,j)
-    if (config_calc_clean_atm_diag) then
-      swdnbc(i) = swdnbc_p(i,j)
-      swdntc(i) = swdntc_p(i,j)
-      swupbc(i) = swupbc_p(i,j)
-      swuptc(i) = swuptc_p(i,j)
-      swdnbcln(i) = swdnbcln_p(i,j)
-      swdntcln(i) = swdntcln_p(i,j)
-      swupbcln(i) = swupbcln_p(i,j)
-      swuptcln(i) = swuptcln_p(i,j)
-    endif
  enddo
 ! enddo
 
@@ -993,6 +1068,7 @@
 !=================================================================================================================
  subroutine driver_radiation_sw(itimestep,configs,mesh,state,time_lev,diag_physics,atm_input, &
                                 sfc_input,tend_physics,xtime_s,its,ite)
+!                                sfc_input,tend_physics,config_calc_clean_atm_diag,xtime_s,its,ite)
 !=================================================================================================================
 
 !input arguments:
@@ -1043,7 +1119,9 @@
 
  xtime_m = xtime_s/60.
 
+!copy MPAS arrays to local arrays:
  call radiation_sw_from_MPAS(configs,mesh,state,time_lev,diag_physics,atm_input,sfc_input,xtime_s,its,ite)
+ !call radiation_sw_from_MPAS(configs,mesh,state,time_lev,diag_physics,atm_input,config_calc_clean_atm_diag,sfc_input,xtime_s,its,ite)
 
 ! This should be OMP MASTER with barrier afterwards or OMP SINGLE, since declin and solcon
 ! are global variables in mpas_atmphys_vars.F and race conditions may occur otherwise!
@@ -1084,11 +1162,20 @@
           if(trim(radt_cld_dcorrlen) == "latitude_varying") idcor = 1
        endif
 
-       call mpas_timer_start('rrtmg_swrad')
+       call mpas_log_write('=== DEBUG: Before calling rrtmg_swrad ===')
        if (config_calc_clean_atm_diag) then
-         call rrtmg_swrad( &
+          call mpas_log_write('Passing config_calc_clean_atm_diag = TRUE (logical)')
+       else
+          call mpas_log_write('Passing config_calc_clean_atm_diag = FALSE (logical)')
+       endif
+       call mpas_log_write('===========================================')
+
+       call mpas_timer_start('rrtmg_swrad')
+       call rrtmg_swrad( &
               p3d        = pres_hyd_p    , p8w      = pres2_hyd_p , pi3d     = pi_p           , &
               t3d        = t_p           , t8w      = t2_p        , dz8w     = dz_p           , &
+!             qv3d       = qv_p          , qc3d     = qc_p        , qi3d     = qi_p           , &
+!             qs3d       = qs_p          , cldfra3d = cldfrac_p   , tsk      = tsk_p          , &
               qv3d       = qvrad_p       , qc3d     = qcrad_p     , qi3d     = qirad_p        , &
               qs3d       = qsrad_p       , cldfra3d = cldfrac_p   , tsk      = tsk_p          , &
               albedo     = sfc_albedo_p  , xland    = xland_p     , xice     = xice_p         , &
@@ -1099,50 +1186,23 @@
               cldovrlp   = cldovrlp      , idcor    = idcor       , o3input  = o3input        , &
               noznlevels = num_oznlevels , pin      = pin_p       , o3clim   = o3clim_p       , &
               gsw        = gsw_p         , swcf     = swcf_p      , rthratensw = rthratensw_p , &
+!              rthratenswc = rthratenswc_p, &
               has_reqc   = has_reqc      , has_reqi = has_reqi    , has_reqs   = has_reqs     , &
               re_cloud   = recloud_p     , re_ice   = reice_p     , re_snow    = resnow_p     , &
               aer_opt    = aer_opt       , tauaer3d = tauaer_p    , ssaaer3d   = ssaaer_p     , &
               asyaer3d   = asyaer_p      , swupt    = swupt_p     , swuptc     = swuptc_p     , &
-              swuptcln   = swuptcln_p    , swdnt    = swdnt_p     , &
-              swdntc     = swdntc_p      , swdntcln = swdntcln_p  , swupb    = swupb_p        , &
-              swupbc     = swupbc_p      , swupbcln = swupbcln_p  , swdnb    = swdnb_p        , &
-              swdnbc     = swdnbc_p      , swdnbcln = swdnbcln_p  , swupflx  = swupflx_p      , &
-              swupflxc   = swupflxc_p    , swupflxcln = swupflxcln_p , swdnflx = swdnflx_p    , &
-              swdnflxc   = swdnflxc_p    , swdnflxcln = swdnflxcln_p , swddir  = swddir_p     , &
-              swddni     = swddni_p      , swddif     = swddif_p      , &
-              config_calc_clean_atm_diag = config_calc_clean_atm_diag, &
-              julian     = curr_julday   ,                                                      &
+              swuptcln   = swuptcln_p    , swdnt    = swdnt_p  , &
+              swdntc     = swdntc_p     , swdntcln   = swdntcln_p    , swupb    = swupb_p  , &
+              swupbc     = swupbc_p     , swupbcln   = swupbcln_p    , swdnb    = swdnb_p  , &
+              swdnbc     = swdnbc_p     , swdnbcln   = swdnbcln_p    , swupflx  = swupflx_p, &
+              swupflxc   = swupflxc_p   , swupflxcln = swupflxcln_p  , swdnflx  = swdnflx_p, &
+              swdnflxc   = swdnflxc_p   , swdnflxcln = swdnflxcln_p  , swddir   = swddir_p , &
+              swddni     = swddni_p     , swddif     = swddif_p      , &
+              config_calc_clean_atm_diag=config_calc_clean_atm_diag, &
               ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,           &
               ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,           &
               its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte             &
-                   )
-       else
-         call rrtmg_swrad( &
-              p3d        = pres_hyd_p    , p8w      = pres2_hyd_p , pi3d     = pi_p           , &
-              t3d        = t_p           , t8w      = t2_p        , dz8w     = dz_p           , &
-              qv3d       = qvrad_p       , qc3d     = qcrad_p     , qi3d     = qirad_p        , &
-              qs3d       = qsrad_p       , cldfra3d = cldfrac_p   , tsk      = tsk_p          , &
-              albedo     = sfc_albedo_p  , xland    = xland_p     , xice     = xice_p         , &
-              snow       = snow_p        , coszr    = coszr_p     , xtime    = xtime_m        , &
-              gmt        = gmt           , julday   = julday      , radt     = radt           , &
-              degrad     = degrad        , declin   = declin      , solcon   = solcon         , &
-              xlat       = xlat_p        , xlong    = xlon_p      , icloud   = icloud         , &
-              cldovrlp   = cldovrlp      , idcor    = idcor       , o3input  = o3input        , &
-              noznlevels = num_oznlevels , pin      = pin_p       , o3clim   = o3clim_p       , &
-              gsw        = gsw_p         , swcf     = swcf_p      , rthratensw = rthratensw_p , &
-              has_reqc   = has_reqc      , has_reqi = has_reqi    , has_reqs   = has_reqs     , &
-              re_cloud   = recloud_p     , re_ice   = reice_p     , re_snow    = resnow_p     , &
-              aer_opt    = aer_opt       , tauaer3d = tauaer_p    , ssaaer3d   = ssaaer_p     , &
-              asyaer3d   = asyaer_p      , swupt    = swupt_p     , swdnt    = swdnt_p        , &
-              swupb      = swupb_p       , swdnb    = swdnb_p     , swupflx  = swupflx_p      , &
-              swdnflx    = swdnflx_p     , swddir   = swddir_p    , swddni   = swddni_p       , &
-              swddif     = swddif_p      , &
-              config_calc_clean_atm_diag = config_calc_clean_atm_diag, &
-              ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,           &
-              ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,           &
-              its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte             &
-                   )
-       endif
+                       )
        call mpas_timer_stop('rrtmg_swrad')
        call mpas_log_write('=== DEBUG: Clean diagnostic values after rrtmg_swrad ===')
        call mpas_log_write('swdnbcln_p min/max: $r $r', realArgs=(/minval(swdnbcln_p), maxval(swdnbcln_p)/))
@@ -1204,7 +1264,7 @@
  end select radiation_sw_select
 
 !copy local arrays to MPAS grid:
- call radiation_sw_to_MPAS(configs,diag_physics,tend_physics,its,ite)
+ call radiation_sw_to_MPAS(diag_physics,tend_physics,its,ite)
 
 !call mpas_log_write('--- end subroutine driver_radiation_sw.')
 

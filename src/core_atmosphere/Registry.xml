@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<registry model="mpas" core="atmosphere" core_abbrev="atm" version="8.3.1-noaa">
+<registry model="mpas" core="atmosphere" core_abbrev="atm" version="8.3.0-2.0">
 
 <!-- **************************************************************************************** -->
 <!-- ************************************** Dimensions ************************************** -->
@@ -56,6 +56,10 @@
                     description="Number of latitude points in the input ugwp_limb_tau NGW file"/>
                 <dim name="days"
                     description="Number of day-of-year points in the input ugwp_limb_tau NGW file"/>
+                <dim name="nSWbds"          definition="14"
+                     description="A constant value of 14"/>
+                <dim name="nLWbds"          definition="16"
+                     description="A constant value of 16"/>
 #endif
         </dims>
 
@@ -1281,6 +1285,47 @@
                         <var name="lbc_rho" />
                         <var name="lbc_theta" />
                         <var_array name="lbc_scalars" />
+                </stream>
+
+                <stream name="ugwp_oro_data_in"
+                        type="input"
+                        filename_template="x1.40962.ugwp_oro_data.nc"
+                        input_interval="initial_only"
+                        immutable="true"
+                        packages="ugwp_orog_stream">
+
+                        <var name="var2dls"/>
+                        <var name="conls"/>
+                        <var name="oa1ls"/>
+                        <var name="oa2ls"/>
+                        <var name="oa3ls"/>
+                        <var name="oa4ls"/>
+                        <var name="ol1ls"/>
+                        <var name="ol2ls"/>
+                        <var name="ol3ls"/>
+                        <var name="ol4ls"/>
+                        <var name="var2dss"/>
+                        <var name="conss"/>
+                        <var name="oa1ss"/>
+                        <var name="oa2ss"/>
+                        <var name="oa3ss"/>
+                        <var name="oa4ss"/>
+                        <var name="ol1ss"/>
+                        <var name="ol2ss"/>
+                        <var name="ol3ss"/>
+                        <var name="ol4ss"/>
+                </stream>
+
+                <stream name="ugwp_ngw_in"
+                        type="input"
+                        filename_template="ugwp_limb_tau.nc"
+                        input_interval="initial_only"
+                        immutable="true"
+                        packages="ugwp_ngw_stream">
+
+                        <var name="LATS"/>
+                        <var name="DAYS"/>
+                        <var name="ABSMF"/>
                 </stream>
 
 #ifdef DO_PHYSICS
@@ -3650,10 +3695,10 @@
                 <!-- ... PARAMETERIZATION OF GRAVITY WAVE DRAG OVER OROGRAPHY:                                          -->
                 <!-- ================================================================================================== -->
 
-		<var name="dusfcg" type="real" dimensions="nCells Time" units="Pa"
+		<var name="dusfcg" type="real" dimensions="nCells Time" units="Pa m s^{-1}"
                      description="vertically-integrated gravity wave drag over orography u-stress"/>
 
-                <var name="dvsfcg" type="real" dimensions="nCells Time" units="Pa"
+                <var name="dvsfcg" type="real" dimensions="nCells Time" units="Pa m s^{-1}"
                      description="vertically-integrated gravity wave drag over orography v-stress"/>
 
                 <var name="dusfc_ls" type="real" dimensions="nCells Time" units="Pa"
@@ -3688,10 +3733,10 @@
                      description="vertically-integrated turb orog form drag v-stress"
                      packages="ugwp_diags_stream"/>
 
-                <var name="dtaux3d" type="real" dimensions="nVertLevels nCells Time" units="m s^{-2}"
+                <var name="dtaux3d" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
                      description="gravity wave drag over orography u-stress"/>
 
-                <var name="dtauy3d" type="real" dimensions="nVertLevels nCells Time" units="m s^{-2}"
+                <var name="dtauy3d" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
                      description="gravity wave drag over orography v-stress"/>
 
                 <var name="dtaux3d_ls" type="real" dimensions="nVertLevels nCells Time" units="m s^{-2}"
@@ -4087,6 +4132,14 @@
 
                 <var name="taod5503d" type="real" dimensions="nVertLevels nCells Time" units="unitless"
                      description="aerosol optical depth at 550 nm from the Thompson cloud microphysics"
+		     packages="mp_thompson_aers_in;tempo_aerosolaware_in"/>
+
+                <var name="taod5502d_sim" type="real" dimensions="nCells Time" units="unitless"
+                     description="total aerosol optical depth at 550 nm from simple RH method"
+                     packages="mp_thompson_aers_in;tempo_aerosolaware_in"/>
+
+                <var name="taod5503d_sim" type="real" dimensions="nVertLevels nCells Time" units="unitless"
+                     description="aerosol optical depth at 550 nm from simple RH method"
                      packages="mp_thompson_aers_in;tempo_aerosolaware_in"/>
 
 

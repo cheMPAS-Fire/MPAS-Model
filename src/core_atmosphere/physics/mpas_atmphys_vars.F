@@ -159,7 +159,7 @@
  integer,public:: num_months          !number of months                                         [-]
 
  integer,public:: num_chem             !Temporary workaround for defining dimensions holding chem data
- integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic,kreswoodcomb!Number of vertical levels in input emission data
+ integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic!Number of vertical levels in input emission data
  logical:: do_chemistry                !controls call to smoke, dust and other chemical processes
 
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
@@ -245,11 +245,9 @@
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     PM1_p, PM2_5_p, PM10_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    aod3d_smoke_p, aod3d_p
+    aod3d_smoke_p, aod3d_p, aod3d_simple_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
-    aod550_p
- real(kind=RKIND),dimension(:,:),allocatable:: &
-    aero_emis_for_enhmix_p
+    aod550_p, aod550_simple_p
 ! Input/output smoke 2D fields - JLS
  real(kind=RKIND),dimension(:,:),allocatable::  &
     frp_in_p,          &!
@@ -855,10 +853,16 @@
 
  real(kind=RKIND),dimension(:,:),allocatable  ::   taod5502d_p!total aerosol optical depth at 550 nm           [-]
  real(kind=RKIND),dimension(:,:,:),allocatable::   taod5503d_p!aerosol optical depth at 550 nm                 [-]
+ real(kind=RKIND),dimension(:,:),allocatable  ::   taod5502d_sim_p!total aerosol optical depth at 550 nm           [-]
+ real(kind=RKIND),dimension(:,:,:),allocatable::   taod5503d_sim_p!aerosol optical depth at 550 nm                 [-]
 
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: tauaer_p   !aerosol optical depth in RRTMG SW               [-]
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: ssaaer_p   !aerosol single scatterin albedo in RRTMG SW     [-]
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: asyaer_p   !aerosol asymmetry factor in RRTMG SW            [-]
+ real(kind=RKIND),dimension(:,:,:,:),allocatable:: tauaer_sw_p   !aerosol optical depth in RRTMG SW               [-]
+ real(kind=RKIND),dimension(:,:,:,:),allocatable:: tauaer_lw_p   !aerosol optical depth in RRTMG SW               [-]
+ real(kind=RKIND),dimension(:,:,:,:),allocatable:: ssaaer_sw_p   !aerosol single scatterin albedo in RRTMG SW     [-]
+ real(kind=RKIND),dimension(:,:,:,:),allocatable:: asyaer_sw_p   !aerosol asymmetry factor in RRTMG SW            [-]
 
 !=================================================================================================================
 !... variables and arrays related to parameterization of short-wave radiation:
@@ -905,8 +909,8 @@
     swupflxcln_p       !
 
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    rthratensw_p       !uncoupled theta tendency due to shortwave radiation                 [K s-1]
-
+    rthratensw_p   !, & !uncoupled theta tendency due to shortwave radiation                 [K s-1]
+!    rthratenswc_p  !uncoupled theta tendency due to clear-sky shortwave radiation        [K s-1]
 !=================================================================================================================
 !... variables and arrays related to parameterization of long-wave radiation:
 !=================================================================================================================
