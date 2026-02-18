@@ -116,11 +116,13 @@
  character(len=StrKIND),pointer:: mp_scheme,     &
                                   radt_sw_scheme
  logical,pointer:: config_tempo_aerosolaware
+ integer,pointer:: aero_dir_rad_fdb
 !-----------------------------------------------------------------------------------------------------------------
 
  call mpas_pool_get_config(configs,'config_microp_scheme' ,mp_scheme     )
  call mpas_pool_get_config(configs,'config_radt_sw_scheme',radt_sw_scheme)
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
+ call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
       
  if(.not.allocated(f_ice)        ) allocate(f_ice(ims:ime,kms:kme,jms:jme)        )
  if(.not.allocated(f_rain)       ) allocate(f_rain(ims:ime,kms:kme,jms:jme)       )
@@ -187,18 +189,21 @@
        if(.not.allocated(asyaer_p)     ) allocate(asyaer_p(ims:ime,kms:kme,jms:jme,nbndsw) )
        if(.not.allocated(taod5503d_sim_p)) allocate(taod5503d_sim_p(ims:ime,kms:kme,jms:jme)   )
        if(.not.allocated(taod5502d_sim_p)) allocate(taod5502d_sim_p(ims:ime,kms:kme)   )
-
+       if (aero_dir_rad_fdb > 0 .and. aero_dir_rad_fdb /= 2) then
+         if(.not.allocated(ht_p)       ) allocate(ht_p(ims:ime,jms:jme)       )
+         if(.not.allocated(taer_type_p)) allocate(taer_type_p(ims:ime,jms:jme))
+       endif
 
        aerosol_select: select case(mp_scheme)
           case("mp_thompson_aerosols")
-             if(.not.allocated(ht_p)       ) allocate(ht_p(ims:ime,jms:jme)       )
-             if(.not.allocated(taer_type_p)) allocate(taer_type_p(ims:ime,jms:jme))
+!             if(.not.allocated(ht_p)       ) allocate(ht_p(ims:ime,jms:jme)       )
+!             if(.not.allocated(taer_type_p)) allocate(taer_type_p(ims:ime,jms:jme))
              if(.not.allocated(taod5502d_p)) allocate(taod5502d_p(ims:ime,jms:jme))
              if(.not.allocated(taod5503d_p)) allocate(taod5503d_p(ims:ime,kms:kme,jms:jme))
           case("mp_tempo")
              if (config_tempo_aerosolaware) then
-                if(.not.allocated(ht_p)       ) allocate(ht_p(ims:ime,jms:jme)       )
-                if(.not.allocated(taer_type_p)) allocate(taer_type_p(ims:ime,jms:jme))
+!                if(.not.allocated(ht_p)       ) allocate(ht_p(ims:ime,jms:jme)       )
+!                if(.not.allocated(taer_type_p)) allocate(taer_type_p(ims:ime,jms:jme))
                 if(.not.allocated(taod5502d_p)) allocate(taod5502d_p(ims:ime,jms:jme))
                 if(.not.allocated(taod5503d_p)) allocate(taod5503d_p(ims:ime,kms:kme,jms:jme))
              endif
@@ -264,12 +269,14 @@
  character(len=StrKIND),pointer:: mp_scheme,     &
                                   radt_sw_scheme
  logical,pointer:: config_tempo_aerosolaware
+ integer,pointer:: aero_dir_rad_fdb
 
 !-----------------------------------------------------------------------------------------------------------------
 
  call mpas_pool_get_config(configs,'config_microp_scheme' ,mp_scheme     )
  call mpas_pool_get_config(configs,'config_radt_sw_scheme',radt_sw_scheme)
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)     
+ call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
 
  if(allocated(f_ice)        ) deallocate(f_ice        )
  if(allocated(f_rain)       ) deallocate(f_rain       )
@@ -333,18 +340,22 @@
        if(allocated(asyaer_p)     ) deallocate(asyaer_p     )
        if(allocated(taod5503d_sim_p)) deallocate(taod5503d_sim_p)
        if(allocated(taod5502d_sim_p)) deallocate(taod5502d_sim_p)
+       if(aero_dir_rad_fdb > 0 .and. aero_dir_rad_fdb /= 2) then
+         if(allocated(ht_p)       ) deallocate(ht_p       )
+         if(allocated(taer_type_p)) deallocate(taer_type_p) 
+       endif
 
 
        aerosol_select: select case(mp_scheme)
           case("mp_thompson","mp_thompson_aerosols")
-             if(allocated(ht_p)       ) deallocate(ht_p       )
-             if(allocated(taer_type_p)) deallocate(taer_type_p)
+!             if(allocated(ht_p)       ) deallocate(ht_p       )
+!             if(allocated(taer_type_p)) deallocate(taer_type_p)
              if(allocated(taod5502d_p)) deallocate(taod5502d_p)
              if(allocated(taod5503d_p)) deallocate(taod5503d_p)
           case("mp_tempo")
              if	(config_tempo_aerosolaware) then
-                if(allocated(ht_p)       ) deallocate(ht_p       )
-                if(allocated(taer_type_p)) deallocate(taer_type_p)
+ !               if(allocated(ht_p)       ) deallocate(ht_p       )
+ !               if(allocated(taer_type_p)) deallocate(taer_type_p)
                 if(allocated(taod5502d_p)) deallocate(taod5502d_p)
                 if(allocated(taod5503d_p)) deallocate(taod5503d_p)
              endif
@@ -392,6 +403,18 @@
  subroutine radiation_sw_from_MPAS(configs,mesh,state,time_lev,diag_physics,atm_input, &
                                    sfc_input,xtime_s,its,ite)
 !=================================================================================================================
+! Initializes local arrays from MPAS pools for use in shortwave radiation schemes.
+! Handles:
+!   (1) Cloud effective radii for RRTMG (indirect effect via microphysics)
+!   (2) Aerosol optical properties for RRTMG direct radiative feedback
+!       controlled by two independent namelist options:
+!         aer_opt          : RRTMG-level aerosol pathway (0=none, 1=ECMWF, 2=direct AOD, 3=Thompson WFA/IFA)
+!         aero_dir_rad_fdb : MPAS driver-level direct feedback source
+!                            (0=none, 1=simple AOD, 2=Mie/SMOKE, 3=Thompson internal, 4=Thompson+Mie combined)
+!
+! Code has been written by Minsu Choi CIRES/NOAA GSL(Minsu.Choi@noaa.gov)/ 2026-02-16
+! Atmospheric Composition Branch at NOAA GSL
+!=================================================================================================================
 
 !input arguments:
  type(mpas_pool_type),intent(in):: mesh
@@ -407,15 +430,16 @@
  real(kind=RKIND),intent(in):: xtime_s
 
 !local variables:
- integer:: i,j,k,n, i0,k0,n0
+ integer:: i,j,k,n
+ real(kind=RKIND):: tau_thompson, tau_mie, ssa_thompson, ssa_mie, asy_thompson, asy_mie
+ real(kind=RKIND):: tau_total, ssa_num, asy_num
 
 !local pointers:
  logical,pointer:: config_o3climatology
  logical,pointer:: config_microp_re
  logical,pointer:: config_tempo_aerosolaware
- logical,pointer:: config_calc_clean_atm_diag
  integer,pointer:: aero_dir_rad_fdb
- character(len=StrKIND),pointer :: config_smoke_scheme
+ integer,pointer:: aer_opt
  character(len=StrKIND),pointer:: radt_sw_scheme
  character(len=StrKIND),pointer:: microp_scheme
 
@@ -423,31 +447,31 @@
  real(kind=RKIND),dimension(:),pointer    :: skintemp,snow,xice,xland
  real(kind=RKIND),dimension(:),pointer    :: m_ps,pin
  real(kind=RKIND),dimension(:),pointer    :: sfc_albedo,sfc_emiss
- real(kind=RKIND),dimension(:),pointer    :: taod5502d, taod5502d_sim
+ real(kind=RKIND),dimension(:),pointer    :: taod5502d
  real(kind=RKIND),dimension(:,:),pointer  :: zgrid
  real(kind=RKIND),dimension(:,:),pointer  :: cldfrac,m_hybi,o3clim
  real(kind=RKIND),dimension(:,:),pointer  :: re_cloud,re_ice,re_snow
- real(kind=RKIND),dimension(:,:),pointer  :: taod5503d, taod5503d_sim
+ real(kind=RKIND),dimension(:,:),pointer  :: taod5503d
  real(kind=RKIND),dimension(:,:,:),pointer:: aerosols,ozmixm
- real(kind=RKIND),dimension(:,:,:),pointer :: tauaer_sw
- real(kind=RKIND),dimension(:,:,:),pointer :: ssaaer_sw
- real(kind=RKIND),dimension(:,:,:),pointer :: asyaer_sw
- ! ------------------------------------------------------------------
- ! Variables for CASE 1: Simplified approach for aerosol ext (1/km)
- ! ------------------------------------------------------------------
- real(kind=RKIND),dimension(:,:,:),pointer :: aod3d_simple_radi_p
- real(kind=RKIND), dimension(:,:), pointer :: aod3d_simple_pool_ptr
+ real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_sw, ssaaer_sw, asyaer_sw
+ real(kind=RKIND),dimension(:,:),pointer  :: aod3d_simple_pool_ptr
+
+ ! Temporary arrays for aero_dir_rad_fdb=4 (Thompson + Mie combination)
+ ! This arrays only used in this driver. 
+ real(kind=RKIND), allocatable:: tauaer_thompson_tmp(:,:,:,:)
+ real(kind=RKIND), allocatable:: ssaaer_thompson_tmp(:,:,:,:)
+ real(kind=RKIND), allocatable:: asyaer_thompson_tmp(:,:,:,:)
 
 !-----------------------------------------------------------------------------------------------------------------
 
- call mpas_pool_get_config(configs,'config_microp_re'     ,config_microp_re    )
- call mpas_pool_get_config(configs,'config_o3climatology' ,config_o3climatology)
- call mpas_pool_get_config(configs,'config_radt_sw_scheme',radt_sw_scheme      )
- call mpas_pool_get_config(configs,'config_microp_scheme' ,microp_scheme       )
+ call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
+ call mpas_pool_get_config(configs,'config_o3climatology'    ,config_o3climatology    )
+ call mpas_pool_get_config(configs,'config_radt_sw_scheme'   ,radt_sw_scheme          )
+ call mpas_pool_get_config(configs,'config_microp_scheme'    ,microp_scheme           )
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
- call mpas_pool_get_config(configs,'config_smoke_scheme',config_smoke_scheme)
- call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
-      
+ call mpas_pool_get_config(configs,'aero_dir_rad_fdb'        ,aero_dir_rad_fdb        )
+ call mpas_pool_get_config(configs,'aer_opt'                 ,aer_opt                 )
+
  call mpas_pool_get_array(mesh,'latCell',latCell)
  call mpas_pool_get_array(mesh,'lonCell',lonCell)
 
@@ -458,8 +482,8 @@
  call mpas_pool_get_array(sfc_input,'xice'    ,xice    )
  call mpas_pool_get_array(sfc_input,'xland'   ,xland   )
 
- call mpas_pool_get_array(atm_input,'pin'     ,pin     )
- call mpas_pool_get_array(atm_input,'ozmixm'  ,ozmixm  )
+ call mpas_pool_get_array(atm_input,'pin'  ,pin  )
+ call mpas_pool_get_array(atm_input,'ozmixm',ozmixm)
 
  call mpas_pool_get_array(diag_physics,'sfc_albedo',sfc_albedo)
  call mpas_pool_get_array(diag_physics,'sfc_emiss' ,sfc_emiss )
@@ -468,16 +492,18 @@
  call mpas_pool_get_array(diag_physics,'m_hybi'    ,m_hybi    )
  call mpas_pool_get_array(diag_physics,'m_ps'      ,m_ps      )
 
- call mpas_pool_get_array(diag_physics, 'tauaer_sw', tauaer_sw, time_lev)
- call mpas_pool_get_array(diag_physics, 'ssaaer_sw', ssaaer_sw, time_lev)
- call mpas_pool_get_array(diag_physics, 'asyaer_sw', asyaer_sw, time_lev)
- call mpas_pool_get_array(diag_physics, 'aod3d_simple', aod3d_simple_pool_ptr)
+ call mpas_pool_get_array(diag_physics,'tauaer_sw',tauaer_sw,time_lev)
+ call mpas_pool_get_array(diag_physics,'ssaaer_sw',ssaaer_sw,time_lev)
+ call mpas_pool_get_array(diag_physics,'asyaer_sw',asyaer_sw,time_lev)
+ call mpas_pool_get_array(diag_physics,'aod3d_simple',aod3d_simple_pool_ptr)
 
+!-----------------------------------------------------------------------------------------------------------------
+! Section 1: Copy basic surface and atmospheric fields
+!-----------------------------------------------------------------------------------------------------------------
  do j = jts,jte
  do i = its,ite
     xlat_p(i,j)       = latCell(i) / degrad
     xlon_p(i,j)       = lonCell(i) / degrad
-
     sfc_albedo_p(i,j) = sfc_albedo(i)
     snow_p(i,j)       = snow(i)
     tsk_p(i,j)        = skintemp(i)
@@ -485,46 +511,31 @@
     xland_p(i,j)      = xland(i)
  enddo
  enddo
+
  do j = jts,jte
  do k = kts,kte
  do i = its,ite
     cldfrac_p(i,k,j) = cldfrac(k,i)
+    f_ice(i,k,j)     = 0.0_RKIND
+    f_rain(i,k,j)    = 0.0_RKIND
  enddo
  enddo
  enddo
 
-!initialization:
- do j = jts,jte
- do k = kts,kte
- do i = its,ite
-    f_ice(i,k,j)  = 0.0_RKIND
-    f_rain(i,k,j) = 0.0_RKIND
- enddo
- enddo
- enddo
-
+!-----------------------------------------------------------------------------------------------------------------
+! Section 2: Initialize output SW radiation arrays to zero
+!-----------------------------------------------------------------------------------------------------------------
  do j = jts,jte
  do i = its,ite
     coszr_p(i,j)    = 0.0_RKIND
     gsw_p(i,j)      = 0.0_RKIND
     swcf_p(i,j)     = 0.0_RKIND
-    swdnb_p(i,j)    = 0.0_RKIND
-    swdnbc_p(i,j)   = 0.0_RKIND
-    swdnbcln_p(i,j) = 0.0_RKIND
-    swdnt_p(i,j)    = 0.0_RKIND
-    swdntc_p(i,j)   = 0.0_RKIND
-    swdntcln_p(i,j) = 0.0_RKIND
-    swupb_p(i,j)    = 0.0_RKIND
-    swupbc_p(i,j)   = 0.0_RKIND
-    swupbcln_p(i,j) = 0.0_RKIND
-    swupt_p(i,j)    = 0.0_RKIND
-    swuptc_p(i,j)   = 0.0_RKIND
-    swuptcln_p(i,j) = 0.0_RKIND
-    swddir_p(i,j)   = 0.0_RKIND
-    swddni_p(i,j)   = 0.0_RKIND
-    swddif_p(i,j)   = 0.0_RKIND
+    swdnb_p(i,j)    = 0.0_RKIND  ;  swdnbc_p(i,j)   = 0.0_RKIND  ;  swdnbcln_p(i,j) = 0.0_RKIND
+    swdnt_p(i,j)    = 0.0_RKIND  ;  swdntc_p(i,j)   = 0.0_RKIND  ;  swdntcln_p(i,j) = 0.0_RKIND
+    swupb_p(i,j)    = 0.0_RKIND  ;  swupbc_p(i,j)   = 0.0_RKIND  ;  swupbcln_p(i,j) = 0.0_RKIND
+    swupt_p(i,j)    = 0.0_RKIND  ;  swuptc_p(i,j)   = 0.0_RKIND  ;  swuptcln_p(i,j) = 0.0_RKIND
+    swddir_p(i,j)   = 0.0_RKIND  ;  swddni_p(i,j)   = 0.0_RKIND  ;  swddif_p(i,j)   = 0.0_RKIND
  enddo
-
  do k = kts,kte
  do i = its,ite
     rthratensw_p(i,k,j) = 0.0_RKIND
@@ -532,32 +543,48 @@
  enddo
  enddo
 
-! In-house version, initialize w/ default no aerosol
- aer_opt = 0
- do n = 1,nbndsw
-   do j = jts,jte
-     do k = kts,kte
-       do i = its,ite
-         tauaer_p(i,k,j,n) = 0._RKIND
-         ssaaer_p(i,k,j,n) = 1._RKIND
-         asyaer_p(i,k,j,n) = 0._RKIND
-       enddo
-     enddo
-   enddo
- enddo
-! endif
-
-
+!-----------------------------------------------------------------------------------------------------------------
+! Section 3: RRTMG-specific initialization
+!-----------------------------------------------------------------------------------------------------------------
  radiation_sw_select: select case (trim(radt_sw_scheme))
 
     case("rrtmg_sw")
-       microp_select: select case(microp_scheme)
-          case("mp_thompson","mp_thompson_aerosols","mp_wsm6")
+
+       !--- Initialize aerosol optical property arrays to no-aerosol defaults
+       !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+       do n = 1,nbndsw
+       do j = jts,jte
+       do k = kts,kte
+       do i = its,ite
+          tauaer_p(i,k,j,n) = 0.0_RKIND
+          ssaaer_p(i,k,j,n) = 1.0_RKIND
+          asyaer_p(i,k,j,n) = 0.0_RKIND
+       enddo
+       enddo
+       enddo
+       enddo
+       !$OMP END PARALLEL DO
+
+       !--- Initialize flux arrays
+       do j = jts,jte
+       do k = kts,kte+2
+       do i = its,ite
+          swdnflx_p(i,k,j)    = 0.0_RKIND  ;  swdnflxc_p(i,k,j)   = 0.0_RKIND  ;  swdnflxcln_p(i,k,j) = 0.0_RKIND
+          swupflx_p(i,k,j)    = 0.0_RKIND  ;  swupflxc_p(i,k,j)   = 0.0_RKIND  ;  swupflxcln_p(i,k,j) = 0.0_RKIND
+       enddo
+       enddo
+       enddo
+
+       !----------------------------------------------------------------------
+       ! Section 3a: Cloud effective radii (indirect effect via microphysics)
+       ! Independent of aero_dir_rad_fdb
+       !----------------------------------------------------------------------
+       microp_re_select: select case(microp_scheme)
+          case("mp_thompson","mp_thompson_aerosols","mp_wsm6","mp_nssl2m","mp_tempo")
              if(config_microp_re) then
                 call mpas_pool_get_array(diag_physics,'re_cloud',re_cloud)
                 call mpas_pool_get_array(diag_physics,'re_ice'  ,re_ice  )
                 call mpas_pool_get_array(diag_physics,'re_snow' ,re_snow )
-
                 do j = jts,jte
                 do k = kts,kte
                 do i = its,ite
@@ -568,10 +595,6 @@
                 enddo
                 enddo
              else
-                ! These are set in module mpas_atmphys_manager and should not be set again
-                !has_reqc = 0
-                !has_reqi = 0
-                !has_reqs = 0
                 do j = jts,jte
                 do k = kts,kte
                 do i = its,ite
@@ -582,102 +605,91 @@
                 enddo
                 enddo
              endif
+          case default
+       end select microp_re_select
 
-          case("mp_nssl2m","mp_tempo")
-             if(config_microp_re) then
-                call mpas_pool_get_array(diag_physics,'re_cloud',re_cloud)
-                call mpas_pool_get_array(diag_physics,'re_ice'  ,re_ice  )
-                call mpas_pool_get_array(diag_physics,'re_snow' ,re_snow )
+       !----------------------------------------------------------------------
+       ! Section 3b: Aerosol direct radiative feedback
+       ! Controlled by aero_dir_rad_fdb (MPAS driver-level)
+       ! Options:
+       !   0 = no direct feedback (arrays remain at no-aerosol defaults)
+       !   1 = simple AOD parameterization (diagnostic RH-based)
+       !   2 = Mie calculation from SMOKE driver
+       !   3 = Thompson internal pathway (WFA/IFA climatology)
+       !   4 = Thompson WFA/IFA + Mie combined (optical weighting)
+       !----------------------------------------------------------------------
+       direct_feedback_select: select case(aero_dir_rad_fdb)
 
-                do j = jts,jte
+          !--- Case 0: No direct feedback
+          !    Arrays already initialized to no-aerosol defaults above
+          case(0)
+             ! nothing to do
+
+          !--- Case 1: Simple AOD parameterization
+          !--- For code developer, to understand the simplest approach
+          !--- We recommend go to /physics_noaa/SMOKE/mpas_smoke_diagnostics.F90
+          case(1)
+             call mpas_pool_get_array(mesh,'zgrid',zgrid)
+
+             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k)
+             do j = jts,jte
+             do i = its,ite
+                ht_p(i,j) = zgrid(1,i)
+                if(xland_p(i,j) == 1._RKIND) then
+                   taer_type_p(i,j) = 1
+                else
+                   taer_type_p(i,j) = 3
+                endif
+                taod5502d_sim_p(i,j) = 0._RKIND
                 do k = kts,kte
-                do i = its,ite
-                   recloud_p(i,k,j) = re_cloud(k,i)
-                   reice_p(i,k,j)   = re_ice(k,i)
-                   resnow_p(i,k,j)  = re_snow(k,i)
+                   taod5503d_sim_p(i,k,j) = aod3d_simple_pool_ptr(k,i)
+                   taod5502d_sim_p(i,j)   = taod5502d_sim_p(i,j) + taod5503d_sim_p(i,k,j)
                 enddo
-                enddo
-                enddo
-             else
-                ! These are set in module mpas_atmphys_manager and should not be set again
-                !has_reqc = 0
-                !has_reqi = 0
-                !has_reqs = 0
-                do j = jts,jte
-                do k = kts,kte
-                do i = its,ite
-                   recloud_p(i,k,j) = 0._RKIND
-                   reice_p(i,k,j)   = 0._RKIND
-                   resnow_p(i,k,j)  = 0._RKIND
-                enddo
-                enddo
-                enddo
-             endif
+             enddo
+             enddo
+             !$OMP END PARALLEL DO
 
-          case default          
-       end select microp_select
+             call calc_aerosol_rrtmg_sw( &
+                      ht       = ht_p,           dz8w     = dz_p,           &
+                      p        = pres_hyd_p,      t3d      = t_p,            &
+                      qv3d     = qv_p,                                       &
+                      tauaer   = tauaer_p,        ssaaer   = ssaaer_p,       &
+                      asyaer   = asyaer_p,                                   &
+                      aod5503d = taod5503d_sim_p, aod5502d = taod5502d_sim_p,&
+                      aer_type = taer_type_p,                                &
+                      aer_aod550_opt = 1, aer_angexp_opt = 3,                &
+                      aer_ssa_opt    = 3, aer_asy_opt    = 3,                &
+                      aer_aod550_val = 0., aer_angexp_val = 0.,              &
+                      aer_ssa_val    = 0., aer_asy_val    = 0.,              &
+                      ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme, &
+                      its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte  )
 
-       aerosol_select: select case(microp_scheme)
-          case("mp_thompson_aerosols")
+          !--- Case 2: Mie calculation from SMOKE driver
+          case(2)
+             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+             do n = 1,nbndsw
+             do j = jts,jte
+             do k = kts,kte
+             do i = its,ite
+                tauaer_p(i,k,j,n) = tauaer_sw(n,k,i)
+                ssaaer_p(i,k,j,n) = ssaaer_sw(n,k,i)
+                asyaer_p(i,k,j,n) = asyaer_sw(n,k,i)
+             enddo
+             enddo
+             enddo
+             enddo
+             !$OMP END PARALLEL DO
+
+          !--- Case 3: Thompson internal pathway (WFA/IFA from climatology only)
+          !    Valid for mp_thompson_aerosols and mp_tempo with aerosolaware=.true.
+          case(3)
              call mpas_pool_get_array(mesh,'zgrid',zgrid)
              call mpas_pool_get_array(diag_physics,'taod5502d',taod5502d)
              call mpas_pool_get_array(diag_physics,'taod5503d',taod5503d)
 
-             aer_opt = 3
-             do j = jts,jte
-             do i = its,ite
-                ht_p(i,j) = zgrid(1,i)
-                if(xland_p(i,j)==1._RKIND) then
-                   taer_type_p(i,j) = 1
-                elseif(xland_p(i,j)==2._RKIND) then
-                   taer_type_p(i,j) = 3
-                endif
-             enddo
-             enddo
+             if(microp_scheme == 'mp_thompson_aerosols' .or. &
+                (microp_scheme == 'mp_tempo' .and. config_tempo_aerosolaware)) then
 
-             !--- calculation of the 550 nm optical depth of the water- and ice-friendly aerosols:
-             call gt_aod( &
-                     p_phy = pres_hyd_p , dz8w = dz_p   , t_phy     = t_p         , qvapor = qv_p , &
-                     nwfa  = nwfa_p     , nifa = nifa_p , taod5503d = taod5503d_p ,                 &
-                     ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,        &
-                     its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte          &
-                        )
-
-             do j = jts,jte
-             do i = its,ite
-                taod5502d_p(i,j) = 0._RKIND
-                do k = kts,kte
-                   taod5502d_p(i,j) = taod5502d_p(i,j) + taod5503d_p(i,k,j)
-                   taod5503d(k,i) = taod5503d_p(i,k,j)
-                enddo
-                taod5502d(i) = taod5502d_p(i,j)
-             enddo
-             enddo
-
-             !--- calculation of the spectral optical depth, single-scattering albedo, and asymmetry factor
-             !as a function of the 550 nm optical depth of the water- and ice-friendly aerosols:
-             call calc_aerosol_rrtmg_sw( &
-                               ht       = ht_p         , dz8w     = dz_p        , &
-                               p        = pres_hyd_p   , t3d      = t_p         , &
-                               qv3d     = qv_p         , tauaer   = tauaer_p    , &
-                               ssaaer   = ssaaer_p     , asyaer   = asyaer_p    , &
-                               aod5502d = taod5502d_p  , aod5503d = taod5503d_p , &
-                               aer_type = taer_type_p  ,                                               &
-                               aer_aod550_opt = taer_aod550_opt , aer_angexp_opt = taer_angexp_opt   , &
-                               aer_ssa_opt    = taer_ssa_opt    , aer_asy_opt    = taer_asy_opt      , &
-                               aer_aod550_val = aer_aod550_val  , aer_angexp_val = aer_angexp_val    , &
-                               aer_ssa_val    = aer_ssa_val     , aer_asy_val    = aer_asy_val       , &
-                               ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme , &
-                               its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte   &
-                                        )
-
-          case ("mp_tempo")
-             if (config_tempo_aerosolaware) then
-                call mpas_pool_get_array(mesh,'zgrid',zgrid)
-                call mpas_pool_get_array(diag_physics,'taod5502d',taod5502d)
-                call mpas_pool_get_array(diag_physics,'taod5503d',taod5503d)
-
-                aer_opt = 3
                 do j = jts,jte
                 do i = its,ite
                    ht_p(i,j) = zgrid(1,i)
@@ -689,159 +701,188 @@
                 enddo
                 enddo
 
-                !--- calculation of the 550 nm optical depth of the water- and ice-friendly aerosols:
                 call gt_aod( &
-                     p_phy = pres_hyd_p , dz8w = dz_p   , t_phy     = t_p         , qvapor = qv_p , &
-                     nwfa  = nwfa_p     , nifa = nifa_p , taod5503d = taod5503d_p ,                 &
-                     ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,        &
-                     its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte          &
-                        )
+                        p_phy = pres_hyd_p , dz8w = dz_p  , t_phy     = t_p        , qvapor = qv_p , &
+                        nwfa  = nwfa_p     , nifa  = nifa_p, taod5503d = taod5503d_p,                 &
+                        ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme,                        &
+                        its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte                         )
 
                 do j = jts,jte
                 do i = its,ite
                    taod5502d_p(i,j) = 0._RKIND
                    do k = kts,kte
                       taod5502d_p(i,j) = taod5502d_p(i,j) + taod5503d_p(i,k,j)
-                      taod5503d(k,i) = taod5503d_p(i,k,j)
+                      taod5503d(k,i)   = taod5503d_p(i,k,j)
                    enddo
                    taod5502d(i) = taod5502d_p(i,j)
                 enddo
                 enddo
 
-                !--- calculation of the spectral optical depth, single-scattering albedo, and asymmetry factor
-                !as a function of the 550 nm optical depth of the water- and ice-friendly aerosols:
                 call calc_aerosol_rrtmg_sw( &
-                     ht       = ht_p         , dz8w     = dz_p        , &
-                     p        = pres_hyd_p   , t3d      = t_p         , &
-                     qv3d     = qv_p         , tauaer   = tauaer_p    , &
-                     ssaaer   = ssaaer_p     , asyaer   = asyaer_p    , &
-                     aod5502d = taod5502d_p  , aod5503d = taod5503d_p , &
-                     aer_type = taer_type_p  ,                                               &
-                     aer_aod550_opt = taer_aod550_opt , aer_angexp_opt = taer_angexp_opt   , &
-                     aer_ssa_opt    = taer_ssa_opt    , aer_asy_opt    = taer_asy_opt      , &
-                     aer_aod550_val = aer_aod550_val  , aer_angexp_val = aer_angexp_val    , &
-                     aer_ssa_val    = aer_ssa_val     , aer_asy_val    = aer_asy_val       , &
-                     ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme , &
-                     its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte   &
-                               )
+                              ht       = ht_p        , dz8w     = dz_p        , &
+                              p        = pres_hyd_p  , t3d      = t_p         , &
+                              qv3d     = qv_p        , tauaer   = tauaer_p    , &
+                              ssaaer   = ssaaer_p    , asyaer   = asyaer_p    , &
+                              aod5502d = taod5502d_p , aod5503d = taod5503d_p , &
+                              aer_type = taer_type_p ,                                               &
+                              aer_aod550_opt = taer_aod550_opt, aer_angexp_opt = taer_angexp_opt,    &
+                              aer_ssa_opt    = taer_ssa_opt   , aer_asy_opt    = taer_asy_opt   ,    &
+                              aer_aod550_val = aer_aod550_val , aer_angexp_val = aer_angexp_val ,    &
+                              aer_ssa_val    = aer_ssa_val    , aer_asy_val    = aer_asy_val    ,    &
+                              ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme,                 &
+                              its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte                  )
+             else
+                call mpas_log_write('WARNING: aero_dir_rad_fdb=3 requires mp_thompson_aerosols or ' // &
+                                    'mp_tempo with config_tempo_aerosolaware=.true. ' //               &
+                                    'Falling back to no direct feedback (aero_dir_rad_fdb=0).',        &
+                                    messageType=MPAS_LOG_WARN)
              endif
-                            
-          case default
-       end select aerosol_select
 
-!----------------------------------------------------------------------------------
-! In-house version, overwrite with Mie optics
-! Code has been written by Minsu Choi, CIRES/NOAA GSL
-! January, 2026.
-! Under devleopment for chemistry - microphysics coupling
-! However, current version simply overwrite the direct feedback part with several
-! different option
-! Minsu.Choi@noaa.gov, Minsu.Choi@colorado.edu
-!----------------------------------------------------------------------------------
+          !--- Case 4: Thompson WFA/IFA + Mie combined (optical weighting)
+          !    tauaer = tauaer_thompson + tauaer_mie
+          !    ssaaer = (ssa_t*tau_t + ssa_m*tau_m) / tau_total
+          !    asyaer = (asy_t*ssa_t*tau_t + asy_m*ssa_m*tau_m) / (ssa_t*tau_t + ssa_m*tau_m)
+          case(4)
+             if(microp_scheme == 'mp_thompson_aerosols' .or. &
+                (microp_scheme == 'mp_tempo' .and. config_tempo_aerosolaware)) then
 
-       select case (aero_dir_rad_fdb)
-      ! --- Case 1: Simple AOD (In-house Parameterization) ---
-       case (1)
-          call mpas_pool_get_array(mesh,'zgrid',zgrid)
-!          call mpas_pool_get_array(diag_physics,'taod5502d_sim',taod5502d_sim)
-!          call mpas_pool_get_array(diag_physics,'taod5503d_sim',taod5503d_sim)
-       
-          !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k)
-          do j = jts,jte
-             do i = its,ite
-                ! Set surface height and aerosol type based on landmask
-                ht_p(i,j) = zgrid(1,i)
-                if(xland_p(i,j) == 1._RKIND) then
-                   taer_type_p(i,j) = 1
-                else
-                   taer_type_p(i,j) = 3
-                endif
-       
-                taod5502d_sim_p(i,j) = 0._RKIND
-       
-                do k = kts,kte
-                   taod5503d_sim_p(i,k,j) = aod3d_simple_pool_ptr(k,i)
-                   taod5502d_sim_p(i,j) = taod5502d_sim_p(i,j) + taod5503d_sim_p(i,k,j)
+                call mpas_pool_get_array(mesh,'zgrid',zgrid)
+                call mpas_pool_get_array(diag_physics,'taod5502d',taod5502d)
+                call mpas_pool_get_array(diag_physics,'taod5503d',taod5503d)
+
+                !--- Step 1: Compute Thompson optical properties into temporary arrays
+                ! This array is local array
+                allocate(tauaer_thompson_tmp(ims:ime,kms:kme,jms:jme,nbndsw))
+                allocate(ssaaer_thompson_tmp(ims:ime,kms:kme,jms:jme,nbndsw))
+                allocate(asyaer_thompson_tmp(ims:ime,kms:kme,jms:jme,nbndsw))
+
+                do j = jts,jte
+                do i = its,ite
+                   ht_p(i,j) = zgrid(1,i)
+                   if(xland_p(i,j)==1._RKIND) then
+                      taer_type_p(i,j) = 1
+                   elseif(xland_p(i,j)==2._RKIND) then
+                      taer_type_p(i,j) = 3
+                   endif
                 enddo
-             enddo
-          enddo
-          !$OMP END PARALLEL DO
-       
-          aer_opt = 0
-          call calc_aerosol_rrtmg_sw( &
-                   ht       = ht_p,          dz8w     = dz_p,            &
-                   p        = pres_hyd_p,    t3d      = t_p,             &
-                   qv3d     = qv_p,                                      &
-                   tauaer   = tauaer_p,      ssaaer   = ssaaer_p,        &
-                   asyaer   = asyaer_p,                                  &
-                   aod5503d = taod5503d_sim_p,                           &
-                   aod5502d = taod5502d_sim_p,                           &
-                   aer_type = taer_type_p,                               &
-                   aer_aod550_opt = 1, aer_angexp_opt = 3,               &
-                   aer_ssa_opt = 3,    aer_asy_opt = 3,                  &
-                   aer_aod550_val=0.,  aer_angexp_val=0.,                &
-                   aer_ssa_val=0.,     aer_asy_val=0.,                   &
-                   ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme, &
-                   its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte )
-       
-       ! --- Case 2: Mie Calculation (SMOKE driver) ---
-       case (2)
-          aer_opt = 0
-          !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
-          do n = 1,nbndsw
-             do j = jts,jte
-             do k = kts,kte
-             do i = its,ite
-                tauaer_p(i,k,j,n) = tauaer_sw(n,k,i)
-                ssaaer_p(i,k,j,n) = ssaaer_sw(n,k,i)
-                asyaer_p(i,k,j,n) = asyaer_sw(n,k,i)
-             enddo
-             enddo
-             enddo
-          enddo
-          !$OMP END PARALLEL DO
+                enddo
 
-       case default  
-          aer_opt = 0
-          !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
-          do n = 1,nbndsw
-             do j = jts,jte
-             do k = kts,kte
-             do i = its,ite
-                tauaer_p(i,k,j,n) = 0.0_RKIND 
-                ssaaer_p(i,k,j,n) = 1.0_RKIND 
-                asyaer_p(i,k,j,n) = 0.0_RKIND 
-             enddo
-             enddo
-             enddo
-          enddo
-          !$OMP END PARALLEL DO
-       end select
+                call gt_aod( &
+                        p_phy = pres_hyd_p , dz8w = dz_p  , t_phy     = t_p        , qvapor = qv_p , &
+                        nwfa  = nwfa_p     , nifa  = nifa_p, taod5503d = taod5503d_p,                 &
+                        ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme,                        &
+                        its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte                         )
 
+                do j = jts,jte
+                do i = its,ite
+                   taod5502d_p(i,j) = 0._RKIND
+                   do k = kts,kte
+                      taod5502d_p(i,j) = taod5502d_p(i,j) + taod5503d_p(i,k,j)
+                      taod5503d(k,i)   = taod5503d_p(i,k,j)
+                   enddo
+                   taod5502d(i) = taod5502d_p(i,j)
+                enddo
+                enddo
 
-       do j = jts,jte
-       do k = kts,kte+2
-       do i = its,ite
-          swdnflx_p(i,k,j)  = 0.0_RKIND
-          swdnflxc_p(i,k,j) = 0.0_RKIND
-          swdnflxcln_p(i,k,j) = 0.0_RKIND  ! Clean diagnostics
-          swupflx_p(i,k,j)  = 0.0_RKIND
-          swupflxc_p(i,k,j) = 0.0_RKIND
-          swupflxcln_p(i,k,j) = 0.0_RKIND ! Clean diagnostics
-       enddo
-       enddo
-       enddo
+                call calc_aerosol_rrtmg_sw( &
+                              ht       = ht_p        , dz8w     = dz_p        , &
+                              p        = pres_hyd_p  , t3d      = t_p         , &
+                              qv3d     = qv_p        , tauaer   = tauaer_thompson_tmp , &
+                              ssaaer   = ssaaer_thompson_tmp    , asyaer   = asyaer_thompson_tmp    , &
+                              aod5502d = taod5502d_p , aod5503d = taod5503d_p , &
+                              aer_type = taer_type_p ,                                               &
+                              aer_aod550_opt = taer_aod550_opt, aer_angexp_opt = taer_angexp_opt,    &
+                              aer_ssa_opt    = taer_ssa_opt   , aer_asy_opt    = taer_asy_opt   ,    &
+                              aer_aod550_val = aer_aod550_val , aer_angexp_val = aer_angexp_val ,    &
+                              aer_ssa_val    = aer_ssa_val    , aer_asy_val    = aer_asy_val    ,    &
+                              ims=ims, ime=ime, jms=jms, jme=jme, kms=kms, kme=kme,                 &
+                              its=its, ite=ite, jts=jts, jte=jte, kts=kts, kte=kte                  )
 
-       !ozone volume mixing ratio:
+                !--- Step 2: Combine Thompson + Mie 
+                !--- Weight approach
+                !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n, &
+                !$OMP   tau_thompson,tau_mie,ssa_thompson,ssa_mie,asy_thompson,asy_mie, &
+                !$OMP   tau_total,ssa_num,asy_num)
+                do n = 1,nbndsw
+                do j = jts,jte
+                do k = kts,kte
+                do i = its,ite
+                   tau_thompson = tauaer_thompson_tmp(i,k,j,n)
+                   tau_mie      = tauaer_sw(n,k,i)
+                   ssa_thompson = ssaaer_thompson_tmp(i,k,j,n)
+                   ssa_mie      = ssaaer_sw(n,k,i)
+                   asy_thompson = asyaer_thompson_tmp(i,k,j,n)
+                   asy_mie      = asyaer_sw(n,k,i)
+
+                   tau_total = tau_thompson + tau_mie
+
+                   if(tau_total > 0.0_RKIND) then
+                      ssa_num = ssa_thompson * tau_thompson + ssa_mie * tau_mie
+                      tauaer_p(i,k,j,n) = tau_total
+                      ssaaer_p(i,k,j,n) = ssa_num / tau_total
+
+                      asy_num = asy_thompson * ssa_thompson * tau_thompson + &
+                                asy_mie      * ssa_mie      * tau_mie
+                      if(ssa_num > 0.0_RKIND) then
+                         asyaer_p(i,k,j,n) = asy_num / ssa_num
+                      else
+                         asyaer_p(i,k,j,n) = 0.0_RKIND
+                      endif
+                   else
+                      ! No aerosol in this cell: no-aerosol (defaults)
+                      tauaer_p(i,k,j,n) = 0.0_RKIND
+                      ssaaer_p(i,k,j,n) = 1.0_RKIND
+                      asyaer_p(i,k,j,n) = 0.0_RKIND
+                   endif
+                enddo
+                enddo
+                enddo
+                enddo
+                !$OMP END PARALLEL DO
+
+                deallocate(tauaer_thompson_tmp)
+                deallocate(ssaaer_thompson_tmp)
+                deallocate(asyaer_thompson_tmp)
+
+             else
+                call mpas_log_write('WARNING: aero_dir_rad_fdb=4 requires mp_thompson_aerosols or ' // &
+                                    'mp_tempo with config_tempo_aerosolaware=.true. ' //               &
+                                    'Falling back to Mie-only direct feedback (aero_dir_rad_fdb=2).',  &
+                                    messageType=MPAS_LOG_WARN)
+                !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+                do n = 1,nbndsw
+                do j = jts,jte
+                do k = kts,kte
+                do i = its,ite
+                   tauaer_p(i,k,j,n) = tauaer_sw(n,k,i)
+                   ssaaer_p(i,k,j,n) = ssaaer_sw(n,k,i)
+                   asyaer_p(i,k,j,n) = asyaer_sw(n,k,i)
+                enddo
+                enddo
+                enddo
+                enddo
+                !$OMP END PARALLEL DO
+             endif
+
+          case default
+             call mpas_log_write('WARNING: Unknown aero_dir_rad_fdb value. ' // &
+                                 'Defaulting to no direct feedback.',            &
+                                 messageType=MPAS_LOG_WARN)
+
+       end select direct_feedback_select
+
+       !----------------------------------------------------------------------
+       ! Section 3c: Ozone volume mixing ratio (No changes from NOAA GSL)
+       !----------------------------------------------------------------------
        if(config_o3climatology) then
           do k = 1, num_oznLevels
              pin_p(k) = pin(k)
           enddo
           do j = jts,jte
           do k = 1, num_oznLevels
-             do i = its,ite
-                o3clim_p(i,k,j) = o3clim(k,i)
-             enddo
+          do i = its,ite
+             o3clim_p(i,k,j) = o3clim(k,i)
+          enddo
           enddo
           enddo
        else
@@ -850,29 +891,26 @@
           enddo
           do j = jts,jte
           do k = 1, num_oznLevels
-             do i = its,ite
-                o3clim_p(i,k,j) = 0.0_RKIND
-             enddo
+          do i = its,ite
+             o3clim_p(i,k,j) = 0.0_RKIND
+          enddo
           enddo
           enddo
        endif
 
+!-----------------------------------------------------------------------------------------------------------------
+! Section 4: CAM SW initialization (No changes from NOAA GSL)
+!-----------------------------------------------------------------------------------------------------------------
     case("cam_sw")
        do j = jts,jte
        do i = its,ite
-          sfc_emiss_p(i,j)  = sfc_emiss(i)
-
-          olrtoa_p(i,j)     = 0.0_RKIND
-          glw_p(i,j)        = 0.0_RKIND
-          lwcf_p(i,j)       = 0.0_RKIND
-          lwdnb_p(i,j)      = 0.0_RKIND
-          lwdnbc_p(i,j)     = 0.0_RKIND
-          lwdnt_p(i,j)      = 0.0_RKIND
-          lwdntc_p(i,j)     = 0.0_RKIND
-          lwupb_p(i,j)      = 0.0_RKIND
-          lwupbc_p(i,j)     = 0.0_RKIND
-          lwupt_p(i,j)      = 0.0_RKIND
-          lwuptc_p(i,j)     = 0.0_RKIND
+          sfc_emiss_p(i,j) = sfc_emiss(i)
+          olrtoa_p(i,j)    = 0.0_RKIND  ;  glw_p(i,j)    = 0.0_RKIND
+          lwcf_p(i,j)      = 0.0_RKIND  ;  lwdnb_p(i,j)  = 0.0_RKIND
+          lwdnbc_p(i,j)    = 0.0_RKIND  ;  lwdnt_p(i,j)  = 0.0_RKIND
+          lwdntc_p(i,j)    = 0.0_RKIND  ;  lwupb_p(i,j)  = 0.0_RKIND
+          lwupbc_p(i,j)    = 0.0_RKIND  ;  lwupt_p(i,j)  = 0.0_RKIND
+          lwuptc_p(i,j)    = 0.0_RKIND
        enddo
        do k = kts,kte
        do i = its,ite
@@ -883,7 +921,7 @@
        enddo
        enddo
        enddo
-       !infrared absorption:
+
        if(xtime_s .lt. 1.e-12) then
           do j = jts,jte
           do n = 1,cam_abs_dim1
@@ -907,25 +945,25 @@
           enddo
           enddo
        endif
-       !ozone mixing ratio:
+
        do k = 1, num_oznlevels
           pin_p(k) = pin(k)
        enddo
        do n = 1, num_months
-          do j = jts,jte
-          do k = 1, num_oznlevels
-          do i = its,ite
-             ozmixm_p(i,k,j,n) = ozmixm(n,k,i)
-          enddo
-          enddo
-          enddo
+       do j = jts,jte
+       do k = 1, num_oznlevels
+       do i = its,ite
+          ozmixm_p(i,k,j,n) = ozmixm(n,k,i)
        enddo
-       !aerosol mixing ratio:
+       enddo
+       enddo
+       enddo
+
        do k = 1, num_aerlevels
           m_hybi_p(k) = m_hybi(k,1)
        enddo
-       do i = its,ite
        do j = jts,jte
+       do i = its,ite
           m_psp_p(i,j) = m_ps(i)
           m_psn_p(i,j) = m_ps(i)
        enddo
@@ -942,10 +980,10 @@
        enddo
 
     case default
+
  end select radiation_sw_select
 
  end subroutine radiation_sw_from_MPAS
-
 !=================================================================================================================
  subroutine radiation_sw_to_MPAS(diag_physics,tend_physics,its,ite)
 !=================================================================================================================
