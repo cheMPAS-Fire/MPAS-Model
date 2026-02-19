@@ -87,7 +87,7 @@
 
 !=================================================================================================================
  subroutine physics_init(dminfo,stream_manager,clock,configs,mesh,diag,tend,state,time_lev,diag_physics,     &
-                         diag_physics_noahmp,ngw_input,atm_input,sfc_input,output_noahmp)
+                         diag_physics_noahmp,ngw_input,atm_input,sfc_input,emission_input,output_noahmp)
 !=================================================================================================================
 
 use mpas_stream_manager
@@ -98,6 +98,7 @@ use mpas_stream_manager
  type(mpas_pool_type),intent(in):: mesh
  type(mpas_pool_type),intent(in):: configs
  type(MPAS_Clock_type),intent(in):: clock
+ type(mpas_pool_type),intent(inout)   :: emission_input
 
  integer,intent(in):: time_lev
 
@@ -134,6 +135,7 @@ use mpas_stream_manager
                    config_ssalt_scheme,      &
                    config_sna_scheme,        &
                    config_rwc_scheme
+ logical,pointer :: config_anthro_pt_scheme
 
  integer,pointer:: nCellsSolve,nLags
  integer,dimension(:),pointer:: i_rainc,i_rainnc
@@ -195,6 +197,7 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_pollen_scheme'    ,config_pollen_scheme    )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
  call mpas_pool_get_config(configs,'config_anthro_scheme'    ,config_anthro_scheme    )
+ call mpas_pool_get_config(configs,'config_anthro_pt_scheme' ,config_anthro_pt_scheme    )
  call mpas_pool_get_config(configs,'config_ssalt_scheme'     ,config_ssalt_scheme     )
  call mpas_pool_get_config(configs,'config_sna_scheme'       ,config_sna_scheme       )
  call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme      )
@@ -532,7 +535,10 @@ use mpas_stream_manager
     config_dust_scheme .ne. 'off'  .or. config_anthro_scheme .ne. 'off' .or. &
     config_ssalt_scheme .ne. 'off' .or. config_sna_scheme .ne. 'off'    .or. &
     config_rwc_scheme .ne. 'off'   ) then
-    call init_smoke(mesh,configs)
+    ! Really only needed for the pt source locations, but leave for now
+    call MPAS_stream_mgr_read(stream_manager, streamID='ptegu_input', whence=MPAS_STREAM_NEAREST, ierr=ierr)
+    call MPAS_stream_mgr_reset_alarms(stream_manager,streamID='ptegu_input', direction=MPAS_STREAM_INPUT, ierr=ierr)
+    call init_smoke(mesh,configs,emission_input,dminfo)
  endif
 
 ! call mpas_log_write('')

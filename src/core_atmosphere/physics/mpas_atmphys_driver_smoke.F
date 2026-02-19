@@ -18,8 +18,14 @@
 
  use mpas_smoke_wrapper
 
+ use mpas_dmpar
+ use mpas_geometry_utils
+
  implicit none
+
+
  private
+
  public:: allocate_smoke,     &
           deallocate_smoke,   &
           init_smoke,         &
@@ -53,6 +59,7 @@
  integer, pointer :: plumerise_opt
  logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
  integer, pointer :: bb_input_prevh
+ logical ,pointer :: calc_bb_emis_online
  integer:: i,k,j,nblocks
 
  call mpas_pool_get_config(configs,'config_smoke_scheme', config_smoke_scheme)
@@ -63,6 +70,7 @@
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
+ call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
 
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
@@ -126,19 +134,21 @@
     if(.not.allocated(hwp_p)       )         allocate(hwp_p(ims:ime,jms:jme))
     if(.not.allocated(coef_bb_dc_p))         allocate(coef_bb_dc_p(ims:ime,jms:jme))
     if(.not.allocated(aod3d_smoke_p))        allocate(aod3d_smoke_p(ims:ime,kms:kme,jms:jme))
+    if ( calc_bb_emis_online ) then
+       if(.not.allocated(ecoregion_ID_p)  )  allocate(ecoregion_ID_p(ims:ime,jms:jme))  !eco map 2d
+       if(.not.allocated(efs_smold_p)     )  allocate(efs_smold_p(ims:ime,jms:jme)) !EFs for smoldering
+       if(.not.allocated(efs_flam_p)      )  allocate(efs_flam_p(ims:ime,jms:jme)) !EFs for flaming
+       if(.not.allocated(efs_rsmold_p)    )  allocate(efs_rsmold_p(ims:ime,jms:jme)) !EFs for residual smoldering
+       if(.not.allocated(fire_ef_out_p)   )  allocate(fire_ef_out_p(ims:ime,jms:jme))
+    endif
     if (ebb_dcycle .eq. 2 ) then
+! TODO -- is fmc_avg for ebb or calc emis?
+       if(.not.allocated(fmc_avg_p)       )  allocate(fmc_avg_p(ims:ime,jms:jme))  !should be always 2d
        if(.not.allocated(totprcp_prev24_p))  allocate(totprcp_prev24_p(ims:ime,jms:jme)) !should be always 2d
        if(.not.allocated(hwp_avg_p)       )  allocate(hwp_avg_p(ims:ime,jms:jme,nblocks))
        if(.not.allocated(frp_avg_p)       )  allocate(frp_avg_p(ims:ime,jms:jme,nblocks))
        if(.not.allocated(fre_avg_p)       )  allocate(fre_avg_p(ims:ime,jms:jme,nblocks))
-       if(.not.allocated(fire_end_hr_p)   )  allocate(fire_end_hr_p(ims:ime,jms:jme)) !should be always 2d
-       if(.not.allocated(fmc_avg_p)       )  allocate(fmc_avg_p(ims:ime,jms:jme))  !should be always 2d
-       if(.not.allocated(eco_id_p)        )  allocate(eco_id_p(ims:ime,jms:jme))  !eco map 2d
-       if(.not.allocated(efs_smold_p)     )  allocate(efs_smold_p(ims:ime,jms:jme)) !EFs for smoldering
-       if(.not.allocated(efs_flam_p)      )  allocate(efs_flam_p(ims:ime,jms:jme)) !EFs for flaming
-       if(.not.allocated(efs_rsmold_p)    )  allocate(efs_rsmold_p(ims:ime,jms:jme)) !EFs for residual smoldering
        if(.not.allocated(fire_end_hr_p)   )  allocate(fire_end_hr_p(ims:ime,jms:jme))
-       if(.not.allocated(fire_ef_out_p)   )  allocate(fire_ef_out_p(ims:ime,jms:jme))
     else
        if(.not.allocated(frp_in_p)    )         allocate(frp_in_p(ims:ime,jms:jme))
        if(.not.allocated(fre_in_p)            )  allocate(fre_in_p(ims:ime,jms:jme))
@@ -178,7 +188,9 @@
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
  
-
+ if ( num_e_ant_ptegu_in .gt. 0 ) then
+    if(.not.allocated(e_ant_ptegu_in_p))   allocate(e_ant_ptegu_in_p(25,1:num_ptegu,1:num_e_ant_ptegu_in))
+ endif
  if ( num_e_ant_in .gt. 0 .and. config_anthro_scheme .ne. 'off' ) then
     if(.not.allocated(e_ant_in_p))          allocate(e_ant_in_p(ims:ime,1:kanthro,jms:jme,1:num_e_ant_in))
  endif
@@ -288,7 +300,7 @@
  if(allocated(fre_avg_p)      ) deallocate(fre_avg_p      )
  if(allocated(fire_end_hr_p)  ) deallocate(fire_end_hr_p  )
  if(allocated(fmc_avg_p)      ) deallocate(fmc_avg_p      )
- if(allocated(eco_id_p)       ) deallocate(eco_id_p       )
+ if(allocated(ecoregion_ID_p) ) deallocate(ecoregion_ID_p )
  if(allocated(efs_smold_p)    ) deallocate(efs_smold_p    )
  if(allocated(efs_flam_p)     ) deallocate(efs_flam_p     )
  if(allocated(efs_rsmold_p)   ) deallocate(efs_rsmold_p   )
@@ -323,9 +335,10 @@
  if(allocated(aod3d_p)      )         deallocate(aod3d_p      )
 
  if(allocated(e_ant_in_p))            deallocate(e_ant_in_p)
- if(allocated(e_bb_in_p)    )         deallocate(e_bb_in_p    )
+ if(allocated(e_bb_in_p)    )         deallocate(e_bb_in_p )
  if(allocated(e_bio_in_p))            deallocate(e_bio_in_p)
  if(allocated(e_vol_in_p))            deallocate(e_vol_in_p)
+ if(allocated(e_ant_ptegu_in_p))      deallocate(e_ant_ptegu_in_p)
  
  if(allocated(e_ant_out_p))           deallocate(e_ant_out_p)
  if(allocated(e_bb_out_p)   )         deallocate(e_bb_out_p   )
@@ -381,7 +394,7 @@
                                                     hwp, coef_bb_dc, fire_end_hr, fire_ef_out
       real(kind=RKIND),dimension(:,:),pointer    :: totprcp_prev24, hwp_prev24, frp_prev24, fre_prev24, fmc_prev24
       real(kind=RKIND),dimension(:),pointer      :: efs_smold,efs_flam, efs_rsmold !JR eco regiona nd EF map
-      integer,dimension(:),pointer               :: eco_id
+      integer,dimension(:),pointer               :: ecoregion_ID
       real(kind=RKIND),dimension(:),pointer      :: hfx_bb, qfx_bb, frac_grid_burned
       integer,dimension(:),pointer               :: min_bb_plume, max_bb_plume, max_rwc_plume
       real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, uthres_sg_in, &
@@ -391,6 +404,7 @@
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
                                                     RWC_annual_sum_unspc_coarse
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_in, e_bb_in, e_bio_in, e_vol_in
+      real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_ptegu_in
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_out, e_bb_out, e_bio_out, &
                                                     e_vol_out, e_dust_out, e_ss_out
       integer,dimension(:),pointer               :: isltyp,ivgtyp,kpbl
@@ -411,6 +425,7 @@
       integer, pointer :: drydep_opt
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
+      logical, pointer :: calc_bb_emis_online
      
       real(kind=RKIND),dimension(:,:,:),pointer :: scalars
       real(kind=RKIND),dimension(:,:,:),pointer :: chem
@@ -443,6 +458,7 @@
       call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
       call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
       call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
+      call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
       if (ebb_dcycle .eq. 2) then
         nblocks = 24 / bb_input_prevh
       endif
@@ -508,6 +524,10 @@
          call mpas_pool_get_array(diag_physics, 'sep_in',sep_in)
       endif
 
+      if (num_e_ant_ptegu_in .gt. 0 ) then
+         call mpas_pool_get_array(emission_input, 'e_ant_ptegu_in',e_ant_ptegu_in)
+      endif
+
       if (config_anthro_scheme .ne. 'off' .and. num_e_ant_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_ant_in', e_ant_in)
       endif
@@ -535,18 +555,20 @@
          call mpas_pool_get_array(diag_physics,'fre_out',fre_out)
          call mpas_pool_get_array(diag_physics,'hwp',hwp)
          call mpas_pool_get_array(diag_physics,'coef_bb_dc',coef_bb_dc)
+         if ( calc_bb_emis_online ) then
+            call mpas_pool_get_array(diag_physics,'ecoregion_ID',ecoregion_ID)
+            call mpas_pool_get_array(diag_physics,'efs_smold',efs_smold)
+            call mpas_pool_get_array(diag_physics,'efs_flam',efs_flam)
+            call mpas_pool_get_array(diag_physics,'efs_rsmold',efs_rsmold)
+            call mpas_pool_get_array(diag_physics,'fire_ef_out',fire_ef_out)
+         endif
          if ( ebb_dcycle .eq. 2 ) then
+            call mpas_pool_get_array(diag_physics,'fmc_prev24',fmc_prev24)
             call mpas_pool_get_array(diag_physics,'totprcp_prev24',totprcp_prev24)
             call mpas_pool_get_array(diag_physics,'hwp_prev24',hwp_prev24)
             call mpas_pool_get_array(diag_physics,'frp_prev24',frp_prev24)
             call mpas_pool_get_array(diag_physics,'fre_prev24',fre_prev24)
             call mpas_pool_get_array(diag_physics,'fire_end_hr',fire_end_hr)
-            call mpas_pool_get_array(diag_physics,'fmc_prev24',fmc_prev24)
-            call mpas_pool_get_array(diag_physics,'eco_id',eco_id)
-            call mpas_pool_get_array(diag_physics,'efs_smold',efs_smold)
-            call mpas_pool_get_array(diag_physics,'efs_flam',efs_flam)
-            call mpas_pool_get_array(diag_physics,'efs_rsmold',efs_rsmold)
-            call mpas_pool_get_array(diag_physics,'fire_ef_out',fire_ef_out)
          else
             call mpas_pool_get_array(diag_physics,'frp_in',frp_in)
             call mpas_pool_get_array(diag_physics,'fre_in',fre_in)
@@ -626,12 +648,24 @@
        do j = jts, jte
        do k = 1, kanthro
        do i = its, ite
-          e_ant_in_p(i,k,j,n) = e_ant_in(n,k,i)
+          e_ant_in_p(i,k,j,n) = 0._RKIND * e_ant_in(n,k,i)
        enddo
        enddo
        enddo
        enddo
-      endif     
+      endif   
+ 
+      if ( num_e_ant_ptegu_in .gt. 0 ) then
+ 
+       do n=1,num_e_ant_ptegu_in
+       do i=1,num_ptegu
+       do j=1,25
+          e_ant_ptegu_in_p(j,i,n) = e_ant_ptegu_in(n,i,j)
+       enddo
+       enddo
+       enddo
+      endif
+ 
 !
      if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off') then 
       do n = 1, num_e_bb_in
@@ -689,14 +723,15 @@
           fre_out_p(i,j) = fre_out(i)
           hwp_p(i,j)     = hwp(i)
           coef_bb_dc_p(i,j) = coef_bb_dc(i)
-          if ( ebb_dcycle .eq. 2 ) then
-             eco_id_p     (i,j)  = eco_id(i)
+          if (calc_bb_emis_online) then
+             ecoregion_ID_p     (i,j)  = ecoregion_ID(i)
              efs_smold_p  (i,j)  = efs_smold(i)
              efs_flam_p   (i,j)  = efs_flam(i)
              efs_rsmold_p (i,j)  = efs_rsmold(i)
+! TODO, these need to be utilized
              fire_ef_out_p(i,j)  = fire_ef_out(i)
-             fire_end_hr_p(i,j)  = fire_end_hr(i)
-          else
+          endif
+          if ( ebb_dcycle .eq. 1 .or. ebb_dcycle .eq. -1 ) then
              frp_in_p(i,j)  = frp_in(i)
              fre_in_p(i,j)  = fre_in(i)
           endif
@@ -983,6 +1018,7 @@
  integer, pointer :: drydep_opt
  integer, pointer :: plumerise_opt
  logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
+ logical, pointer :: calc_bb_emis_online
 
  integer:: i,k,j,n
 
@@ -1019,6 +1055,7 @@
  call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
  call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
  call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
+ call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
 
  if ( config_sna_scheme .ne. 'off' ) then
     call mpas_pool_get_array(diag_physics,'hno3_bkgd',hno3_bkgd)
@@ -1052,7 +1089,7 @@
     call mpas_pool_get_array(diag_physics,'fre_out',fre_out)
     call mpas_pool_get_array(diag_physics,'hwp',hwp)
     call mpas_pool_get_array(diag_physics,'coef_bb_dc',coef_bb_dc)
-    if (ebb_dcycle .eq. 2 ) then
+    if ( calc_bb_emis_online ) then
        call mpas_pool_get_array(diag_physics,'fire_ef_out',fire_ef_out)
     endif
     if (plumerise_opt .gt. 0 ) then
@@ -1207,7 +1244,7 @@
             fre_out(i)          = fre_out_p(i,j)
             hwp(i)              = hwp_p(i,j)
             coef_bb_dc(i)       = coef_bb_dc_p(i,j)
-            if ( ebb_dcycle .eq. 2 ) then
+            if ( calc_bb_emis_online ) then
                fire_ef_out(i)   = fire_ef_out_p(i,j)
             endif
             if ( plumerise_opt .gt. 0 ) then
@@ -1237,18 +1274,139 @@
  end subroutine smoke_to_MPAS
 
 !=================================================================================================================
- subroutine init_smoke(mesh,configs)
+ subroutine init_smoke(mesh,configs,emission_input,dminfo)
 !=================================================================================================================
+implicit none
+include 'mpif.h'
 
 !input arguments:
  type(mpas_pool_type),intent(in):: mesh
  type(mpas_pool_type),intent(in):: configs
+ type(mpas_pool_type),intent(inout):: emission_input
+ type (dm_info), intent(in) :: dminfo !< Input: Domain information
+ real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_ptegu_in
+
+ logical,pointer :: config_anthro_pt_scheme
+
+ integer,pointer :: index_STKLT,index_STKLG,nCells
+
+ real(kind=RKIND),dimension(:),pointer      :: latCell,lonCell
+ integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
+
+ real(kind=RKIND) :: lat1,lat2,lon1,lon2, &
+                     arg1,arg11,sphere_distance,radius,min_distance,huge_val
+ integer :: bestCell,s,n, ierr, myrank
+
+! Needed to determine if pt is actually in cell it is closest to
+logical :: is_inside
+real(kind=RKIND),dimension(:),pointer :: xCell,yCell,zCell
+integer,pointer :: nVertices
+real(kind=RKIND),dimension(:),pointer :: xVertex,yVertex,zVertex
+integer,dimension(:,:),pointer :: verticesOnCell
+integer,dimension(:),pointer ::nEdgesOnCell
+
+ ! Work arrays
+ real(kind=RKIND) :: min_dist_work(num_ptegu)
+ real(kind=RKIND) :: R
+ integer, dimension(num_ptegu) :: best_cell_work
+ real(kind=RKIND) :: xPoint, yPoint, zPoint, xC, yC, zC
+!
+! SAVE FOR DEBUG TO CHECK AGAINST GLOBAL CELL INDEX
+!
+! integer, dimension(:),pointer :: global_cell_list, ant_pt_global_cell_idx
+! integer, dimension(num_ptegu) :: best_cell_global, best_rank_global
+! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
+! call mpas_pool_get_array(mesh,'indexToCellID',global_cell_list)
+!
+!
+ call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
+
+! For, the only reason to set these arrays is if we are doing pt source
+! plumerise emissions from the anthropogenic sector.
+
+ if ( .not. config_anthro_pt_scheme) return
+
+ call mpas_pool_get_array(emission_input, 'e_ant_ptegu_in',e_ant_ptegu_in)
+ call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
+ call mpas_pool_get_dimension(emission_input,'index_STKLG',index_STKLG)
+!
+ call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
+ call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
+ call mpas_pool_get_dimension(mesh,'nCells',nCells)
+ call mpas_pool_get_dimension(mesh,'nVertices',nVertices)
+ call mpas_pool_get_array(mesh,'latCell',latCell)
+ call mpas_pool_get_array(mesh,'lonCell',lonCell)
+
+ call mpas_pool_get_array(mesh,'xCell',xCell)
+ call mpas_pool_get_array(mesh,'yCell',yCell)
+ call mpas_pool_get_array(mesh,'zCell',zCell)
+ call mpas_pool_get_array(mesh,'xVertex',xVertex)
+ call mpas_pool_get_array(mesh,'yVertex',yVertex)
+ call mpas_pool_get_array(mesh,'zVertex',zVertex)
+ call mpas_pool_get_array(mesh,'nEdgesOnCell',nEdgesOnCell)
+ 
+ call mpas_pool_get_array(mesh,'verticesOnCell',verticesOnCell)
+
+ radius = 1.0_RKIND
+ huge_val = 1.0e30_RKIND
+
+ myrank = dminfo % my_proc_id
+
+! Find local closest cell and distance for each pt source
+ do s = 1, num_ptegu
+   lat1 = e_ant_ptegu_in(index_STKLT,s,1)
+   lon1 = e_ant_ptegu_in(index_STKLG,s,1)
+   if (lon1 < 0.0_RKIND) lon1 = lon1 + 360.0_RKIND
+    
+   ! Check for valid coordinates
+   if (lat1 < -90.0_RKIND .or. lat1 > 90.0_RKIND .or. &
+        lon1 < -180.0_RKIND .or. lon1 > 360.0_RKIND) then
+       min_dist_work(s) = huge_val
+       best_cell_work(s) = -1
+       cycle
+   endif
+
+   lat1 = lat1 * 3.14_RKIND / 180._RKIND
+   lon1 = lon1 * 3.14_RKIND / 180._RKIND
+    
+    min_dist_work(s) = huge_val
+    best_cell_work(s) = -1
+    
+    do n = 1, nCells
+! Grabe the Cartesian coordinates and calculate the radius
+      xC     = xCell(n)
+      yC     = yCell(n)
+      zC     = zCell(n)
+      R      = sqrt(xC**2 + yC**2 + zC**2)
+! Convert the stack lat/lon to cartesain space using the same radius as
+! this cell
+      xPoint = R*(cos(lat1) * cos(lon1))
+      yPoint = R*(cos(lat1) * sin(lon1))
+      zPoint = R*(sin(lat1))
+      is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
+                    yC, zC, nEdgesOnCell(n), &
+                    verticesOnCell(:,n), xVertex, yVertex, zVertex)
+      if (is_inside) then
+!         best_cell_global(s) = global_cell_list(n)
+         best_cell_work(s) = n
+      endif
+   enddo
+enddo
+! Get the rank and local cell index of the stack location by reducing
+! best_cell_work over all ranks. The only positive value (if any) will
+! be the local_index (n) one satisfying is_inside
+do s = 1, num_ptegu
+   call mpas_dmpar_maxloc_int(dminfo,best_cell_work(s),ant_pt_local_cell_idx(s),ant_pt_rank(s))
+! SAVE for DEBUG -- checks local index against the global cell number
+!   call mpas_dmpar_maxloc_int(dminfo,best_cell_global(s),ant_pt_global_cell_idx(s), ant_pt_rank(s))
+enddo
+
 
  end subroutine init_smoke
 
 !=================================================================================================================
  subroutine driver_smoke(itimestep,time_lev,emission_input,state,configs,   &
-                         mesh,sfc_input,diag_physics,tend_physics,its,ite)
+                         mesh,sfc_input,diag_physics,tend_physics,its,ite,dminfo)
 !=================================================================================================================
 
 !input arguments:
@@ -1256,6 +1414,7 @@
  type(mpas_pool_type),intent(in)   :: mesh
  type(mpas_pool_type),intent(inout):: state
  type(mpas_pool_type),intent(in)   :: emission_input
+ type (dm_info), intent(in) :: dminfo !< Input: Domain information
 
  integer,intent(in):: its,ite
  integer,intent(in):: itimestep
@@ -1301,6 +1460,13 @@
  integer,pointer :: index_e_ant_in_nox
  integer,pointer :: index_e_ant_in_ch4
  integer,pointer :: index_e_ant_in_co
+
+ integer,pointer :: index_STKHT,index_STKDM,index_STKTK,index_STKVE, &
+                    index_STKLT,index_STKLG
+ integer,pointer :: index_e_ant_ptegu_in_unspc_fine
+ integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
+! integer,dimension(:),pointer :: ant_pt_global_cell_idx
+ integer         :: myrank, ierr
  
  integer,pointer :: index_e_bio_in_polp_tree, index_e_bio_in_polp_grass, index_e_bio_in_polp_weed
 
@@ -1332,6 +1498,7 @@
 
  integer,pointer :: index_e_ss_out_ssalt_fine, index_e_ss_out_ssalt_coarse
 
+ integer,dimension(:),pointer   :: globalCells
  integer,pointer                :: chemistry_start
  !namelists
  logical,pointer                :: config_do_restart
@@ -1346,6 +1513,7 @@
  character(len=StrKIND),pointer :: config_bact_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_extra_chemical_tracers
+ logical,pointer :: config_anthro_pt_scheme
  logical,pointer :: config_ultrafine, config_coarse
  integer,pointer                :: hwp_method
  real(kind=RKIND),pointer       :: hwp_alpha
@@ -1378,6 +1546,12 @@
                                    do_mpas_hab, do_mpas_rwc
  integer                        :: i,j,k,nblocks
 
+
+
+
+ myrank = dminfo % my_proc_id
+
+
  do_mpas_smoke  = .false.
  do_mpas_dust   = .false.
  do_mpas_pollen = .false.
@@ -1408,6 +1582,7 @@
  call mpas_pool_get_config(configs,'config_ultrafine',config_ultrafine)
  call mpas_pool_get_config(configs,'config_coarse',config_coarse)
  call mpas_pool_get_config(configs,'config_extra_chemical_tracers',config_extra_chemical_tracers)
+ call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
 ! Namelist: smoke
  call mpas_pool_get_config(configs,'hwp_method',hwp_method)
  call mpas_pool_get_config(configs,'hwp_alpha',hwp_alpha)
@@ -1457,6 +1632,21 @@
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_ch4',index_e_ant_in_ch4)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_nox',index_e_ant_in_nox)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_co',index_e_ant_in_co)
+
+ if ( config_anthro_pt_scheme ) then
+ call mpas_pool_get_dimension(emission_input,'index_STKHT',index_STKHT)
+ call mpas_pool_get_dimension(emission_input,'index_STKDM',index_STKDM)
+ call mpas_pool_get_dimension(emission_input,'index_STKTK',index_STKTK)
+ call mpas_pool_get_dimension(emission_input,'index_STKVE',index_STKVE)
+ call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
+ call mpas_pool_get_dimension(emission_input,'index_STKLG',index_STKLG)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_ptegu_in_unspc_fine',index_e_ant_ptegu_in_unspc_fine)
+ call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
+ call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
+! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
+ call mpas_pool_get_array(mesh,'indexToCellID',globalCells)
+endif
+
 !
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_ultrafine',index_e_bb_in_smoke_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_fine',index_e_bb_in_smoke_fine)
@@ -1616,6 +1806,19 @@ endif
            kvol = kvolcanic, &
            krwc = kreswoodcomb,   &
 !--- Emission arrays
+           config_anthro_pt_scheme = config_anthro_pt_scheme,       &
+           e_ant_ptegu_in = e_ant_ptegu_in_p,             &
+           num_e_ant_ptegu_in = num_e_ant_ptegu_in,       &
+           num_ptegu      = num_ptegu,                    &
+           index_STKHT = index_STKHT, index_STKDM=index_STKDM, &
+           index_STKTK = index_STKTK, index_STKVE=index_STKVE, &
+           index_STKLT = index_STKLT, index_STKLG=index_STKLG, &
+           index_e_ant_ptegu_in_unspc_fine = index_e_ant_ptegu_in_unspc_fine, &
+           ant_pt_local_cell_idx  = ant_pt_local_cell_idx,  &
+           ant_pt_rank = ant_pt_rank, &
+           myrank = myrank, &
+!           ant_pt_global_cell_idx  = ant_pt_global_cell_idx,  &
+!           globalCells = globalCells, &
            e_ant_in       = e_ant_in_p,    &
            e_bb_in        = e_bb_in_p,                   &
            e_bio_in       = e_bio_in_p,    &
@@ -1719,7 +1922,7 @@ endif
            fre_in         = fre_in_p,            fre_out = fre_out_p,                    &
            totprcp_prev24 = totprcp_prev24_p,    hwp_avg = hwp_avg_p,                    &!JR
            frp_avg        = frp_avg_p,           fre_avg = fre_avg_p,                    &!JR
-           fire_end_hr    = fire_end_hr_p,       eco_id  = eco_id_p,                     &!JR:as the avg blocks are calculated here
+           fire_end_hr    = fire_end_hr_p,       eco_id  = ecoregion_ID_p,               &!JR:as the avg blocks are calculated here
            calc_bb_emis_online = calc_bb_emis_online,                                    &
            efs_smold      = efs_smold_p,        efs_flam = efs_flam_p,                   &!JR
            efs_rsmold     = efs_rsmold_p,        fmc_avg = fmc_avg_p,                    &!JR
