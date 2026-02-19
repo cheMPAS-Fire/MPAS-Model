@@ -1389,6 +1389,8 @@ integer,dimension(:),pointer ::nEdgesOnCell
       if (is_inside) then
 !         best_cell_global(s) = global_cell_list(n)
          best_cell_work(s) = n
+! Only one cell per pt src is possible
+         exit
       endif
    enddo
 enddo
