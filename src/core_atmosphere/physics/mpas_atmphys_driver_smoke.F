@@ -159,10 +159,8 @@
     if(.not.allocated(clayfrac_in_p))        allocate(clayfrac_in_p(ims:ime,jms:jme))
     if(.not.allocated(sandfrac_in_p))        allocate(sandfrac_in_p(ims:ime,jms:jme))
     if(.not.allocated(uthres_in_p))          allocate(uthres_in_p(ims:ime,jms:jme))
-    if(.not.allocated(uthres_sg_in_p))       allocate(uthres_sg_in_p(ims:ime,jms:jme))
-    if(.not.allocated(albedo_drag_p))        allocate(albedo_drag_p(ims:ime,jms:jme))
-    if(.not.allocated(sep_in_p))             allocate(sep_in_p(ims:ime,jms:jme))
-    if(.not.allocated(feff_p))               allocate(feff_p(ims:ime,jms:jme))
+    if(.not.allocated(rdrag_p))              allocate(rdrag_p(ims:ime,jms:jme))
+    if(.not.allocated(ssm_in_p))             allocate(ssm_in_p(ims:ime,jms:jme))
  endif
 
  if ( wetdep_ls_opt .ne. 0 ) then
@@ -304,10 +302,8 @@
  if(allocated(clayfrac_in_p)    )     deallocate(clayfrac_in_p    )
  if(allocated(sandfrac_in_p)    )     deallocate(sandfrac_in_p    )
  if(allocated(uthres_in_p)      )     deallocate(uthres_in_p      )
- if(allocated(uthres_sg_in_p)   )     deallocate(uthres_sg_in_p   )
- if(allocated(albedo_drag_p)    )     deallocate(albedo_drag_p    )
- if(allocated(feff_p)           )     deallocate(feff_p           )
- if(allocated(sep_in_p)         )     deallocate(sep_in_p         )
+ if(allocated(rdrag_p)          )     deallocate(rdrag_p    )
+ if(allocated(ssm_in_p)         )     deallocate(ssm_in_p         )
 
  if(allocated(ddvel_p)          )     deallocate(ddvel_p          )
  if(allocated(wetdep_resolved_p))     deallocate(wetdep_resolved_p)
@@ -383,8 +379,8 @@
       integer,dimension(:),pointer               :: eco_id
       real(kind=RKIND),dimension(:),pointer      :: hfx_bb, qfx_bb, frac_grid_burned
       integer,dimension(:),pointer               :: min_bb_plume, max_bb_plume
-      real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, uthres_sg_in, &
-                                                    sep_in, albedo_drag, feff
+      real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, &
+                                                    ssm_in, rdrag
       real(kind=RKIND),dimension(:),pointer      :: RWC_denominator
       real(kind=RKIND),dimension(:,:), pointer   :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
@@ -501,10 +497,8 @@
          call mpas_pool_get_array(diag_physics, 'clayfrac_in',clayfrac_in)
          call mpas_pool_get_array(diag_physics, 'sandfrac_in',sandfrac_in)
          call mpas_pool_get_array(diag_physics, 'uthres_in',uthres_in)
-         call mpas_pool_get_array(diag_physics, 'uthres_sg_in',uthres_sg_in)
-         call mpas_pool_get_array(diag_physics, 'albedo_drag',albedo_drag) ! these have been updated to select
-         call mpas_pool_get_array(diag_physics, 'feff',feff)               ! the correct month
-         call mpas_pool_get_array(diag_physics, 'sep_in',sep_in)
+         call mpas_pool_get_array(diag_physics, 'rdrag',rdrag) ! these have been updated to select
+         call mpas_pool_get_array(diag_physics, 'ssm_in',ssm_in)
       endif
 
       if (config_anthro_scheme .ne. 'off' .and. num_e_ant_in .gt. 0 ) then
@@ -827,10 +821,8 @@
             sandfrac_in_p(i,j)    = sandfrac_in(i)
             clayfrac_in_p(i,j)    = clayfrac_in(i)
             uthres_in_p(i,j)      = uthres_in(i)
-            uthres_sg_in_p(i,j)   = uthres_sg_in(i)
-            albedo_drag_p(i,j)    = albedo_drag(i)
-            feff_p(i,j)           = feff(i)
-            sep_in_p(i,j)         = sep_in(i)
+            rdrag_p(i,j)          = rdrag(i)
+            ssm_in_p(i,j)         = ssm_in(i)
         enddo
         enddo
       endif
@@ -1717,10 +1709,9 @@ endif
            RWC_annual_sum_smoke_coarse = RWC_annual_sum_smoke_coarse_p,                  &
            RWC_annual_sum_unspc_fine = RWC_annual_sum_unspc_fine_p,                      &
            RWC_annual_sum_unspc_coarse = RWC_annual_sum_unspc_coarse_p,                  &
-! --- Dust related arrays
+! --- (FENGSHA) Dust related arrays 
            sandfrac_in    = sandfrac_in_p, clayfrac_in    = clayfrac_in_p,               &
-           uthres_in      = uthres_in_p,   uthres_sg_in   = uthres_sg_in_p,              &
-           albedo_drag_in = albedo_drag_p, feff_in        = feff_p, sep_in = sep_in_p,   &
+           uthres_in      = uthres_in_p,  rdrag_in = rdrag_p, ssm_in = ssm_in_p,         &
 ! --- Dry/Wet deposition, settling
            wetdep_ls_opt = wetdep_ls_opt,         drydep_flux = drydep_flux_p,           &
            tend_chem_settle = tend_chem_settle_p,       ddvel = ddvel_p,                 &
