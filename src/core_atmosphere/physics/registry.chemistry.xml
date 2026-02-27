@@ -676,7 +676,7 @@
               description="input point source anthropogenic fine unspeciated emissions"
               packages="mpas_anthro_aero_in"/>
       </var_array>
-      <var_array name="e_ant_stack_groups_in" type="real" dimensions="nptegu Time" packages="mpas_anthro_pt_emis">
+      <var_array name="e_ant_stack_groups_in" type="real" dimensions="nptegu" packages="mpas_anthro_pt_emis">
          <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
               description="Latitude of the point source"/>
          <var name="STKLG" name_in_code="STKLG" array_group="ant_pt_in_aerosols" units="degrees"
