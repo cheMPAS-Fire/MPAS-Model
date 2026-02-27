@@ -164,7 +164,7 @@
 
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
  integer,public:: num_e_ant_out,num_e_bb_out,num_e_bio_out,num_e_dust_out,num_e_ss_out,num_e_vol_out
- integer,public:: num_ptegu,num_e_ant_ptegu_in,num_e_ant_stack_groups_in ! Number of EGUs (dynamic by file), Number of EGU emissions
+ integer,public:: num_anthro_pt,num_e_ant_pt_in,num_e_ant_stack_groups_in ! Number of EGUs (dynamic by file), Number of EGU emissions
 
  real(kind=RKIND),public:: dt_dyn     !time-step for dynamics
  real(kind=RKIND),public:: dt_microp  !time-step for cloud microphysics parameterization.
@@ -303,11 +303,9 @@
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_in_p, e_bb_in_p, e_bio_in_p, e_vol_in_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    e_ant_ptegu_in_p
+    e_ant_pt_in_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
     e_ant_stack_groups_in_p
- real(kind=RKIND),dimension(:,:),allocatable:: &
-    ptegu_to_cell_index_p
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_out_p, e_bb_out_p, e_bio_out_p, e_dust_out_p, e_ss_out_p, e_vol_out_p
       

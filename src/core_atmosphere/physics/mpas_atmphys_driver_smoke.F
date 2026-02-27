@@ -188,11 +188,11 @@
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
  
- if ( num_e_ant_ptegu_in .gt. 0 ) then
-    if(.not.allocated(e_ant_ptegu_in_p))   allocate(e_ant_ptegu_in_p(25,1:num_ptegu,1:num_e_ant_ptegu_in))
+ if ( num_e_ant_pt_in .gt. 0 ) then
+    if(.not.allocated(e_ant_pt_in_p))   allocate(e_ant_pt_in_p(25,1:num_anthro_pt,1:num_e_ant_pt_in))
  endif
  if ( num_e_ant_stack_groups_in .gt. 0 ) then
-    if(.not.allocated(e_ant_stack_groups_in_p)) allocate(e_ant_stack_groups_in_p(1:num_ptegu,1:num_e_ant_stack_groups_in))
+    if(.not.allocated(e_ant_stack_groups_in_p)) allocate(e_ant_stack_groups_in_p(1:num_anthro_pt,1:num_e_ant_stack_groups_in))
  endif
  if ( num_e_ant_in .gt. 0 .and. config_anthro_scheme .ne. 'off' ) then
     if(.not.allocated(e_ant_in_p))          allocate(e_ant_in_p(ims:ime,1:kanthro,jms:jme,1:num_e_ant_in))
@@ -341,7 +341,7 @@
  if(allocated(e_bb_in_p)    )         deallocate(e_bb_in_p )
  if(allocated(e_bio_in_p))            deallocate(e_bio_in_p)
  if(allocated(e_vol_in_p))            deallocate(e_vol_in_p)
- if(allocated(e_ant_ptegu_in_p))      deallocate(e_ant_ptegu_in_p)
+ if(allocated(e_ant_pt_in_p))      deallocate(e_ant_pt_in_p)
  if(allocated(e_ant_stack_groups_in_p)) deallocate(e_ant_stack_groups_in_p)
  
  if(allocated(e_ant_out_p))           deallocate(e_ant_out_p)
@@ -408,7 +408,7 @@
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
                                                     RWC_annual_sum_unspc_coarse
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_in, e_bb_in, e_bio_in, e_vol_in
-      real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_ptegu_in
+      real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_pt_in
       real(kind=RKIND),dimension(:,:),pointer    :: e_ant_stack_groups_in
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_out, e_bb_out, e_bio_out, &
                                                     e_vol_out, e_dust_out, e_ss_out
@@ -529,8 +529,8 @@
          call mpas_pool_get_array(diag_physics, 'sep_in',sep_in)
       endif
 
-      if (num_e_ant_ptegu_in .gt. 0 ) then
-         call mpas_pool_get_array(emission_input, 'e_ant_ptegu_in',e_ant_ptegu_in)
+      if (num_e_ant_pt_in .gt. 0 ) then
+         call mpas_pool_get_array(emission_input, 'e_ant_pt_in',e_ant_pt_in)
       endif
       if (num_e_ant_stack_groups_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_ant_stack_groups_in',e_ant_stack_groups_in)
@@ -663,13 +663,13 @@
        enddo
       endif   
  
-      if ( num_e_ant_ptegu_in .gt. 0 ) then
+      if ( num_e_ant_pt_in .gt. 0 ) then
  
-       do n=1,num_e_ant_ptegu_in
-       do i=1,num_ptegu
+       do n=1,num_e_ant_pt_in
+       do i=1,num_anthro_pt
           e_ant_stack_groups_in_p(i,n) = e_ant_stack_groups_in(n,i)
        do j=1,25
-          e_ant_ptegu_in_p(j,i,n) = e_ant_ptegu_in(n,i,j)
+          e_ant_pt_in_p(j,i,n) = e_ant_pt_in(n,i,j)
        enddo
        enddo
        enddo
@@ -1315,15 +1315,15 @@ integer,dimension(:,:),pointer :: verticesOnCell
 integer,dimension(:),pointer ::nEdgesOnCell
 
  ! Work arrays
- real(kind=RKIND) :: min_dist_work(num_ptegu)
+ real(kind=RKIND) :: min_dist_work(num_anthro_pt)
  real(kind=RKIND) :: R
- integer, dimension(num_ptegu) :: best_cell_work
+ integer, dimension(num_anthro_pt) :: best_cell_work
  real(kind=RKIND) :: xPoint, yPoint, zPoint, xC, yC, zC
 !
 ! SAVE FOR DEBUG TO CHECK AGAINST GLOBAL CELL INDEX
 !
 ! integer, dimension(:),pointer :: global_cell_list, ant_pt_global_cell_idx
-! integer, dimension(num_ptegu) :: best_cell_global, best_rank_global
+! integer, dimension(num_anthro_pt) :: best_cell_global, best_rank_global
 ! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
 ! call mpas_pool_get_array(mesh,'indexToCellID',global_cell_list)
 !
@@ -1362,7 +1362,7 @@ integer,dimension(:),pointer ::nEdgesOnCell
  myrank = dminfo % my_proc_id
 
 ! Find local closest cell and distance for each pt source
- do s = 1, num_ptegu
+ do s = 1, num_anthro_pt
    lat1 = e_ant_stack_groups_in(index_STKLT,s)
    lon1 = e_ant_stack_groups_in(index_STKLG,s)
    if (lon1 < 0.0_RKIND) lon1 = lon1 + 360.0_RKIND
@@ -1406,7 +1406,7 @@ enddo
 ! Get the rank and local cell index of the stack location by reducing
 ! best_cell_work over all ranks. The only positive value (if any) will
 ! be the local_index (n) one satisfying is_inside
-do s = 1, num_ptegu
+do s = 1, num_anthro_pt
    call mpas_dmpar_maxloc_int(dminfo,best_cell_work(s),ant_pt_local_cell_idx(s),ant_pt_rank(s))
 ! SAVE for DEBUG -- checks local index against the global cell number
 !   call mpas_dmpar_maxloc_int(dminfo,best_cell_global(s),ant_pt_global_cell_idx(s), ant_pt_rank(s))
@@ -1474,7 +1474,7 @@ enddo
 
  integer,pointer :: index_STKHT,index_STKDM,index_STKTK,index_STKVE, &
                     index_STKLT,index_STKLG
- integer,pointer :: index_e_ant_ptegu_in_unspc_fine
+ integer,pointer :: index_e_ant_pt_in_unspc_fine
  integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
 ! integer,dimension(:),pointer :: ant_pt_global_cell_idx
  integer         :: myrank, ierr
@@ -1651,7 +1651,7 @@ enddo
  call mpas_pool_get_dimension(emission_input,'index_STKVE',index_STKVE)
  call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
  call mpas_pool_get_dimension(emission_input,'index_STKLG',index_STKLG)
- call mpas_pool_get_dimension(emission_input,'index_e_ant_ptegu_in_unspc_fine',index_e_ant_ptegu_in_unspc_fine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_unspc_fine',index_e_ant_pt_in_unspc_fine)
  call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
  call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
 ! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
@@ -1818,15 +1818,15 @@ endif
            krwc = kreswoodcomb,   &
 !--- Emission arrays
            config_anthro_pt_scheme = config_anthro_pt_scheme,       &
-           e_ant_ptegu_in = e_ant_ptegu_in_p,             &
+           e_ant_pt_in = e_ant_pt_in_p,             &
            e_ant_stack_groups_in = e_ant_stack_groups_in_p, &
-           num_e_ant_ptegu_in = num_e_ant_ptegu_in,       &
+           num_e_ant_pt_in = num_e_ant_pt_in,       &
            num_e_ant_stack_groups_in = num_e_ant_stack_groups_in, &
-           num_ptegu      = num_ptegu,                    &
+           num_anthro_pt      = num_anthro_pt,                    &
            index_STKHT = index_STKHT, index_STKDM=index_STKDM, &
            index_STKTK = index_STKTK, index_STKVE=index_STKVE, &
            index_STKLT = index_STKLT, index_STKLG=index_STKLG, &
-           index_e_ant_ptegu_in_unspc_fine = index_e_ant_ptegu_in_unspc_fine, &
+           index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine, &
            ant_pt_local_cell_idx  = ant_pt_local_cell_idx,  &
            ant_pt_rank = ant_pt_rank, &
            myrank = myrank, &

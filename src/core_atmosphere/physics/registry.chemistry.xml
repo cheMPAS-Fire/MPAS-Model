@@ -22,7 +22,7 @@
           description="A constant value of 24"/>
       <dim name="TSTEP"     
           description="CMAP IOAPI Time"/>
-      <dim name="nptegu"
+      <dim name="nanthro_pt"
           description="Number of vertical levels in anthropogenic emission file"/>
    </dims>
 
@@ -479,14 +479,14 @@
          <var name="RWC_annual_sum_unspc_coarse"/>
        </stream>
 
-      <stream name="ptegu_input"
+      <stream name="anthro_pt_input"
          type="input"
-         filename_template="ptegu.init.nc"
+         filename_template="anthro_pt.init.nc"
          input_interval="intial_only"
          immutable="true"
          in_defaults="false">
 
-         <var_array name="e_ant_ptegu_in"/>
+         <var_array name="e_ant_pt_in"/>
       </stream>
       <stream name="anthro_pt_stack_group_input"
          type="input"
@@ -671,12 +671,12 @@
       </var_array>
      <!-- Anthropogenic -->
      <!-- pt src, for now only EGU - deciding on implementation -->
-      <var_array name="e_ant_ptegu_in" type="real" dimensions="nptegu TSTEP Time" packages="mpas_anthro_pt_emis">
-         <var name="e_ant_ptegu_in_unspc_fine" name_in_code="e_ant_ptegu_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
+      <var_array name="e_ant_pt_in" type="real" dimensions="nanthro_pt TSTEP Time" packages="mpas_anthro_pt_emis">
+         <var name="e_ant_pt_in_unspc_fine" name_in_code="e_ant_pt_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input point source anthropogenic fine unspeciated emissions"
               packages="mpas_anthro_aero_in"/>
       </var_array>
-      <var_array name="e_ant_stack_groups_in" type="real" dimensions="nptegu" packages="mpas_anthro_pt_emis">
+      <var_array name="e_ant_stack_groups_in" type="real" dimensions="nanthro_pt" packages="mpas_anthro_pt_emis">
          <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
               description="Latitude of the point source"/>
          <var name="STKLG" name_in_code="STKLG" array_group="ant_pt_in_aerosols" units="degrees"
@@ -690,13 +690,13 @@
          <var name="STKVE" name_in_code="STKVE" array_group="ant_pt_in_aerosols" units="m s^{-1}"
               description="Stack exit velocity"/>
       </var_array>
-      <var name="ant_pt_local_cell_idx" type="integer" dimensions="nptegu" units="index" 
+      <var name="ant_pt_local_cell_idx" type="integer" dimensions="nanthro_pt" units="index" 
            description="Local MPAS cell index for the stack"
            packages="mpas_anthro_pt_emis" />
-      <var name="ant_pt_global_cell_idx" type="integer" dimensions="nptegu" units="index" 
+      <var name="ant_pt_global_cell_idx" type="integer" dimensions="nanthro_pt" units="index" 
            description="Global MPAS cell index for the stack"
            packages="mpas_anthro_pt_emis" />
-      <var name="ant_pt_rank" type="integer" dimensions="nptegu" units="index" 
+      <var name="ant_pt_rank" type="integer" dimensions="nanthro_pt" units="index" 
            description="MPAS rank for the stack"
            packages="mpas_anthro_pt_emis" />
       <var_array name="e_ant_in" type="real" dimensions="nkanthro nCells Time" packages="mpas_anthro_in">
