@@ -488,6 +488,14 @@
 
          <var_array name="e_ant_ptegu_in"/>
       </stream>
+      <stream name="anthro_pt_stack_group_input"
+         type="input"
+         filename_template="anthro.pt.stack_groups.init.nc"
+         input_interval="intial_only"
+         immutable="true"
+         in_defaults="false">
+         <var_array name="e_ant_stack_groups_in"/>
+      </stream>
 
 </streams>
 
@@ -664,6 +672,11 @@
      <!-- Anthropogenic -->
      <!-- pt src, for now only EGU - deciding on implementation -->
       <var_array name="e_ant_ptegu_in" type="real" dimensions="nptegu TSTEP Time" packages="mpas_anthro_pt_emis">
+         <var name="e_ant_ptegu_in_unspc_fine" name_in_code="e_ant_ptegu_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input point source anthropogenic fine unspeciated emissions"
+              packages="mpas_anthro_aero_in"/>
+      </var_array>
+      <var_array name="e_ant_stack_groups_in" type="real" dimensions="nptegu Time" packages="mpas_anthro_pt_emis">
          <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
               description="Latitude of the point source"/>
          <var name="STKLG" name_in_code="STKLG" array_group="ant_pt_in_aerosols" units="degrees"
@@ -676,9 +689,6 @@
               description="Stack exit temperature"/>
          <var name="STKVE" name_in_code="STKVE" array_group="ant_pt_in_aerosols" units="m s^{-1}"
               description="Stack exit velocity"/>
-         <var name="e_ant_ptegu_in_unspc_fine" name_in_code="e_ant_ptegu_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input point source anthropogenic fine unspeciated emissions"
-              packages="mpas_anthro_aero_in"/>
       </var_array>
       <var name="ant_pt_local_cell_idx" type="integer" dimensions="nptegu" units="index" 
            description="Local MPAS cell index for the stack"

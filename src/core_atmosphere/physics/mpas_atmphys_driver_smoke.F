@@ -191,6 +191,9 @@
  if ( num_e_ant_ptegu_in .gt. 0 ) then
     if(.not.allocated(e_ant_ptegu_in_p))   allocate(e_ant_ptegu_in_p(25,1:num_ptegu,1:num_e_ant_ptegu_in))
  endif
+ if ( num_e_ant_stack_groups_in .gt. 0 ) then
+    if(.not.allocated(e_ant_stack_groups_in_p)) allocate(e_ant_stack_groups_in_p(1:num_ptegu,1:num_e_ant_stack_groups_in))
+ endif
  if ( num_e_ant_in .gt. 0 .and. config_anthro_scheme .ne. 'off' ) then
     if(.not.allocated(e_ant_in_p))          allocate(e_ant_in_p(ims:ime,1:kanthro,jms:jme,1:num_e_ant_in))
  endif
@@ -339,6 +342,7 @@
  if(allocated(e_bio_in_p))            deallocate(e_bio_in_p)
  if(allocated(e_vol_in_p))            deallocate(e_vol_in_p)
  if(allocated(e_ant_ptegu_in_p))      deallocate(e_ant_ptegu_in_p)
+ if(allocated(e_ant_stack_groups_in_p)) deallocate(e_ant_stack_groups_in_p)
  
  if(allocated(e_ant_out_p))           deallocate(e_ant_out_p)
  if(allocated(e_bb_out_p)   )         deallocate(e_bb_out_p   )
@@ -405,6 +409,7 @@
                                                     RWC_annual_sum_unspc_coarse
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_in, e_bb_in, e_bio_in, e_vol_in
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_ptegu_in
+      real(kind=RKIND),dimension(:,:),pointer    :: e_ant_stack_groups_in
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_out, e_bb_out, e_bio_out, &
                                                     e_vol_out, e_dust_out, e_ss_out
       integer,dimension(:),pointer               :: isltyp,ivgtyp,kpbl
@@ -526,6 +531,9 @@
 
       if (num_e_ant_ptegu_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_ant_ptegu_in',e_ant_ptegu_in)
+      endif
+      if (num_e_ant_stack_groups_in .gt. 0 ) then
+         call mpas_pool_get_array(emission_input, 'e_ant_stack_groups_in',e_ant_stack_groups_in)
       endif
 
       if (config_anthro_scheme .ne. 'off' .and. num_e_ant_in .gt. 0 ) then
@@ -659,6 +667,7 @@
  
        do n=1,num_e_ant_ptegu_in
        do i=1,num_ptegu
+          e_ant_stack_groups_in_p(i,n) = e_ant_stack_groups_in(n,i)
        do j=1,25
           e_ant_ptegu_in_p(j,i,n) = e_ant_ptegu_in(n,i,j)
        enddo
@@ -1284,7 +1293,7 @@ include 'mpif.h'
  type(mpas_pool_type),intent(in):: configs
  type(mpas_pool_type),intent(inout):: emission_input
  type (dm_info), intent(in) :: dminfo !< Input: Domain information
- real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_ptegu_in
+ real(kind=RKIND),dimension(:,:),pointer  :: e_ant_stack_groups_in
 
  logical,pointer :: config_anthro_pt_scheme
 
@@ -1326,7 +1335,7 @@ integer,dimension(:),pointer ::nEdgesOnCell
 
  if ( .not. config_anthro_pt_scheme) return
 
- call mpas_pool_get_array(emission_input, 'e_ant_ptegu_in',e_ant_ptegu_in)
+ call mpas_pool_get_array(emission_input, 'e_ant_stack_groups_in',e_ant_stack_groups_in)
  call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
  call mpas_pool_get_dimension(emission_input,'index_STKLG',index_STKLG)
 !
@@ -1354,8 +1363,8 @@ integer,dimension(:),pointer ::nEdgesOnCell
 
 ! Find local closest cell and distance for each pt source
  do s = 1, num_ptegu
-   lat1 = e_ant_ptegu_in(index_STKLT,s,1)
-   lon1 = e_ant_ptegu_in(index_STKLG,s,1)
+   lat1 = e_ant_stack_groups_in(index_STKLT,s)
+   lon1 = e_ant_stack_groups_in(index_STKLG,s)
    if (lon1 < 0.0_RKIND) lon1 = lon1 + 360.0_RKIND
     
    ! Check for valid coordinates
@@ -1810,7 +1819,9 @@ endif
 !--- Emission arrays
            config_anthro_pt_scheme = config_anthro_pt_scheme,       &
            e_ant_ptegu_in = e_ant_ptegu_in_p,             &
+           e_ant_stack_groups_in = e_ant_stack_groups_in_p, &
            num_e_ant_ptegu_in = num_e_ant_ptegu_in,       &
+           num_e_ant_stack_groups_in = num_e_ant_stack_groups_in, &
            num_ptegu      = num_ptegu,                    &
            index_STKHT = index_STKHT, index_STKDM=index_STKDM, &
            index_STKTK = index_STKTK, index_STKVE=index_STKVE, &

@@ -426,7 +426,7 @@
  integer,pointer:: nChem,nkanthro,nkwildfire,nkbiogenic,nkvolcanic,nkreswoodcomb
  integer,pointer:: n_e_ant_in,n_e_bb_in,n_e_bio_in,n_e_vol_in
  integer,pointer:: n_e_ant_out,n_e_bb_out,n_e_bio_out,n_e_dust_out,n_e_ss_out,n_e_vol_out
- integer,pointer:: n_ptegu,n_e_ant_ptegu_in
+ integer,pointer:: n_ptegu,n_e_ant_ptegu_in,n_e_ant_stack_groups_in
  real(kind=RKIND):: dt
 
 !local variables:
@@ -497,6 +497,7 @@
 
 call mpas_pool_get_dimension(emission_input,'nptegu',n_ptegu)
 call mpas_pool_get_dimension(emission_input,'num_e_ant_ptegu_in',n_e_ant_ptegu_in)
+call mpas_pool_get_dimension(emission_input,'num_e_ant_stack_groups_in',n_e_ant_stack_groups_in)
 
 !initialization of gmt, julian day, and alarms:
 
@@ -746,6 +747,7 @@ call mpas_pool_get_dimension(emission_input,'num_e_ant_ptegu_in',n_e_ant_ptegu_i
 
  num_ptegu = n_ptegu
  num_e_ant_ptegu_in = n_e_ant_ptegu_in
+ num_e_ant_stack_groups_in = n_e_ant_stack_groups_in
 
  if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off' .or. &
     config_anthro_scheme .ne. 'off' .or. config_pollen_scheme .ne. 'off' .or. &
