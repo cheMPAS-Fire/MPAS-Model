@@ -11572,6 +11572,7 @@ CONTAINS
                        pin,o3clim,glw,olr,lwcf,rthratenlw,rthratenlwc, &
                        has_reqc,has_reqi,has_reqs,re_cloud,        &
                        re_ice,re_snow,rre_cloud,rre_ice,rre_snow,  &
+                       aer_opt,tauaer3d_lw,                        &
                        lwupt,lwuptc,lwuptcln,lwdnt,lwdntc,lwdntcln,&
                        lwupb,lwupbc,lwupbcln,lwdnb,lwdnbc,lwdnbcln,&
                        lwupflx, lwupflxc, lwupflxcln,              &
@@ -11615,13 +11616,17 @@ CONTAINS
  real,intent(inout),dimension(ims:ime,jms:jme),optional:: &
     lwupt,lwuptc,lwdnt,lwdntc,lwupb,lwupbc,lwdnb,lwdnbc,lwuptcln,lwdntcln,lwupbcln,lwdnbcln
 
- real,intent(inout),dimension(ims:ime,kms:kme,jms:jme):: rthratenlw,rthratenlwc
+ real,intent(inout),dimension(ims:ime,kms:kme,jms:jme):: rthratenlw
+ real,intent(inout),dimension(ims:ime,kms:kme,jms:jme),optional:: rthratenlwc
  
 !--- output arguments:
   real,intent(out),dimension(ims:ime,kms:kme,jms:jme),optional:: &
      rre_cloud,rre_ice,rre_snow
   real,intent(out),dimension(ims:ime,kms:kme+2,jms:jme ),optional:: &
      lwupflx,lwupflxc,lwdnflx,lwdnflxc,lwupflxcln,lwdnflxcln
+  integer,intent(in),optional:: aer_opt
+  real,intent(in),dimension(ims:ime,kms:kme,jms:jme,1:nbndlw),optional:: tauaer3d_lw
+              
 
 !local variables and arrays:
 ! integer:: config_calc_clean_atm_diag
@@ -11655,6 +11660,7 @@ CONTAINS
  real,dimension(:,:),allocatable:: uflx,dflx,uflxc,dflxc,hr,hrc
  real,dimension(:,:),allocatable:: uflxcln,dflxcln
  real,dimension(:,:,:),allocatable:: taucld,cldfmcl,clwpmcl,ciwpmcl,cswpmcl,taucmcl,tauaer
+! REAL, INTENT(IN    ) :: julian
 
 !--- additional local variables and arrays needed for the CAM ozone climatologyL
  real,dimension(1:noznlevels):: o3clim1d
@@ -11750,6 +11756,7 @@ CONTAINS
  icld = cldovrlp
 
 !--- initialize option for the calculation of the cloud optical properties:
+! juldat = julian
  inflglw  = 2
  iceflglw = 3
  liqflglw = 1
@@ -11910,6 +11917,7 @@ CONTAINS
           dflxc(n,nlayers+1)   = 0.
           dflxcln(n,nlayers+1) = 0.
        enddo
+
 
        !--- fill local arrays with input sounding. convert water vapor mass mixing ratio to volume mixing ratio:
        plev(ncol,1) = pw1d(1)
@@ -12190,8 +12198,19 @@ CONTAINS
              tauaer(ncol,k,nb) = 0.
           enddo
        enddo
-
-
+       !--- populate aerosol optical depths if aer_opt is active:
+       !--- Minsu Choi, CIRES/NOAA GSL
+       if (present(aer_opt) .and. present(tauaer3d_lw)) then
+         if (aer_opt .gt. 0) then
+           do nb = 1, nbndlw
+             do k = kts, kte
+               if (tauaer3d_lw(i,k,j,nb) .gt. 1.e-9) then
+                 tauaer(ncol,k,nb) = tauaer3d_lw(i,k,j,nb)
+               endif
+             enddo
+           enddo
+         endif
+       endif
 
        !--- CALL TO THE RRTMG LONG WAVE RADIATION MODEL:
        call rrtmg_lw &
@@ -12258,8 +12277,10 @@ CONTAINS
        do k = kts, kte
           tten1d(k) = hr(ncol,k)/86400.
           rthratenlw(i,k,j) = tten1d(k)/pi3d(i,k,j)
-          tten1d(k) = hrc(ncol,k)/86400.
-          rthratenlwc(i,k,j) = tten1d(k)/pi3d(i,k,j)
+          if (present(rthratenlwc)) then
+            tten1d(k) = hrc(ncol,k)/86400.
+            rthratenlwc(i,k,j) = tten1d(k)/pi3d(i,k,j)
+          endif
        enddo
 
        !--- output the effective radii for cloud water, cloud ice, and snow:
