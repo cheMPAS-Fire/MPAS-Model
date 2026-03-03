@@ -656,7 +656,7 @@
        do j = jts, jte
        do k = 1, kanthro
        do i = its, ite
-          e_ant_in_p(i,k,j,n) = 0._RKIND * e_ant_in(n,k,i)
+          e_ant_in_p(i,k,j,n) = e_ant_in(n,k,i)
        enddo
        enddo
        enddo
@@ -1295,7 +1295,7 @@ include 'mpif.h'
  type (dm_info), intent(in) :: dminfo !< Input: Domain information
  real(kind=RKIND),dimension(:,:),pointer  :: e_ant_stack_groups_in
 
- logical,pointer :: config_anthro_pt_scheme
+ character(len=StrKIND),pointer :: config_anthro_pt_scheme
 
  integer,pointer :: index_STKLT,index_STKLG,nCells
 
@@ -1333,7 +1333,7 @@ integer,dimension(:),pointer ::nEdgesOnCell
 ! For, the only reason to set these arrays is if we are doing pt source
 ! plumerise emissions from the anthropogenic sector.
 
- if ( .not. config_anthro_pt_scheme) return
+ if ( config_anthro_pt_scheme .eq. 'off' ) return
 
  call mpas_pool_get_array(emission_input, 'e_ant_stack_groups_in',e_ant_stack_groups_in)
  call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
@@ -1524,7 +1524,7 @@ enddo
  character(len=StrKIND),pointer :: config_bact_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_extra_chemical_tracers
- logical,pointer :: config_anthro_pt_scheme
+ character(len=StrKIND),pointer :: config_anthro_pt_scheme
  logical,pointer :: config_ultrafine, config_coarse
  integer,pointer                :: hwp_method
  real(kind=RKIND),pointer       :: hwp_alpha
@@ -1544,6 +1544,7 @@ enddo
  logical,pointer                :: add_fire_moist_flux
  integer,pointer                :: plumerisefire_frq
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
+ real(kind=RKIND),pointer       :: anthro_emis_scale_factor, anthro_pt_emis_scale_factor
  real(kind=RKIND),pointer       :: dust_alpha, dust_gamma
  real(kind=RKIND),pointer       :: dust_drylimit_factor, dust_moist_correction
  real(kind=RKIND),pointer       :: pollen_emis_scale_factor,  num_pols_per_polp
@@ -1554,7 +1555,7 @@ enddo
                                    do_mpas_dust,do_mpas_anthro,  &
                                    do_mpas_ssalt, do_mpas_volc,  &
                                    do_mpas_sna, do_mpas_methane, &
-                                   do_mpas_hab, do_mpas_rwc
+                                   do_mpas_hab, do_mpas_rwc, do_mpas_anthro_pt
  integer                        :: i,j,k,nblocks
 
 
@@ -1567,6 +1568,7 @@ enddo
  do_mpas_dust   = .false.
  do_mpas_pollen = .false.
  do_mpas_anthro = .false.
+ do_mpas_anthro_pt = .false.
  do_mpas_ssalt  = .false.
  do_mpas_volc   = .false.
  do_mpas_sna    = .false.
@@ -1612,6 +1614,9 @@ enddo
  call mpas_pool_get_config(configs,'bb_qv_scale_factor',bb_qv_scale_factor)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'rwc_emis_scale_factor',rwc_emis_scale_factor)
+! Namelist: anthro
+ call mpas_pool_get_config(configs,'anthro_emis_scale_factor',anthro_emis_scale_factor)
+ call mpas_pool_get_config(configs,'anthro_pt_emis_scale_factor',anthro_pt_emis_scale_factor)
 ! Namelist: Wet/dry deposition
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'wetdep_ls_alpha',wetdep_ls_alpha) 
@@ -1644,7 +1649,7 @@ enddo
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_nox',index_e_ant_in_nox)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_co',index_e_ant_in_co)
 
- if ( config_anthro_pt_scheme ) then
+ if ( config_anthro_pt_scheme .ne. 'off') then
  call mpas_pool_get_dimension(emission_input,'index_STKHT',index_STKHT)
  call mpas_pool_get_dimension(emission_input,'index_STKDM',index_STKDM)
  call mpas_pool_get_dimension(emission_input,'index_STKTK',index_STKTK)
@@ -1803,7 +1808,9 @@ endif
  if (config_bact_scheme .ne. 'off' .and. index_bact_fine .gt. 0) then
     do_mpas_hab = .true.
  endif
-
+ if (config_anthro_pt_scheme .ne. 'off') then
+    do_mpas_anthro_pt = .true.
+ endif
  call mpas_timer_start('mpas_smoke')
  call mpas_smoke_driver(                                                                 &
 !--- Chemistry array
@@ -1817,7 +1824,7 @@ endif
            kvol = kvolcanic, &
            krwc = kreswoodcomb,   &
 !--- Emission arrays
-           config_anthro_pt_scheme = config_anthro_pt_scheme,       &
+           do_mpas_anthro_pt = do_mpas_anthro_pt,       &
            e_ant_pt_in = e_ant_pt_in_p,             &
            e_ant_stack_groups_in = e_ant_stack_groups_in_p, &
            num_e_ant_pt_in = num_e_ant_pt_in,       &
@@ -1989,6 +1996,8 @@ endif
 ! --- Namelist: Other
            rwc_emis_scale_factor = rwc_emis_scale_factor,                                &
            plumerise_opt_rwc = plumerise_opt_rwc,                                        &
+           anthro_emis_scale_factor = anthro_emis_scale_factor,                          &
+           anthro_pt_emis_scale_factor = anthro_pt_emis_scale_factor,                    &
 ! --- Met variables
            nifa           = nifa_p,              nwfa    = nwfa_p,                       &
            ktau    = itimestep   , dt       = dt_dyn     , dxcell   = dx_p       ,       &

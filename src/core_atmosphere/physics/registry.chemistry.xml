@@ -32,7 +32,7 @@
 
    <packages>
          <package name="mpas_anthro_pt_emis"
-                 active_when="config_anthro_scheme .ne. 'off' .and. config_anthro_pt_scheme"
+                 active_when="config_anthro_scheme .ne. 'off' .and. config_anthro_pt_scheme .ne. 'off'"
                  description="package for point source anthropogenic emissions"/>
          <package name="mpas_smoke_forecast"
                  active_when="config_smoke_scheme .eq. 'forecast'"
@@ -146,10 +146,10 @@
            units="-"
            description="configuration for mpas anthropogenic emissions model"
            possible_values="`on',`off'"/>
-      <nml_option name="config_anthro_pt_scheme" type="logical" default_value="false" in_defaults="false"
+      <nml_option name="config_anthro_pt_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
-           description="configuration for mpas anthropogenic emissions model"
-           possible_values=".true. or .false."/>
+           description="configuration for mpas anthropogenic point source emissions model"
+           possible_values="`on',`off'"/>
       <nml_option name="config_pollen_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas pollen model"
@@ -284,7 +284,15 @@
            possible_values="Positive real values"/>
       <nml_option name="rwc_emis_scale_factor" type="real" default_value="1.0"
            units="-"
-           description="Scale factor applied to residnetial wood fire emissions"
+           description="Scale factor applied to residential wood fire emissions"
+           possible_values="Positive real values"/>
+      <nml_option name="anthro_emis_scale_factor" type="real" default_value="1.0"
+           units="-"
+           description="Scale factor applied to anthropgenic emissions at the surface"
+           possible_values="Positive real values"/>
+      <nml_option name="anthro_pt_emis_scale_factor" type="real" default_value="1.0"
+           units="-"
+           description="Scale factor applied to anthropogenic inline/stack emissions"
            possible_values="Positive real values"/>
       <nml_option name="drydep_opt" type="integer" default_value="0"
            units="-"

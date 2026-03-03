@@ -134,8 +134,8 @@ use mpas_stream_manager
                    config_anthro_scheme,     &
                    config_ssalt_scheme,      &
                    config_sna_scheme,        &
-                   config_rwc_scheme
- logical,pointer :: config_anthro_pt_scheme
+                   config_rwc_scheme,        &
+                   config_anthro_pt_scheme
 
  integer,pointer:: nCellsSolve,nLags
  integer,dimension(:),pointer:: i_rainc,i_rainnc
@@ -535,10 +535,12 @@ use mpas_stream_manager
     config_dust_scheme .ne. 'off'  .or. config_anthro_scheme .ne. 'off' .or. &
     config_ssalt_scheme .ne. 'off' .or. config_sna_scheme .ne. 'off'    .or. &
     config_rwc_scheme .ne. 'off'   ) then
+    if ( config_anthro_pt_scheme .ne. 'off') then
     ! Really only needed for the pt source locations, but leave for now
-    call MPAS_stream_mgr_read(stream_manager, streamID='ptegu_input', whence=MPAS_STREAM_NEAREST, ierr=ierr)
-    call MPAS_stream_mgr_reset_alarms(stream_manager,streamID='ptegu_input', direction=MPAS_STREAM_INPUT, ierr=ierr)
-    call init_smoke(mesh,configs,emission_input,dminfo)
+       call MPAS_stream_mgr_read(stream_manager,streamID='anthro_pt_stack_group_input', whence=MPAS_STREAM_NEAREST, ierr=ierr)
+       call MPAS_stream_mgr_reset_alarms(stream_manager,streamID='anthro_pt_stack_group_input', direction=MPAS_STREAM_INPUT, ierr=ierr)
+       call init_smoke(mesh,configs,emission_input,dminfo)
+    endif
  endif
 
 ! call mpas_log_write('')
