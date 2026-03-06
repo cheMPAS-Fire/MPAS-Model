@@ -1321,8 +1321,15 @@ integer :: c_test, c_nearest, k, iter_knt
  real(kind=RKIND) :: R, d, d_star
  integer, dimension(num_anthro_pt) :: best_cell_work
  real(kind=RKIND) :: xPoint, yPoint, zPoint, xC, yC, zC
-
+! Testing a brute force "is_inside" O(N*M) 
  logical, parameter :: brute_search = .false.
+! Or
+! One solution would be a kd-tree – to store the cells in a mesh
+! O(n log n) setup cost; each search takes O(log n) time, for a mesh with n cells
+! Alternatively, we can make use of the grid connectivity arrays nEdgesOnCell and
+! cellsOnCell to navigate a path of monotonically decreasing distance to the (lat,lon) location
+! No setup cost, at most O(n½) cost per search
+! here we only do it once and store 
 
 ! SAVE FOR DEBUG TO CHECK AGAINST GLOBAL CELL INDEX
 !
