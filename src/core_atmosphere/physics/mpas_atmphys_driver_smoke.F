@@ -233,11 +233,11 @@
 
  if ( config_rwc_scheme .ne. 'off' ) then
       if(.not.allocated(RWC_denominator_p))               allocate(RWC_denominator_p(ims:ime,jms:jme))
-      if(.not.allocated(RWC_annual_sum_p))                allocate(RWC_annual_sum_p(ims:ime,1:kreswoodcomb,jms:jme))
-      if(.not.allocated(RWC_annual_sum_smoke_fine_p))     allocate(RWC_annual_sum_smoke_fine_p(ims:ime,1:kreswoodcomb,jms:jme))
-      if(.not.allocated(RWC_annual_sum_smoke_coarse_p))   allocate(RWC_annual_sum_smoke_coarse_p(ims:ime,1:kreswoodcomb,jms:jme))
-      if(.not.allocated(RWC_annual_sum_unspc_fine_p))     allocate(RWC_annual_sum_unspc_fine_p(ims:ime,1:kreswoodcomb,jms:jme))
-      if(.not.allocated(RWC_annual_sum_unspc_coarse_p))   allocate(RWC_annual_sum_unspc_coarse_p(ims:ime,1:kreswoodcomb,jms:jme))
+      if(.not.allocated(RWC_annual_sum_p))                allocate(RWC_annual_sum_p(ims:ime,jms:jme))
+      if(.not.allocated(RWC_annual_sum_smoke_fine_p))     allocate(RWC_annual_sum_smoke_fine_p(ims:ime,jms:jme))
+      if(.not.allocated(RWC_annual_sum_smoke_coarse_p))   allocate(RWC_annual_sum_smoke_coarse_p(ims:ime,jms:jme))
+      if(.not.allocated(RWC_annual_sum_unspc_fine_p))     allocate(RWC_annual_sum_unspc_fine_p(ims:ime,jms:jme))
+      if(.not.allocated(RWC_annual_sum_unspc_coarse_p))   allocate(RWC_annual_sum_unspc_coarse_p(ims:ime,jms:jme))
       if(.not.allocated(max_rwc_plume_p))                 allocate(max_rwc_plume_p(ims:ime,jms:jme))
  endif
 
@@ -403,8 +403,8 @@
       integer,dimension(:),pointer               :: min_bb_plume, max_bb_plume, max_rwc_plume
       real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, uthres_sg_in, &
                                                     sep_in, albedo_drag, feff
-      real(kind=RKIND),dimension(:),pointer      :: RWC_denominator
-      real(kind=RKIND),dimension(:,:), pointer   :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
+      real(kind=RKIND),dimension(:),pointer      :: RWC_denominator, &
+                                                    RWC_annual_sum, RWC_annual_sum_smoke_fine, &
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
                                                     RWC_annual_sum_unspc_coarse
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_in, e_bb_in, e_bio_in, e_vol_in
@@ -421,6 +421,7 @@
       character(len=StrKIND),pointer :: config_dust_scheme
       character(len=StrKIND),pointer :: config_pollen_scheme
       character(len=StrKIND),pointer :: config_anthro_scheme
+      character(len=StrKIND),pointer :: config_anthro_pt_scheme
       character(len=StrKIND),pointer :: config_ssalt_scheme
       character(len=StrKIND),pointer :: config_volc_scheme
       character(len=StrKIND),pointer :: config_sna_scheme
@@ -449,6 +450,7 @@
       call mpas_pool_get_config(configs,'config_dust_scheme', config_dust_scheme)
       call mpas_pool_get_config(configs,'config_pollen_scheme',config_pollen_scheme)
       call mpas_pool_get_config(configs,'config_anthro_scheme',config_anthro_scheme)
+      call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
       call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
       call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
       call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
@@ -529,13 +531,15 @@
          call mpas_pool_get_array(diag_physics, 'sep_in',sep_in)
       endif
 
-      if (num_e_ant_pt_in .gt. 0 ) then
-         call mpas_pool_get_array(emission_input, 'e_ant_pt_in',e_ant_pt_in)
-      endif
-      if (num_e_ant_stack_groups_in .gt. 0 ) then
-         call mpas_pool_get_array(emission_input, 'e_ant_stack_groups_in',e_ant_stack_groups_in)
-      endif
 
+      if (config_anthro_pt_scheme .ne. 'off' ) then
+         if (num_e_ant_pt_in .gt. 0 ) then
+            call mpas_pool_get_array(emission_input, 'e_ant_pt_in',e_ant_pt_in)
+         endif
+         if (num_e_ant_stack_groups_in .gt. 0 ) then
+            call mpas_pool_get_array(emission_input, 'e_ant_stack_groups_in',e_ant_stack_groups_in)
+         endif
+      endif
       if (config_anthro_scheme .ne. 'off' .and. num_e_ant_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_ant_in', e_ant_in)
       endif
@@ -663,7 +667,7 @@
        enddo
       endif   
  
-      if ( num_e_ant_pt_in .gt. 0 ) then
+      if ( num_e_ant_pt_in .gt. 0 .and. config_anthro_pt_scheme .ne. 'off') then
  
        do n=1,num_e_ant_pt_in
        do i=1,num_anthro_pt
@@ -761,18 +765,12 @@
       !
       if ( config_rwc_scheme .ne. 'off' ) then
         do j = jts, jte
-        do k = 1,kreswoodcomb
         do i = its, ite
-            RWC_annual_sum_p(i,k,j)  = RWC_annual_sum(k,i)
-            RWC_annual_sum_smoke_fine_p(i,k,j)    = RWC_annual_sum_smoke_fine(k,i)
-            RWC_annual_sum_smoke_coarse_p(i,k,j)  = RWC_annual_sum_smoke_coarse(k,i)
-            RWC_annual_sum_unspc_fine_p(i,k,j)    = RWC_annual_sum_unspc_fine(k,i)
-            RWC_annual_sum_unspc_coarse_p(i,k,j)  = RWC_annual_sum_unspc_coarse(k,i)
-        enddo
-        enddo
-        enddo
-        do j = jts, jte
-        do i = its, ite
+            RWC_annual_sum_p(i,j)  = RWC_annual_sum(i)
+            RWC_annual_sum_smoke_fine_p(i,j)    = RWC_annual_sum_smoke_fine(i)
+            RWC_annual_sum_smoke_coarse_p(i,j)  = RWC_annual_sum_smoke_coarse(i)
+            RWC_annual_sum_unspc_fine_p(i,j)    = RWC_annual_sum_unspc_fine(i)
+            RWC_annual_sum_unspc_coarse_p(i,j)  = RWC_annual_sum_unspc_coarse(i)
             RWC_denominator_p(i,j) = RWC_denominator(i)
             max_rwc_plume_p(i,j) = 0
         enddo
@@ -1019,6 +1017,7 @@
  character(len=StrKIND),pointer :: config_dust_scheme
  character(len=StrKIND),pointer :: config_pollen_scheme
  character(len=StrKIND),pointer :: config_anthro_scheme
+ character(len=StrKIND),pointer :: config_anthro_pt_scheme
  character(len=StrKIND),pointer :: config_ssalt_scheme
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
@@ -1054,6 +1053,7 @@
  call mpas_pool_get_config(configs,'config_dust_scheme', config_dust_scheme)
  call mpas_pool_get_config(configs,'config_pollen_scheme',config_pollen_scheme)
  call mpas_pool_get_config(configs,'config_anthro_scheme',config_anthro_scheme)
+ call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
@@ -1313,13 +1313,17 @@ integer,pointer :: nVertices
 real(kind=RKIND),dimension(:),pointer :: xVertex,yVertex,zVertex
 integer,dimension(:,:),pointer :: verticesOnCell
 integer,dimension(:),pointer ::nEdgesOnCell
+integer,dimension(:,:),pointer :: cellsOnCell
+
+integer :: c_test, c_nearest, k, iter_knt
 
  ! Work arrays
- real(kind=RKIND) :: min_dist_work(num_anthro_pt)
- real(kind=RKIND) :: R
+ real(kind=RKIND) :: R, d, d_star
  integer, dimension(num_anthro_pt) :: best_cell_work
  real(kind=RKIND) :: xPoint, yPoint, zPoint, xC, yC, zC
-!
+
+ logical, parameter :: brute_search = .false.
+
 ! SAVE FOR DEBUG TO CHECK AGAINST GLOBAL CELL INDEX
 !
 ! integer, dimension(:),pointer :: global_cell_list, ant_pt_global_cell_idx
@@ -1353,13 +1357,16 @@ integer,dimension(:),pointer ::nEdgesOnCell
  call mpas_pool_get_array(mesh,'yVertex',yVertex)
  call mpas_pool_get_array(mesh,'zVertex',zVertex)
  call mpas_pool_get_array(mesh,'nEdgesOnCell',nEdgesOnCell)
- 
  call mpas_pool_get_array(mesh,'verticesOnCell',verticesOnCell)
+ call mpas_pool_get_array(mesh,'cellsOnCell',cellsOnCell)
 
  radius = 1.0_RKIND
  huge_val = 1.0e30_RKIND
 
  myrank = dminfo % my_proc_id
+
+if (brute_search ) then
+
 
 ! Find local closest cell and distance for each pt source
  do s = 1, num_anthro_pt
@@ -1370,7 +1377,6 @@ integer,dimension(:),pointer ::nEdgesOnCell
    ! Check for valid coordinates
    if (lat1 < -90.0_RKIND .or. lat1 > 90.0_RKIND .or. &
         lon1 < -180.0_RKIND .or. lon1 > 360.0_RKIND) then
-       min_dist_work(s) = huge_val
        best_cell_work(s) = -1
        cycle
    endif
@@ -1378,7 +1384,6 @@ integer,dimension(:),pointer ::nEdgesOnCell
    lat1 = lat1 * 3.14_RKIND / 180._RKIND
    lon1 = lon1 * 3.14_RKIND / 180._RKIND
     
-    min_dist_work(s) = huge_val
     best_cell_work(s) = -1
     
     do n = 1, nCells
@@ -1411,6 +1416,85 @@ do s = 1, num_anthro_pt
 ! SAVE for DEBUG -- checks local index against the global cell number
 !   call mpas_dmpar_maxloc_int(dminfo,best_cell_global(s),ant_pt_global_cell_idx(s), ant_pt_rank(s))
 enddo
+
+
+
+else
+
+
+
+ do s = 1, num_anthro_pt
+!
+   best_cell_work(s) = -1
+!
+   lat1 = e_ant_stack_groups_in(index_STKLT,s)
+   lon1 = e_ant_stack_groups_in(index_STKLG,s)
+! Convert
+   if (lon1 < 0.0_RKIND) lon1 = lon1 + 360.0_RKIND   
+! Check for valid coordinates
+   if (lat1 < -90.0_RKIND .or. lat1 > 90.0_RKIND .or. &
+        lon1 < -180.0_RKIND .or. lon1 > 360.0_RKIND) then
+       cycle
+   endif
+! Convert
+   lat1 = lat1 * 3.14_RKIND / 180._RKIND
+   lon1 = lon1 * 3.14_RKIND / 180._RKIND
+! Init
+   c_nearest = 2
+   c_test    = 0
+   do while ( c_nearest /= c_test )
+! Test location=  
+      c_test = c_nearest
+! Location of the POINT SOURCE
+      lat2   = latCell(c_test)
+      lon2   = lonCell(c_test) 
+      arg1 = sin((lat2-lat1)/2.0_RKIND)**2 + cos(lat1)*cos(lat2)*sin((lon2-lon1)/2.0_RKIND)**2
+      d = 2.0_RKIND * radius * asin(sqrt(arg1))
+! Loop over the edges of this cell
+      do n = 1, nEdgesOnCell(c_test) 
+! Grabbing the index of the Cell on That edge
+         k = cellsOnCell(n,c_test)
+! Calculate this distance
+         lat2 = latCell(k)
+         lon2 = lonCell(k)
+         arg1 = sin((lat2-lat1)/2.0_RKIND)**2 + cos(lat1)*cos(lat2)*sin((lon2-lon1)/2.0_RKIND)**2
+         d_star = 2.0_RKIND  * radius * asin(sqrt(arg1))
+! If we are closer than the original cell, update
+         if ( d_star < d ) then
+            d = d_star
+            c_nearest = k
+         endif
+      enddo
+   enddo
+! Grabe the Cartesian coordinates and calculate the radius
+   xC     = xCell(c_nearest)
+   yC     = yCell(c_nearest)
+   zC     = zCell(c_nearest)
+   R      = sqrt(xC**2 + yC**2 + zC**2)
+! Convert lat/lon to cartesain space using the same radius as this cell
+   xPoint = R*(cos(lat1) * cos(lon1))
+   yPoint = R*(cos(lat1) * sin(lon1))
+   zPoint = R*(sin(lat1))
+! Test
+   is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
+                 yC, zC, nEdgesOnCell(c_nearest), &
+                 verticesOnCell(:,c_nearest), xVertex, yVertex, zVertex)
+! Place a -1, only the one inside will be positive
+   if ( is_inside) then
+      best_cell_work(s) = c_nearest
+   endif
+enddo
+! Get the rank and local cell index of the stack location by reducing
+! best_cell_work over all ranks. The only positive value (if any) will
+! be the local_index (n) one satisfying is_inside
+do s = 1, num_anthro_pt
+   call mpas_dmpar_maxloc_int(dminfo,best_cell_work(s),ant_pt_local_cell_idx(s),ant_pt_rank(s))
+! SAVE for DEBUG -- checks local index against the global cell number
+!   call mpas_dmpar_maxloc_int(dminfo,best_cell_global(s),ant_pt_global_cell_idx(s), ant_pt_rank(s))
+enddo
+
+endif
+
 
 
  end subroutine init_smoke
@@ -1822,7 +1906,6 @@ endif
            kfire = kwildfire, &
            kbio = kbiogenic, &
            kvol = kvolcanic, &
-           krwc = kreswoodcomb,   &
 !--- Emission arrays
            do_mpas_anthro_pt = do_mpas_anthro_pt,       &
            e_ant_pt_in = e_ant_pt_in_p,             &

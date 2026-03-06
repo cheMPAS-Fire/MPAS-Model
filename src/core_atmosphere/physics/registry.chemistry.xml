@@ -16,8 +16,6 @@
           description="Number of vertical levels in biogenic emission file"/>
       <dim name="nkvolcanic"             definition="namelist:kvolcanic"
           description="Number of vertical levels in volcanic emission file"/>
-      <dim name="nkreswoodcomb"             definition="namelist:kreswoodcomb"
-          description="Number of vertical levels in residential wood combustion emission file"/>
       <dim name="TWENTYFOUR"          definition="24"
           description="A constant value of 24"/>
       <dim name="TSTEP"     
@@ -1018,19 +1016,19 @@
            description="aerosol optical depth from all aerosols"/>
       <var name="aod550"           type="real" dimensions="nCells Time" units="-"
            description="aerosol optical depth (2D) from all aerosols"/>
-      <var name="RWC_annual_sum" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_smoke_fine" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_smoke_fine" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning fine smoke emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_smoke_coarse" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_smoke_coarse" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning coarse smoke emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_unspc_fine" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_unspc_fine" type="real" dimensions="nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning fine unspc emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_unspc_coarse" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_unspc_coarse" type="real" dimensions="nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning coarse unspc emissions"
 	   packages="mpas_rwc_in"/>
       <var name="RWC_denominator" type="real" dimensions="nCells Time" units="F"
