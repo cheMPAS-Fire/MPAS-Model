@@ -80,7 +80,11 @@ core_RUCLSM: core_physics_init core_physics_mmm
 	(cd physics_noaa/RUCLSM; cp ./MPAS/Makefile .; cp ./MPAS/module_ruc_land.F90 .; cp ./MPAS/module_ruc_ice.F90 .; cp ./MPAS/module_sf_sfcdiags_ruclsm.F .; $(MAKE) all COREDEF="$(COREDEF)")
 
 core_GFL: core_physics_init core_physics_mmm
+<<<<<<< HEAD
 	(cd physics_noaa/GFL; cp ./MPAS/Makefile .; cp ./MPAS/module_cu_gfl_mpas.F .; cp ./MPAS/module_cu_gfl_common.F .; $(MAKE) all)
+=======
+	(cd physics_noaa/GFL; cp ./MPAS/Makefile .; cp ./MPAS/module_cu_gfl_mpas.F90 .; cp ./MPAS/module_cu_gfl_common.F90 .; $(MAKE) all)
+>>>>>>> 48b02c71 (v8.3.1-2.17: Restructure GFL submodule for MPAS, WRF, and CCPP (#211))
 
 core_UGWP: core_physics_init
 	(cd physics_noaa/UGWP; $(MAKE) all)
@@ -304,15 +308,9 @@ clean:
 	$(RM) $@ $*.mod
 ifeq "$(GEN_F90)" "true"
 	$(CPP) $(CPPFLAGS) $(COREDEF) $(HYDROSTATIC) $(CPPINCLUDES) $< > $*.f90
-<<<<<<< HEAD
-	$(FC) $(FFLAGS) -c $*.f90 $(FCINCLUDES) -I./physics_mmm -I./physics_wrf -I./physics_noahmp -I./physics_noahmp/utility -I./physics_noahmp/drivers/mpas -I./physics_noahmp/src -I./physics_noaa/TEMPO -I./physics_noaa/UGWP -I./physics_noaa/MYNN-EDMF -I./physics_noaa/RUCLSM -I./physics_noaa/GFL -I./physics_noaa/SMOKE -I.. -I../../framework -I../../operators -I../../external/esmf_time_f90
+	$(FC) $(FFLAGS) -c $*.f90 $(FCINCLUDES) -I./physics_mmm -I./physics_wrf -I./physics_noahmp -I./physics_noahmp/utility -I./physics_noahmp/drivers/mpas -I./physics_noahmp/src -I./physics_noaa/TEMPO -I./physics_noaa/UGWP -I./physics_noaa/MYNN-EDMF -I./physics_noaa/MYNN-SFC -I./physics_noaa/RUCLSM -I./physics_noaa/GFL -I./physics_noaa/SMOKE -I.. -I../../framework -I../../external/esmf_time_f90 -I../../operators
 else
-	$(FC) $(CPPFLAGS) $(COREDEF) $(HYDROSATIC) $(FFLAGS) -c $*.F $(CPPINCLUDES) $(FCINCLUDES) -I./physics_mmm -I./physics_wrf -I./physics_noahmp -I./physics_noahmp/utility -I./physics_noahmp/drivers/mpas -I./physics_noahmp/src -I./physics_noaa/TEMPO -I./physics_noaa/UGWP -I./physics_noaa/MYNN-EDMF -I./physics_noaa/RUCLSM -I./physics_noaa/GFL -I./physics_noaa/SMOKE -I.. -I../../framework -I../../operators -I../../external/esmf_time_f90
-=======
-	$(FC) $(FFLAGS) -c $*.f90 $(FCINCLUDES) -I./physics_mmm -I./physics_wrf -I./physics_noahmp -I./physics_noahmp/utility -I./physics_noahmp/drivers/mpas -I./physics_noahmp/src -I./physics_noaa/TEMPO -I./physics_noaa/UGWP -I./physics_noaa/MYNN-EDMF -I./physics_noaa/MYNN-SFC -I./physics_noaa/RUCLSM -I./physics_noaa/GFL -I./physics_noaa/SMOKE -I.. -I../../framework -I../../external/esmf_time_f90
-else
-	$(FC) $(CPPFLAGS) $(COREDEF) $(HYDROSATIC) $(FFLAGS) -c $*.F $(CPPINCLUDES) $(FCINCLUDES) -I./physics_mmm -I./physics_wrf -I./physics_noahmp -I./physics_noahmp/utility -I./physics_noahmp/drivers/mpas -I./physics_noahmp/src -I./physics_noaa/TEMPO -I./physics_noaa/UGWP -I./physics_noaa/MYNN-EDMF -I./physics_noaa/MYNN-SFC -I./physics_noaa/RUCLSM -I./physics_noaa/GFL -I./physics_noaa/SMOKE -I.. -I../../framework -I../../external/esmf_time_f90
->>>>>>> a541f35f (v8.3.1-2.16: Adding MYNN-SFC submodule to MPAS (#210))
+	$(FC) $(CPPFLAGS) $(COREDEF) $(HYDROSATIC) $(FFLAGS) -c $*.F $(CPPINCLUDES) $(FCINCLUDES) -I./physics_mmm -I./physics_wrf -I./physics_noahmp -I./physics_noahmp/utility -I./physics_noahmp/drivers/mpas -I./physics_noahmp/src -I./physics_noaa/TEMPO -I./physics_noaa/UGWP -I./physics_noaa/MYNN-EDMF -I./physics_noaa/MYNN-SFC -I./physics_noaa/RUCLSM -I./physics_noaa/GFL -I./physics_noaa/SMOKE -I.. -I../../framework -I../../external/esmf_time_f90 -I../../operators
 endif
 
 .F90.o:
