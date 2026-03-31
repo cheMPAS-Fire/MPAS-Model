@@ -159,11 +159,12 @@
  integer,public:: num_months          !number of months                                         [-]
 
  integer,public:: num_chem             !Temporary workaround for defining dimensions holding chem data
- integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic,kreswoodcomb!Number of vertical levels in input emission data
+ integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic!Number of vertical levels in input emission data
  logical:: do_chemistry                !controls call to smoke, dust and other chemical processes
 
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
  integer,public:: num_e_ant_out,num_e_bb_out,num_e_bio_out,num_e_dust_out,num_e_ss_out,num_e_vol_out
+ integer,public:: num_anthro_pt,num_e_ant_pt_in,num_e_ant_stack_groups_in ! Number of EGUs (dynamic by file), Number of EGU emissions
 
  real(kind=RKIND),public:: dt_dyn     !time-step for dynamics
  real(kind=RKIND),public:: dt_microp  !time-step for cloud microphysics parameterization.
@@ -271,11 +272,10 @@
     fmc_avg_p,         &
     emis_ant_no_p
  integer,dimension(:,:),allocatable:: &
-    eco_id_p !JR
+    ecoregion_ID_p !JR
 ! RWC fields
  real(kind=RKIND),dimension(:,:),allocatable:: &
-    RWC_denominator_p
- real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    RWC_denominator_p,&
     RWC_annual_sum_p,&
     RWC_annual_sum_smoke_fine_p,&
     RWC_annual_sum_smoke_coarse_p,&
@@ -287,7 +287,8 @@
     hwp_avg_p
  integer,dimension(:,:),allocatable:: &
     min_bb_plume_p, &!
-    max_bb_plume_p
+    max_bb_plume_p, &!
+    max_rwc_plume_p
 ! Input dust 2D fields - JLS
  real(kind=RKIND),dimension(:,:),allocatable:: &
     clayfrac_in_p,       &!
@@ -298,6 +299,10 @@
 ! Input biomass burning emissions - JLS
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_in_p, e_bb_in_p, e_bio_in_p, e_vol_in_p
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    e_ant_pt_in_p
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+    e_ant_stack_groups_in_p
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_out_p, e_bb_out_p, e_bio_out_p, e_dust_out_p, e_ss_out_p, e_vol_out_p
       
