@@ -400,7 +400,7 @@
       real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, &
                                                     ssm_in, rdrag
       real(kind=RKIND),dimension(:),pointer      :: RWC_denominator
-      real(kind=RKIND),dimension(:,:), pointer   :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
+      real(kind=RKIND),dimension(:), pointer   :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
                                                     RWC_annual_sum_unspc_coarse
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_in, e_bb_in, e_bio_in, e_vol_in
