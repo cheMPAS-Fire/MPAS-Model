@@ -201,7 +201,7 @@
  if ( num_e_bb_in .gt. 0 ) then
     if(.not.allocated(e_bb_in_p))           allocate(e_bb_in_p (ims:ime,1:kwildfire,jms:jme,1:num_e_bb_in) )
  endif
- if ( num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off' ) then
+ if ( num_e_bb_out .gt. 0 ) then
     if(.not.allocated(e_bb_out_p))          allocate(e_bb_out_p  (ims:ime,kms:kme,jms:jme,1:num_e_bb_out)  )
  endif
  if ( num_e_bio_in .gt. 0 ) then
@@ -239,19 +239,6 @@
       if(.not.allocated(max_rwc_plume_p))                 allocate(max_rwc_plume_p(ims:ime,jms:jme))
  endif
 
-=======
- if ( num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off' ) then
-    if(.not.allocated(e_ant_out_p))         allocate(e_ant_out_p (ims:ime,kms:kme,jms:jme,1:num_e_ant_out) )
- endif
- if ( config_rwc_scheme .ne. 'off' ) then
-    if(.not.allocated(RWC_denominator_p))               allocate(RWC_denominator_p(ims:ime,jms:jme))
-    if(.not.allocated(RWC_annual_sum_p))                allocate(RWC_annual_sum_p(ims:ime,1:kreswoodcomb,jms:jme))
-    if(.not.allocated(RWC_annual_sum_smoke_fine_p))     allocate(RWC_annual_sum_smoke_fine_p(ims:ime,1:kreswoodcomb,jms:jme))
-    if(.not.allocated(RWC_annual_sum_smoke_coarse_p))   allocate(RWC_annual_sum_smoke_coarse_p(ims:ime,1:kreswoodcomb,jms:jme))
-    if(.not.allocated(RWC_annual_sum_unspc_fine_p))     allocate(RWC_annual_sum_unspc_fine_p(ims:ime,1:kreswoodcomb,jms:jme))
-    if(.not.allocated(RWC_annual_sum_unspc_coarse_p))   allocate(RWC_annual_sum_unspc_coarse_p(ims:ime,1:kreswoodcomb,jms:jme))
- endif
->>>>>>> upstream/gsl/develop
 
  end subroutine allocate_smoke
 
@@ -569,19 +556,6 @@
          call mpas_pool_get_array(diag_physics,'max_rwc_plume',max_rwc_plume)
       endif
 
-      if (config_anthro_scheme .ne. 'off' .and. num_e_ant_in .gt. 0 ) then
-         call mpas_pool_get_array(emission_input, 'e_ant_in', e_ant_in)
-      endif
-
-       if (config_rwc_scheme .ne. 'off' ) then
-         call mpas_pool_get_array(diag_physics,'RWC_denominator',RWC_denominator)
-         call mpas_pool_get_array(diag_physics,'RWC_annual_sum',RWC_annual_sum)
-         call mpas_pool_get_array(diag_physics,'RWC_annual_sum_smoke_fine',RWC_annual_sum_smoke_fine)
-         call mpas_pool_get_array(diag_physics,'RWC_annual_sum_smoke_coarse',RWC_annual_sum_smoke_coarse)
-         call mpas_pool_get_array(diag_physics,'RWC_annual_sum_unspc_fine',RWC_annual_sum_unspc_fine)
-         call mpas_pool_get_array(diag_physics,'RWC_annual_sum_unspc_coarse',RWC_annual_sum_unspc_coarse)
-      endif
-
       if (config_smoke_scheme .ne. 'off' ) then
          call mpas_pool_get_array(diag_physics,'frp_out',frp_out)
          call mpas_pool_get_array(diag_physics,'fre_out',fre_out)
@@ -700,17 +674,18 @@
       endif
  
 !
-      if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off') then 
-       do n = 1, num_e_bb_in
-       do j = jts, jte
-       do k = 1, kwildfire
-       do i = its, ite
-          e_bb_in_p(i,k,j,n) = e_bb_in(n,k,i)
-       enddo
-       enddo
-       enddo
-       enddo
-      endif
+     if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off') then 
+      do n = 1, num_e_bb_in
+      do j = jts, jte
+      do k = 1, kwildfire
+      do i = its, ite
+         e_bb_in_p(i,k,j,n) = e_bb_in(n,k,i)
+      enddo
+      enddo
+      enddo
+      enddo
+     endif
+!
 !
       if ( num_e_bio_in .gt. 0 ) then
        do n = 1, num_e_bio_in
@@ -723,7 +698,7 @@
        enddo
        enddo
       endif
-!
+
       if ( num_e_vol_in .gt. 0 ) then
         do n = 1, num_e_vol_in
         do j = jts, jte
@@ -924,20 +899,18 @@
      
 
 
-
-      if (num_e_ant_out .gt. 0 .and. config_anthro_scheme .ne. 'off') then
+      if (num_e_ant_out .gt. 0 ) then
       do n = 1, num_e_ant_out
       do j = jts, jte
       do k = kts, kte
       do i = its, ite
-         e_ant_out_p(i,k,j,n) = e_ant_out(n,k,i)
+         e_ant_out_p(i,k,j,n) = 0._RKIND !e_ant_out(n,k,i)
       enddo
       enddo
       enddo
       enddo
       endif
-
-      if (num_e_bb_out .gt. 0 .and. config_smoke_scheme .ne. 'off') then
+      if (num_e_bb_out .gt. 0 ) then
       do n = 1, num_e_bb_out
       do j = jts, jte
       do k = kts, kte
@@ -948,7 +921,6 @@
       enddo
       enddo
       endif
-!
       if (num_e_bio_out .gt. 0 ) then
       do n = 1, num_e_bio_out
       do j = jts, jte
@@ -960,7 +932,7 @@
       enddo
       enddo
       endif
-      if (num_e_dust_out .gt. 0 .and. config_dust_scheme .ne. 'off') then
+      if (num_e_dust_out .gt. 0 ) then
       do n = 1, num_e_dust_out
       do j = jts, jte
       do k = kts, kte
@@ -971,7 +943,6 @@
       enddo
       enddo
       endif
-
       if (num_e_ss_out .gt. 0 ) then
       do n = 1, num_e_ss_out
       do j = jts, jte
@@ -983,7 +954,6 @@
       enddo
       enddo
       endif
-
       if (num_e_vol_out .gt. 0 ) then
       do n = 1, num_e_vol_out
       do j = jts, jte
@@ -2016,37 +1986,6 @@ endif
            index_e_vol_in_vash_coarse   = index_e_vol_in_vash_coarse,                    &
 ! --- Emission (output) indices
            index_e_bb_out_smoke_ultrafine    = index_e_bb_out_smoke_ultrafine,                     &
-=======
- if (config_anthro_scheme .ne. 'off' .and. &
-    index_unspc_fine .gt. 0 ) then
-      do_mpas_anthro= .true.
- endif
-
- call mpas_timer_start('mpas_smoke')
- call mpas_smoke_driver(                                                                 &
-!--- Chemistry array
-           chem  = chem_p, num_chem = num_chem, chemistry_start = chemistry_start,       &
-!--- Number vertical levels in emissions
-           kanthro = kanthro,  kfire = kwildfire, kbio = kbiogenic, kvol = kvolcanic,    &
-           krwc = kreswoodcomb,                                                          &
-!--- Emission arrays
-           e_bb_in        = e_bb_in_p,     e_bb_out       = e_bb_out_p,                  &
-           e_ant_in       = e_ant_in_p,    e_ant_out      = e_ant_out_p,                 &
-           e_dust_out     = e_dust_out_p,                                                &
-!--- Number of emissions in each array
-           num_e_ant_in    = num_e_ant_in,  num_e_bb_in    = num_e_bb_in,                &
-           num_e_ant_out   = num_e_ant_out, num_e_bb_out   = num_e_bb_out,               &
-           num_e_dust_out  = num_e_dust_out,                                             &
-!--- Tracer indices
-           index_smoke_fine = index_smoke_fine,                                          &
-           index_dust_fine  = index_dust_fine,  index_dust_coarse  = index_dust_coarse,  &
-           index_unspc_fine = index_unspc_fine,                                          &
-! --- Emission (input) indices
-           index_e_bb_in_smoke_fine     = index_e_bb_in_smoke_fine,                      &
-           index_e_ant_in_unspc_fine    = index_e_ant_in_unspc_fine,                     &
-           index_e_ant_in_unspc_coarse  = index_e_ant_in_unspc_coarse,                   &
-! --- Emission (output) indices
->>>>>>> upstream/gsl/develop
            index_e_bb_out_smoke_fine    = index_e_bb_out_smoke_fine,                     &
            index_e_bb_out_smoke_coarse  = index_e_bb_out_smoke_coarse,                   &
            index_e_bb_out_ch4           = index_e_bb_out_ch4,                            &
@@ -2093,6 +2032,7 @@ endif
            frac_grid_burned = frac_grid_burned_p,                                        &
            min_bb_plume   = min_bb_plume_p, max_bb_plume = max_bb_plume_p,               &
            coef_bb_dc     = coef_bb_dc_p, nblocks = nblocks,                             &
+! -- Residential Wood Combustion related arrays
            RWC_denominator = RWC_denominator_p, RWC_annual_sum = RWC_annual_sum_p,       &
            RWC_annual_sum_smoke_fine = RWC_annual_sum_smoke_fine_p,                      &
            RWC_annual_sum_smoke_coarse = RWC_annual_sum_smoke_coarse_p,                  &
@@ -2141,9 +2081,6 @@ endif
            anthro_pt_emis_scale_factor = anthro_pt_emis_scale_factor,                    &
 ! --- Met variables
            nifa           = nifa_p,              nwfa    = nwfa_p,                       &
-=======
-! --- Met variables
->>>>>>> upstream/gsl/develop
            ktau    = itimestep   , dt       = dt_dyn     , dxcell   = dx_p       ,       &
            area    = area_p      ,                                                       &
            xland   = xland_p     , u10      = u10_p      , v10      = v10_p      ,       &
