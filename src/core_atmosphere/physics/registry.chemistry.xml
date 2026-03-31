@@ -143,10 +143,6 @@
       <nml_option name="config_anthro_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas anthropogenic emissions model"
-           possible_values="`on',`off',`simple_aero'"/>
-      <nml_option name="config_rwc_scheme" type="character" default_value="off" in_defaults="false"
-           units="-"
-           description="Option for online residential wood burning emissions"
            possible_values="`on',`off'"/>
       <nml_option name="config_anthro_pt_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
@@ -458,6 +454,7 @@
          input_interval="1:00:00"
 	 immutable="true"
          in_defaults="false">
+     
          <var_array name="e_ant_in"/>
       </stream>
 
