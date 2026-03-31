@@ -566,7 +566,7 @@
 
     if (enh_mix) then
        call mpas_pool_get_config(configs,'config_smoke_scheme',config_smoke_scheme)
-       if ( config_smoke_scheme .ne. 'off' ) then
+       if ( trim(config_smoke_scheme) .eq. 'on' ) then
           call mpas_pool_get_array(diag_physics,'frp_out',frp_out)
           do j = jts,jte
           do i = its,ite
@@ -579,9 +579,8 @@
                 frp_out_p(i,j)     = 0._RKIND
           enddo
           enddo
-  
        endif
-       
+
        call mpas_pool_get_config(configs,'config_anthro_scheme',config_anthro_scheme)
        call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
        if ( config_anthro_scheme .ne. 'off' .or. config_rwc_scheme .ne. 'off') then
@@ -600,6 +599,7 @@
        endif
 
     endif ! If enh
+
 
     do n = 1,num_chem
     do j = jts,jte

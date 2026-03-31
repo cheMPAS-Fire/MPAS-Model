@@ -481,6 +481,7 @@
  call mpas_pool_get_dimension(mesh,'nkwildfire'   ,nkwildfire     )
  call mpas_pool_get_dimension(mesh,'nkbiogenic'   ,nkbiogenic     )
  call mpas_pool_get_dimension(mesh,'nkvolcanic'   ,nkvolcanic     )
+ call mpas_pool_get_dimension(mesh,'nkreswoodcomb',nkreswoodcomb       )
 
  call mpas_pool_get_dimension(diag_physics, 'num_e_ant_out',n_e_ant_out  )
  call mpas_pool_get_dimension(diag_physics, 'num_e_bb_out',n_e_bb_out    )
