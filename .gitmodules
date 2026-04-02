@@ -16,3 +16,9 @@
 [submodule "src/core_atmosphere/physics/physics_noaa/SMOKE"]
 	path = src/core_atmosphere/physics/physics_noaa/SMOKE
 	url = https://github.com/cheMPAS-Fire/SMOKE.git
+[submodule "src/core_atmosphere/physics/physics_noaa/MYNN-SFC"]
+	path = src/core_atmosphere/physics/physics_noaa/MYNN-SFC
+	url = https://github.com/NCAR/MYNN-SFC.git
+[submodule "src/core_atmosphere/physics/physics_mmm"]
+	path = src/core_atmosphere/physics/physics_mmm
+	url = https://github.com/NCAR/MMM-physics.git
