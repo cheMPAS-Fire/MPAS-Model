@@ -56,6 +56,10 @@
                     description="Number of latitude points in the input ugwp_limb_tau NGW file"/>
                 <dim name="days"
                     description="Number of day-of-year points in the input ugwp_limb_tau NGW file"/>
+                <dim name="nSWbds"          definition="14"
+                     description="A constant value of 14"/>
+                <dim name="nLWbds"          definition="16"
+                     description="A constant value of 16"/>
 #endif
         </dims>
 
@@ -3020,6 +3024,12 @@
                      units="s"
                      description="Relaxation time to initial values in 1-d OML"
                      possible_values="Non-negative real values"/>
+
+                <nml_option name="aer_opt" type="integer" default_value="0" in_defaults="false"
+                     units="-"
+                     description=""
+                     possible_values="0: no aerosol,2: direct AOD,3: Thompson aerosol aware"/>
+
         </nml_record>
 
         <var_struct name="diag_physics" time_levs="1">
@@ -4082,6 +4092,14 @@
 
                 <var name="taod5503d" type="real" dimensions="nVertLevels nCells Time" units="unitless"
                      description="aerosol optical depth at 550 nm from the Thompson cloud microphysics"
+		     packages="mp_thompson_aers_in;tempo_aerosolaware_in"/>
+
+                <var name="taod5502d_sim" type="real" dimensions="nCells Time" units="unitless"
+                     description="total aerosol optical depth at 550 nm from simple RH method"
+                     packages="mp_thompson_aers_in;tempo_aerosolaware_in"/>
+
+                <var name="taod5503d_sim" type="real" dimensions="nVertLevels nCells Time" units="unitless"
+                     description="aerosol optical depth at 550 nm from simple RH method"
                      packages="mp_thompson_aers_in;tempo_aerosolaware_in"/>
 
 
@@ -4458,7 +4476,7 @@
                      description="tendency of potential temperature due to short wave radiation"/>
 
                 <var name="rthratenlw" type="real" dimensions="nVertLevels nCells Time" units="K s^{-1}"
-			description="tendency of potential temperature due to long wave radiation"/>
+                     description="tendency of potential temperature due to long wave radiation"/>
 
                 <var name="rthratenlwc" type="real" dimensions="nVertLevels nCells Time" units="K s^{-1}"
                      description="tendency of potential temperature due to clear-sky long wave radiation"/>

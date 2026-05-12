@@ -36,6 +36,7 @@ OBJS = \
 	mpas_atmphys_driver_sfclayer.o     \
 	mpas_atmphys_driver_smoke.o        \
 	mpas_atmphys_finalize.o            \
+	physics_noaa/SMOKE/module_data_rrtmgaeropt.o \
 	mpas_atmphys_init.o                \
 	mpas_atmphys_init_microphysics.o   \
 	mpas_atmphys_init_tempo.o          \
@@ -220,7 +221,8 @@ mpas_atmphys_init.o: \
 	mpas_atmphys_lsm_noahmpinit.o \
 	mpas_atmphys_landuse.o \
 	mpas_atmphys_o3climatology.o \
-	mpas_atmphys_vars.o
+	mpas_atmphys_vars.o \
+	physics_noaa/SMOKE/module_data_rrtmgaeropt.o
 
 mpas_atmphys_interface.o: \
 	mpas_atmphys_constants.o \

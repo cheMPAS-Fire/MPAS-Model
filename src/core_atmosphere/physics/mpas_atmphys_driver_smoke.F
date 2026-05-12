@@ -17,6 +17,7 @@
  use mpas_atmphys_vars
 
  use mpas_smoke_wrapper
+ use rad_data_mod, only : aero_rad_init
 
  use mpas_dmpar
  use mpas_geometry_utils
@@ -52,10 +53,12 @@
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
-
  integer, pointer :: ebb_dcycle
  integer, pointer :: wetdep_ls_opt
+ ! Code has been added by Minsu Choi, CIRES/NOAA GSL
+ ! Now we are adding simple Mie calculation for smoke_fine particle
  integer, pointer :: drydep_opt
+ integer, pointer :: config_mie_aod_opt
  integer, pointer :: plumerise_opt
  logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
  integer, pointer :: bb_input_prevh
@@ -77,13 +80,10 @@
  call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
  call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
  call mpas_pool_get_config(configs,'bb_input_prevh',bb_input_prevh)
- ! nblocks is calculated here for allocation
  nblocks = 24 / bb_input_prevh
-
 
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
-
 
  if(.not.allocated(dx_p)        ) allocate(dx_p(ims:ime,jms:jme)                 )
  if(.not.allocated(area_p)      ) allocate(area_p(ims:ime,jms:jme)               )
@@ -127,6 +127,8 @@
  if(.not.allocated(vis_p)       ) allocate(vis_p(ims:ime,jms:jme)                )
  if(.not.allocated(aod550_p)    ) allocate(aod550_p(ims:ime,jms:jme)                )
  if(.not.allocated(aod3d_p))      allocate(aod3d_p(ims:ime,kms:kme,jms:jme))
+ if(.not.allocated(aod550_simple_p)    ) allocate(aod550_simple_p(ims:ime,jms:jme)                )
+ if(.not.allocated(aod3d_simple_p))   allocate(aod3d_simple_p(ims:ime,kms:kme,jms:jme))
 
  if ( config_smoke_scheme .ne. 'off' ) then
     if(.not.allocated(frp_out_p)   )         allocate(frp_out_p(ims:ime,jms:jme))
@@ -141,6 +143,10 @@
        if(.not.allocated(efs_rsmold_p)    )  allocate(efs_rsmold_p(ims:ime,jms:jme)) !EFs for residual smoldering
        if(.not.allocated(fire_ef_out_p)   )  allocate(fire_ef_out_p(ims:ime,jms:jme))
     endif
+    if(.not.allocated(tauaer_sw_p))        allocate(tauaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+    if(.not.allocated(tauaer_lw_p))        allocate(tauaer_lw_p(ims:ime,kms:kme,jms:jme,1:16))
+    if(.not.allocated(ssaaer_sw_p))        allocate(ssaaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+    if(.not.allocated(asyaer_sw_p))        allocate(asyaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
     if (ebb_dcycle .eq. 2 ) then
 ! TODO -- is fmc_avg for ebb or calc emis?
        if(.not.allocated(fmc_avg_p)       )  allocate(fmc_avg_p(ims:ime,jms:jme))  !should be always 2d
@@ -289,7 +295,6 @@
 
  if(allocated(nifa_p)         ) deallocate(nifa_p)
  if(allocated(nwfa_p)         ) deallocate(nwfa_p)
-
  if(allocated(frp_in_p)       ) deallocate(frp_in_p       )
  if(allocated(fre_in_p)       ) deallocate(fre_in_p       )
 
@@ -314,7 +319,6 @@
  if(allocated(RWC_annual_sum_smoke_coarse_p))    deallocate(RWC_annual_sum_smoke_coarse_p)
  if(allocated(RWC_annual_sum_unspc_fine_p))    deallocate(RWC_annual_sum_unspc_fine_p)
  if(allocated(RWC_annual_sum_unspc_coarse_p))    deallocate(RWC_annual_sum_unspc_coarse_p)
-
  if(allocated(clayfrac_in_p)    )     deallocate(clayfrac_in_p    )
  if(allocated(sandfrac_in_p)    )     deallocate(sandfrac_in_p    )
  if(allocated(uthres_in_p)      )     deallocate(uthres_in_p      )
@@ -330,8 +334,14 @@
  if(allocated(PM2_5_p)      )         deallocate(PM2_5_p      )
  if(allocated(PM10_p)       )         deallocate(PM10_p       )
  if(allocated(aod550_p)     )         deallocate(aod550_p     )
+ if(allocated(aod550_simple_p))       deallocate(aod550_simple_p)
  if(allocated(aod3d_smoke_p))         deallocate(aod3d_smoke_p)
+ if(allocated(tauaer_sw_p) )          deallocate(tauaer_sw_p  )
+ if(allocated(tauaer_lw_p) )          deallocate(tauaer_lw_p  )
+ if(allocated(ssaaer_sw_p) )          deallocate(ssaaer_sw_p  )
+ if(allocated(asyaer_sw_p) )          deallocate(asyaer_sw_p  )
  if(allocated(aod3d_p)      )         deallocate(aod3d_p      )
+ if(allocated(aod3d_simple_p))        deallocate(aod3d_simple_p)
 
  if(allocated(e_ant_in_p))            deallocate(e_ant_in_p)
  if(allocated(e_bb_in_p)    )         deallocate(e_bb_in_p )
@@ -339,7 +349,6 @@
  if(allocated(e_vol_in_p))            deallocate(e_vol_in_p)
  if(allocated(e_ant_pt_in_p))      deallocate(e_ant_pt_in_p)
  if(allocated(e_ant_stack_groups_in_p)) deallocate(e_ant_stack_groups_in_p)
- 
  if(allocated(e_ant_out_p))           deallocate(e_ant_out_p)
  if(allocated(e_bb_out_p)   )         deallocate(e_bb_out_p   )
  if(allocated(e_bio_out_p))           deallocate(e_bio_out_p)
@@ -389,7 +398,6 @@
       real(kind=RKIND),dimension(:,:),pointer    :: wetdep_resolved, drydep_flux
       real(kind=RKIND),dimension(:,:),pointer    :: nifa,nwfa  ! already made avaialbe in forallpysics/interface
       real(kind=RKIND),dimension(:,:),pointer    :: hno3_bkgd
-
       real(kind=RKIND),dimension(:),pointer      :: frp_in, frp_out, fre_in, fre_out, &
                                                     hwp, coef_bb_dc, fire_end_hr, fire_ef_out
       real(kind=RKIND),dimension(:,:),pointer    :: totprcp_prev24, hwp_prev24, frp_prev24, fre_prev24, fmc_prev24
@@ -456,7 +464,6 @@
       call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
 
       call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
-
       call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
       call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
       call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
@@ -633,6 +640,7 @@
          qcbl_p(i,k,j)     = qc_bl(k,i)
          qibl_p(i,k,j)     = qi_bl(k,i)
          aod3d_p(i,k,j)    = 0._RKIND
+         aod3d_simple_p(i,k,j)    = 0._RKIND
       enddo
       enddo
       enddo
@@ -966,7 +974,6 @@
       enddo
       endif
 
-
  end subroutine smoke_from_MPAS
 
 !=================================================================================================================
@@ -995,8 +1002,12 @@
  real(kind=RKIND),dimension(:),    pointer:: frp_out, fre_out, hwp, coef_bb_dc, fire_ef_out
  real(kind=RKIND),dimension(:),    pointer:: hfx_bb, qfx_bb, frac_grid_burned
  real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10
- real(kind=RKIND),dimension(:,:)  ,pointer:: aod3d_smoke, aod3d
+ real(kind=RKIND),dimension(:,:)  ,pointer:: aod3d_smoke, aod3d, aod3d_simple
+ real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_sw, asyaer_sw, ssaaer_sw
+ real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_lw
+ 
  real(kind=RKIND),dimension(:),    pointer:: aod550
+ real(kind=RKIND),dimension(:),    pointer:: aod550_simple
  real(kind=RKIND),dimension(:,:,:),pointer:: e_ant_out, e_bb_out, e_bio_out, &
                                              e_vol_out, e_dust_out, e_ss_out
  real(kind=RKIND),dimension(:),pointer :: aero_emis_for_enhmix
@@ -1020,7 +1031,7 @@
  logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
  logical, pointer :: calc_bb_emis_online
 
- integer:: i,k,j,n
+ integer:: i,k,j,n, i0,k0,n0, j0
 
 !local pointers:
  call mpas_pool_get_array(state,'scalars',scalars,time_lev)
@@ -1028,7 +1039,9 @@
  call mpas_pool_get_array(diag_physics,'PM2_5',PM2_5)
  call mpas_pool_get_array(diag_physics,'PM10',PM10)
  call mpas_pool_get_array(diag_physics,'aod3d',aod3d)
+ call mpas_pool_get_array(diag_physics,'aod3d_simple',aod3d_simple)
  call mpas_pool_get_array(diag_physics,'aod550',aod550)
+ call mpas_pool_get_array(diag_physics,'aod550_simple',aod550_simple)
 
  call mpas_pool_get_array(diag_physics,'ddvel',ddvel)
  call mpas_pool_get_array(diag_physics,'wetdep_resolved',wetdep_resolved)
@@ -1086,6 +1099,11 @@
  endif
  if (config_smoke_scheme .ne. 'off' ) then
     call mpas_pool_get_array(diag_physics,'aod3d_smoke',aod3d_smoke)
+    call mpas_pool_get_array(diag_physics,'tauaer_sw',tauaer_sw)
+    call mpas_pool_get_array(diag_physics,'tauaer_lw',tauaer_lw)
+    call mpas_pool_get_array(diag_physics,'ssaaer_sw',ssaaer_sw)
+    call mpas_pool_get_array(diag_physics,'asyaer_sw',asyaer_sw)
+
     call mpas_pool_get_array(diag_physics,'frp_out',frp_out)
     call mpas_pool_get_array(diag_physics,'fre_out',fre_out)
     call mpas_pool_get_array(diag_physics,'hwp',hwp)
@@ -1116,6 +1134,7 @@
          PM10(k,i)      = PM10_p(i,k,j)
 
          aod3d(k,i) = aod3d_p(i,k,j)
+         aod3d_simple(k,i) = aod3d_simple_p(i,k,j)
       !
          if ( config_smoke_scheme .ne. 'off' ) then
             aod3d_smoke(k,i) = aod3d_smoke_p(i,k,j)
@@ -1240,6 +1259,7 @@
       do i = its,ite
          vis(i)       = vis_p(i,j)
        aod550(i)      = aod550_p(i,j)
+       aod550_simple(i)      = aod550_simple_p(i,j)
          if (config_smoke_scheme .ne. 'off') then
             frp_out(i)          = frp_out_p(i,j)
             fre_out(i)          = fre_out_p(i,j)
@@ -1625,6 +1645,8 @@ endif
  logical,pointer                :: calc_bb_emis_online
  logical,pointer                :: add_fire_heat_flux
  logical,pointer                :: add_fire_moist_flux
+ logical,pointer                :: config_mie_aod_opt
+ integer,pointer                :: aero_dir_rad_fdb
  integer,pointer                :: plumerisefire_frq
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
  real(kind=RKIND),pointer       :: anthro_emis_scale_factor, anthro_pt_emis_scale_factor
@@ -1639,10 +1661,28 @@ endif
                                    do_mpas_ssalt, do_mpas_volc,  &
                                    do_mpas_sna, do_mpas_methane, &
                                    do_mpas_hab, do_mpas_rwc, do_mpas_anthro_pt
- integer                        :: i,j,k,nblocks
+ integer                        :: i,j,k,nblocks, n
+ ! --------------------------------------------------------------------------------------
+ !  Local Variables for Spectral Interpolation
+ ! --------------------------------------------------------------------------------------
+ ! 1. Source Wavelengths (Smoke output: 300, 400, 600, 999 nm)
+ real(kind=RKIND), dimension(4), parameter :: src_wav = &
+      (/ 0.300_RKIND, 0.400_RKIND, 0.600_RKIND, 0.999_RKIND /)
+! 2. Target Wavelengths (RRTMG Bands 1-14 midpoints)
+ real(kind=RKIND), dimension(14), parameter :: dst_wav = &
+      (/ 3.4615_RKIND, 2.7885_RKIND, 2.3256_RKIND, 2.0460_RKIND, &
+         1.7840_RKIND, 1.4625_RKIND, 1.2705_RKIND, 1.0101_RKIND, &
+         0.7016_RKIND, 0.5332_RKIND, 0.3931_RKIND, 0.3040_RKIND, &
+         0.2315_RKIND, 8.0205_RKIND /)
 
-
-
+ real(kind=RKIND), parameter :: thresh = 1.0e-9_RKIND
+ real(kind=RKIND) :: ang, slope
+ real(kind=RKIND), dimension(:,:,:), pointer :: tauaer_sw
+ real(kind=RKIND), dimension(:,:,:), pointer :: tauaer_lw
+ real(kind=RKIND), dimension(:,:,:), pointer :: ssaaer_sw
+ real(kind=RKIND), dimension(:,:,:), pointer :: asyaer_sw
+ integer :: idx_300, idx_400, idx_600, idx_999, k_end
+! --------------------------------------------------------------------------------------
 
  myrank = dminfo % my_proc_id
 
@@ -1706,6 +1746,7 @@ endif
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
  call mpas_pool_get_config(configs,'pm_settling',pm_settling)
 ! Namelist: dust
+ call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
  call mpas_pool_get_config(configs,'dust_alpha', dust_alpha)
  call mpas_pool_get_config(configs,'dust_gamma', dust_gamma)
  call mpas_pool_get_config(configs,'dust_drylimit_factor' ,dust_drylimit_factor)
@@ -1811,6 +1852,13 @@ endif
  call mpas_pool_get_dimension(state,'index_dust_ultrafine' ,index_dust_ultrafine )
  call mpas_pool_get_dimension(state,'index_dust_fine'  ,index_dust_fine )
  call mpas_pool_get_dimension(state,'index_dust_coarse'  ,index_dust_coarse )
+ ! Mie Calculation added here
+! call mpas_pool_get_config(configs,'config_mie_aod_opt', config_mie_aod_opt)
+! call aero_rad_init(configs)
+ call mpas_pool_get_array(diag_physics, 'tauaer_sw', tauaer_sw)
+ call mpas_pool_get_array(diag_physics, 'tauaer_lw', tauaer_lw)
+ call mpas_pool_get_array(diag_physics, 'ssaaer_sw', ssaaer_sw)
+ call mpas_pool_get_array(diag_physics, 'asyaer_sw', asyaer_sw)
 !
  call mpas_pool_get_dimension(state,'index_polp_tree'  ,index_polp_tree )
  call mpas_pool_get_dimension(state,'index_polp_grass'  ,index_polp_grass )
@@ -1896,6 +1944,7 @@ endif
  endif
  call mpas_timer_start('mpas_smoke')
  call mpas_smoke_driver(                                                                 &
+           configs = configs, &
 !--- Chemistry array
            chem  = chem_p, & 
            num_chem = num_chem, &
@@ -2092,7 +2141,10 @@ endif
            qc_vis  = qc_p, qr_vis = qr_p, qi_vis = qi_p, qs_vis = qs_p, qg_vis = qg_p,   &
            blcldw_vis = qcbl_p, blcldi_vis = qibl_p,                                     &
            coszen = coszr_p,                                                             &
-           aod3d_smoke = aod3d_smoke_p, aod3d = aod3d_p, vis    = vis_p          ,       &
+           config_mie_aod_opt = config_mie_aod_opt,                                      &
+           aod3d_smoke = aod3d_smoke_p, aod3d = aod3d_p, aod3d_simple = aod3d_simple_p,  &
+           vis = vis_p, tauaer_lw_p = tauaer_lw_p,                                       &
+           tauaer_sw_p = tauaer_sw_p, ssaaer_sw_p = ssaaer_sw_p, asyaer_sw_p = asyaer_sw_p, &
            pi_phy  = pi_p        , rho_phy  = rho_p      , kpbl     = kpbl_p     ,       &
            nsoil   = num_soils   , smois    = smois_p    , tslb     = tslb_p     ,       &
            ivgtyp  = ivgtyp_p    , isltyp   = isltyp_p   , nlcat    = num_landcat,       &
@@ -2143,17 +2195,69 @@ endif
  do j = jts,jte
  do i = its,ite
     aod550_p(i,j) = 0.0_RKIND
+    aod550_simple_p(i,j) = 0.0_RKIND
  enddo
  enddo
 
  do j = jts,jte
  do k = kts,kte
  do i = its,ite
-    aod550_p(i,j) = aod550_p(i,j) + aod3d_p(i,k,j) * dz_p(i,k,j) / 1000._RKIND
+!    aod550_p(i,j) = aod550_p(i,j) + aod3d_p(i,k,j) * dz_p(i,k,j) / 1000._RKIND
+    aod550_p(i,j) = aod550_p(i,j) + aod3d_p(i,k,j)
+    aod550_simple_p(i,j) = aod550_simple_p(i,j) + aod3d_simple_p(i,k,j)
  enddo
  enddo
  enddo
 
+! --------------------------------------------------------------------------------------
+ idx_300 = 1
+ idx_400 = 2
+ idx_600 = 3
+ idx_999 = 4
+ k_end = min(kte, ubound(tauaer_sw, 2))
+
+ if ( aero_dir_rad_fdb .eq. 2 ) then
+ do j = jts,jte
+   do i = its,ite
+     do k = kts,k_end !k_end declared here only in this subroutine
+       do n = 1, 16
+         tauaer_lw(n,k,i) = 0.0_RKIND 
+       enddo
+
+       do n = 1, 14
+         tauaer_sw(n,k,i) = 0.0_RKIND
+         ssaaer_sw(n,k,i) = 1.0_RKIND
+         asyaer_sw(n,k,i) = 0.0_RKIND
+       enddo
+       
+       if (tauaer_sw_p(i,k,j,idx_300) > thresh .and. tauaer_sw_p(i,k,j,idx_999) > thresh) then
+          ang = log(tauaer_sw_p(i,k,j,idx_300) / tauaer_sw_p(i,k,j,idx_999)) / &
+                log(src_wav(idx_999) / src_wav(idx_300))
+       else
+          ang = 1.0_RKIND
+       endif
+       
+       do n = 1, 14
+         tauaer_sw(n,k,i) = tauaer_sw_p(i,k,j,idx_400) * &
+                            (src_wav(idx_400) / dst_wav(n))**ang
+         slope = (ssaaer_sw_p(i,k,j,idx_600) - ssaaer_sw_p(i,k,j,idx_400)) / &
+                 (src_wav(idx_600) - src_wav(idx_400))
+         ssaaer_sw(n,k,i) = slope * (dst_wav(n) - src_wav(idx_600)) + ssaaer_sw_p(i,k,j,idx_600)
+         ssaaer_sw(n,k,i) = max(0.4_RKIND, min(1.0_RKIND, ssaaer_sw(n,k,i)))
+       
+         slope = (asyaer_sw_p(i,k,j,idx_600) - asyaer_sw_p(i,k,j,idx_400)) / &
+                 (src_wav(idx_600) - src_wav(idx_400))
+         asyaer_sw(n,k,i) = slope * (dst_wav(n) - src_wav(idx_600)) + asyaer_sw_p(i,k,j,idx_600)
+         asyaer_sw(n,k,i) = max(0.0_RKIND, min(1.0_RKIND, asyaer_sw(n,k,i)))
+       enddo
+       do n = 1, 16
+         tauaer_lw(n,k,i) = tauaer_lw_p(i,k,j,n)
+       enddo
+     enddo
+   enddo
+ enddo
+ endif
+! --------------------------------------------------------------------------------------
 
 !copy local arrays to MPAS grid:
  call smoke_to_MPAS(configs,time_lev,state,diag_physics,tend_physics,its,ite)

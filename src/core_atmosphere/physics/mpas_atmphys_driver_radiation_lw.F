@@ -192,6 +192,7 @@
 
        if(.not.allocated(pin_p)        ) allocate(pin_p(num_oznlevels)                     )
        if(.not.allocated(o3clim_p)     ) allocate(o3clim_p(ims:ime,1:num_oznlevels,jms:jme))
+       if(.not.allocated(tauaer_lw_p)     ) allocate(tauaer_lw_p(ims:ime,kms:kme,jms:jme,nbndlw) )
 
     case("cam_lw")
        if(.not.allocated(xlat_p)       ) allocate(xlat_p(ims:ime,jms:jme)               )
@@ -304,6 +305,7 @@
 
        if(allocated(pin_p)        ) deallocate(pin_p        )
        if(allocated(o3clim_p)     ) deallocate(o3clim_p     )
+       if(allocated(tauaer_lw_p)     ) deallocate(tauaer_lw_p     )
 
     case("cam_lw")
        if(allocated(pin_p)        ) deallocate(pin_p        )
@@ -345,6 +347,23 @@
  subroutine radiation_lw_from_MPAS(xtime_s,configs,mesh,state,time_lev,diag_physics,atm_input, &
                                    sfc_input,its,ite)
 !=================================================================================================================
+! Initializes local arrays from MPAS pools for use in longwave radiation schemes.
+! Handles:
+!   (1) Cloud effective radii for RRTMG (indirect effect via microphysics)
+!   (2) Aerosol longwave optical depth for RRTMG direct radiative feedback
+!       controlled by two independent namelist options:
+!         aer_opt          : RRTMG-level aerosol pathway (set from namelist)
+!         aero_dir_rad_fdb : MPAS driver-level direct feedback source
+!                            (0=none, 2=Mie/SMOKE only valid for LW;
+!                             1,3,4 have no LW pathway, fall back to 0 with warning)
+!
+! Note: Unlike SW, LW aerosol direct effect only involves absorption optical depth (tauaer_lw).
+!       SSA and asymmetry parameter are not used in LW RRTMG since longwave scattering
+!       by aerosols is negligible.
+!
+! Code has been written by Minsu Choi CIRES/NOAA GSL(Minsu.Choi@noaa.gov)/ 2026-02-16
+! Atmospheric Composition Branch at NOAA GSL
+!=================================================================================================================
 
 !input arguments:
  type(mpas_pool_type),intent(in):: mesh
@@ -356,7 +375,6 @@
  integer,intent(in):: its,ite
  integer,intent(in):: time_lev
 
-
  real(kind=RKIND),intent(in):: xtime_s
 
 !inout arguments:
@@ -366,6 +384,8 @@
  logical,pointer:: config_o3climatology
  logical,pointer:: config_calc_clean_atm_diag
  logical,pointer:: config_microp_re
+ integer,pointer:: aero_dir_rad_fdb
+ integer,pointer:: aer_opt
  character(len=StrKIND),pointer:: radt_lw_scheme
  character(len=StrKIND),pointer:: microp_scheme
 
@@ -376,6 +396,7 @@
  real(kind=RKIND),dimension(:,:),pointer  :: cldfrac,m_hybi,o3clim,o3vmr
  real(kind=RKIND),dimension(:,:),pointer  :: re_cloud,re_ice,re_snow
  real(kind=RKIND),dimension(:,:,:),pointer:: aerosols,ozmixm
+ real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_lw
 
 !local variables and arrays:
  integer:: ncols,nlevs
@@ -384,11 +405,13 @@
 
 !-----------------------------------------------------------------------------------------------------------------
 
- call mpas_pool_get_config(configs,'config_microp_re'     ,config_microp_re    )
- call mpas_pool_get_config(configs,'config_o3climatology' ,config_o3climatology)
- call mpas_pool_get_config(configs,'config_radt_lw_scheme',radt_lw_scheme      )
- call mpas_pool_get_config(configs,'config_microp_scheme' ,microp_scheme       )
+ call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re    )
+ call mpas_pool_get_config(configs,'config_o3climatology'    ,config_o3climatology)
+ call mpas_pool_get_config(configs,'config_radt_lw_scheme'   ,radt_lw_scheme      )
+ call mpas_pool_get_config(configs,'config_microp_scheme'    ,microp_scheme       )
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
+ call mpas_pool_get_config(configs,'aero_dir_rad_fdb'        ,aero_dir_rad_fdb    )
+ call mpas_pool_get_config(configs,'aer_opt'                 ,aer_opt             )
 
  call mpas_pool_get_array(mesh,'latCell',latCell)
  call mpas_pool_get_array(mesh,'lonCell',lonCell)
@@ -400,8 +423,8 @@
  call mpas_pool_get_array(sfc_input,'xice'    ,xice    )
  call mpas_pool_get_array(sfc_input,'xland'   ,xland   )
 
- call mpas_pool_get_array(atm_input,'pin'     ,pin     )
- call mpas_pool_get_array(atm_input,'ozmixm'  ,ozmixm  )
+ call mpas_pool_get_array(atm_input,'pin'    ,pin    )
+ call mpas_pool_get_array(atm_input,'ozmixm' ,ozmixm )
 
  call mpas_pool_get_array(diag_physics,'sfc_albedo',sfc_albedo)
  call mpas_pool_get_array(diag_physics,'sfc_emiss' ,sfc_emiss )
@@ -410,7 +433,11 @@
  call mpas_pool_get_array(diag_physics,'o3vmr'     ,o3vmr     )
  call mpas_pool_get_array(diag_physics,'m_hybi'    ,m_hybi    )
  call mpas_pool_get_array(diag_physics,'m_ps'      ,m_ps      )
+ call mpas_pool_get_array(diag_physics,'tauaer_lw' ,tauaer_lw ,time_lev)
 
+!-----------------------------------------------------------------------------------------------------------------
+! Section 1: Copy basic surface and atmospheric fields
+!-----------------------------------------------------------------------------------------------------------------
  do j = jts,jte
  do i = its,ite
     sfc_emiss_p(i,j) = sfc_emiss(i)
@@ -420,24 +447,20 @@
     xland_p(i,j)     = xland(i)
  enddo
  enddo
+
  do j = jts,jte
  do k = kts,kte
  do i = its,ite
     cldfrac_p(i,k,j) = cldfrac(k,i)
+    f_ice(i,k,j)     = 0.0_RKIND
+    f_rain(i,k,j)    = 0.0_RKIND
  enddo
  enddo
  enddo
 
-!initialization:
- do j = jts,jte
- do k = kts,kte
- do i = its,ite
-    f_ice(i,k,j)  = 0.0_RKIND
-    f_rain(i,k,j) = 0.0_RKIND
- enddo
- enddo
- enddo
-
+!-----------------------------------------------------------------------------------------------------------------
+! Section 2: Initialize output LW radiation arrays to zero
+!-----------------------------------------------------------------------------------------------------------------
  do j = jts,jte
  do i = its,ite
     glw_p(i,j)      = 0.0_RKIND
@@ -456,128 +479,164 @@
       lwdntcln_p(i,j) = 0.0_RKIND
       lwupbcln_p(i,j) = 0.0_RKIND
       lwuptcln_p(i,j) = 0.0_RKIND
-    end if
+    endif
  enddo
- 
  do k = kts,kte
  do i = its,ite
-    rthratenlw_p(i,k,j) = 0.0_RKIND
+    rthratenlw_p(i,k,j)  = 0.0_RKIND
     rthratenlwc_p(i,k,j) = 0.0_RKIND
  enddo
  enddo
  enddo
 
+!-----------------------------------------------------------------------------------------------------------------
+! Section 3: RRTMG-specific initialization
+!-----------------------------------------------------------------------------------------------------------------
  radiation_lw_select: select case (trim(radt_lw_scheme))
     case("rrtmg_lw")
-       microp_select: select case(microp_scheme)
-          case("mp_thompson","mp_thompson_aerosols","mp_wsm6")
-             if(config_microp_re) then
-                call mpas_pool_get_array(diag_physics,'re_cloud',re_cloud)
-                call mpas_pool_get_array(diag_physics,'re_ice'  ,re_ice  )
-                call mpas_pool_get_array(diag_physics,'re_snow' ,re_snow )
+       !----------------------------------------------------------------------
+       ! Section 3a: Aerosol longwave direct radiative feedback
+       ! Controlled by aero_dir_rad_fdb (MPAS driver-level)
+       ! Note: Only aero_dir_rad_fdb=2 (Mie/SMOKE) is valid for LW.
+       !       Options 1, 3, 4 have no LW aerosol pathway and fall back to 0.
+       !       tauaer_lw is the only optical property needed (no SSA/asymmetry
+       !       in LW since aerosol scattering is negligible at LW wavelengths).
+       !----------------------------------------------------------------------
+       lw_direct_feedback_select: select case(aero_dir_rad_fdb)
 
-                do j = jts,jte
-                do k = kts,kte
-                do i = its,ite
-                   recloud_p(i,k,j) = re_cloud(k,i)
-                   reice_p(i,k,j)   = re_ice(k,i)
-                   resnow_p(i,k,j)  = re_snow(k,i)
-                enddo
-                enddo
-                enddo
-             else
-                ! These are set in module mpas_atmphys_manager and should not be set again
-                !has_reqc = 0
-                !has_reqi = 0
-                !has_reqs = 0
-                do j = jts,jte
-                do k = kts,kte
-                do i = its,ite
-                   recloud_p(i,k,j) = 0._RKIND
-                   reice_p(i,k,j)   = 0._RKIND
-                   resnow_p(i,k,j)  = 0._RKIND
-                enddo
-                enddo
-                enddo
-             endif
+          !--- Case 0: No direct feedback
+          case(0)
+             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+             do n = 1,nbndlw
              do j = jts,jte
              do k = kts,kte
              do i = its,ite
-                rrecloud_p(i,k,j) = 0._RKIND
-                rreice_p(i,k,j)   = 0._RKIND
-                rresnow_p(i,k,j)  = 0._RKIND
+                tauaer_lw_p(i,k,j,n) = 0.0_RKIND
              enddo
              enddo
              enddo
+             enddo
+             !$OMP END PARALLEL DO
 
-          case("mp_nssl2m","mp_tempo")
-             if(config_microp_re) then
-                call mpas_pool_get_array(diag_physics,'re_cloud',re_cloud)
-                call mpas_pool_get_array(diag_physics,'re_ice'  ,re_ice  )
-                call mpas_pool_get_array(diag_physics,'re_snow' ,re_snow )
-
-                do j = jts,jte
-                do k = kts,kte
-                do i = its,ite
-                   recloud_p(i,k,j) = re_cloud(k,i)
-                   reice_p(i,k,j)   = re_ice(k,i)
-                   resnow_p(i,k,j)  = re_snow(k,i)
-                enddo
-                enddo
-                enddo
-             else
-                ! These are set in module mpas_atmphys_manager and should not be set again
-                !has_reqc = 0
-                !has_reqi = 0
-                !has_reqs = 0
-                do j = jts,jte
-                do k = kts,kte
-                do i = its,ite
-                   recloud_p(i,k,j) = 0._RKIND
-                   reice_p(i,k,j)   = 0._RKIND
-                   resnow_p(i,k,j)  = 0._RKIND
-                enddo
-                enddo
-                enddo
-             endif
+          !--- Case 2: Mie calculation from SMOKE driver
+          case(2)
+             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+             do n = 1,nbndlw
              do j = jts,jte
              do k = kts,kte
              do i = its,ite
-                rrecloud_p(i,k,j) = 0._RKIND
-                rreice_p(i,k,j)   = 0._RKIND
-                rresnow_p(i,k,j)  = 0._RKIND
+                tauaer_lw_p(i,k,j,n) = tauaer_lw(n,k,i)
              enddo
              enddo
              enddo
+             enddo
+             !$OMP END PARALLEL DO
+
+          !--- Cases 1, 3, 4: No LW pathway available, fall back to no direct feedback
+          case(1,3,4)
+             call mpas_log_write('WARNING: aero_dir_rad_fdb=1,3,4 have no longwave aerosol pathway. ' // &
+                                 'Falling back to no LW direct feedback (aero_dir_rad_fdb=0).',          &
+                                 messageType=MPAS_LOG_WARN)
+             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+             do n = 1,nbndlw
+             do j = jts,jte
+             do k = kts,kte
+             do i = its,ite
+                tauaer_lw_p(i,k,j,n) = 0.0_RKIND
+             enddo
+             enddo
+             enddo
+             enddo
+             !$OMP END PARALLEL DO
 
           case default
-       end select microp_select
+             call mpas_log_write('WARNING: Unknown aero_dir_rad_fdb value for LW. ' // &
+                                 'Defaulting to no direct feedback.',                   &
+                                 messageType=MPAS_LOG_WARN)
+             !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
+             do n = 1,nbndlw
+             do j = jts,jte
+             do k = kts,kte
+             do i = its,ite
+                tauaer_lw_p(i,k,j,n) = 0.0_RKIND
+             enddo
+             enddo
+             enddo
+             enddo
+             !$OMP END PARALLEL DO
 
+       end select lw_direct_feedback_select
+
+       !----------------------------------------------------------------------
+       ! Section 3b: Cloud effective radii (indirect effect via microphysics)
+       ! Independent of aero_dir_rad_fdb — not modified above
+       !----------------------------------------------------------------------
+       microp_re_select: select case(microp_scheme)
+          case("mp_thompson","mp_thompson_aerosols","mp_wsm6","mp_nssl2m","mp_tempo")
+             if(config_microp_re) then
+                call mpas_pool_get_array(diag_physics,'re_cloud',re_cloud)
+                call mpas_pool_get_array(diag_physics,'re_ice'  ,re_ice  )
+                call mpas_pool_get_array(diag_physics,'re_snow' ,re_snow )
+                do j = jts,jte
+                do k = kts,kte
+                do i = its,ite
+                   recloud_p(i,k,j) = re_cloud(k,i)
+                   reice_p(i,k,j)   = re_ice(k,i)
+                   resnow_p(i,k,j)  = re_snow(k,i)
+                enddo
+                enddo
+                enddo
+             else
+                do j = jts,jte
+                do k = kts,kte
+                do i = its,ite
+                   recloud_p(i,k,j) = 0._RKIND
+                   reice_p(i,k,j)   = 0._RKIND
+                   resnow_p(i,k,j)  = 0._RKIND
+                enddo
+                enddo
+                enddo
+             endif
+             do j = jts,jte
+             do k = kts,kte
+             do i = its,ite
+                rrecloud_p(i,k,j) = 0._RKIND
+                rreice_p(i,k,j)   = 0._RKIND
+                rresnow_p(i,k,j)  = 0._RKIND
+             enddo
+             enddo
+             enddo
+          case default
+       end select microp_re_select
+
+       !--- Initialize flux arrays
        do j = jts,jte
        do k = kts,kte+2
        do i = its,ite
-          lwdnflx_p(i,k,j)  = 0.0_RKIND
-          lwupflx_p(i,k,j)  = 0.0_RKIND
-          if (config_calc_clean_atm_diag) then
-            lwdnflxcln_p(i,k,j) = 0.0_RKIND
-            lwupflxcln_p(i,k,j) = 0.0_RKIND
-            lwdnflxc_p(i,k,j) = 0.0_RKIND
-            lwupflxc_p(i,k,j) = 0.0_RKIND
-          end if
+         lwdnflx_p(i,k,j)    = 0.0_RKIND
+         lwupflx_p(i,k,j)    = 0.0_RKIND
+         if (config_calc_clean_atm_diag) then
+           lwdnflxc_p(i,k,j) = 0.0_RKIND
+           lwupflxc_p(i,k,j) = 0.0_RKIND
+           lwdnflxcln_p(i,k,j) = 0.0_RKIND
+           lwupflxcln_p(i,k,j) = 0.0_RKIND
+         endif
        enddo
        enddo
        enddo
 
+       !----------------------------------------------------------------------
+       ! Section 3c: Ozone volume mixing ratio
+       !----------------------------------------------------------------------
        if(config_o3climatology) then
-          !ozone mixing ratio:
           do k = 1, num_oznLevels
              pin_p(k) = pin(k)
           enddo
           do j = jts,jte
           do k = 1, num_oznLevels
-             do i = its,ite
-                o3clim_p(i,k,j) = o3clim(k,i)
-             enddo
+          do i = its,ite
+             o3clim_p(i,k,j) = o3clim(k,i)
+          enddo
           enddo
           enddo
 
@@ -607,31 +666,30 @@
           enddo
           do j = jts,jte
           do k = 1, num_oznLevels
-             do i = its,ite
-                o3clim_p(i,k,j) = 0.0_RKIND
-             enddo
+          do i = its,ite
+             o3clim_p(i,k,j) = 0.0_RKIND
+          enddo
           enddo
           enddo
        endif
 
+!-----------------------------------------------------------------------------------------------------------------
+! Section 4: CAM LW initialization (unchanged)
+!-----------------------------------------------------------------------------------------------------------------
     case("cam_lw")
        do j = jts,jte
        do i = its,ite
-          xlat_p(i,j) = latCell(i) / degrad
-          xlon_p(i,j) = lonCell(i) / degrad
+          xlat_p(i,j)       = latCell(i) / degrad
+          xlon_p(i,j)       = lonCell(i) / degrad
           sfc_albedo_p(i,j) = sfc_albedo(i)
 
-          coszr_p(i,j)      = 0.0_RKIND
-          gsw_p(i,j)        = 0.0_RKIND
-          swcf_p(i,j)       = 0.0_RKIND
-          swdnb_p(i,j)      = 0.0_RKIND
-          swdnbc_p(i,j)     = 0.0_RKIND
-          swdnt_p(i,j)      = 0.0_RKIND
-          swdntc_p(i,j)     = 0.0_RKIND
-          swupb_p(i,j)      = 0.0_RKIND
-          swupbc_p(i,j)     = 0.0_RKIND
-          swupt_p(i,j)      = 0.0_RKIND
-          swuptc_p(i,j)     = 0.0_RKIND
+          coszr_p(i,j)    = 0.0_RKIND
+          gsw_p(i,j)      = 0.0_RKIND
+          swcf_p(i,j)     = 0.0_RKIND
+          swdnb_p(i,j)    = 0.0_RKIND  ;  swdnbc_p(i,j)   = 0.0_RKIND  ;  swdnbcln_p(i,j)   = 0.0_RKIND
+          swdnt_p(i,j)    = 0.0_RKIND  ;  swdntc_p(i,j)   = 0.0_RKIND  ;  swdntcln_p(i,j)   = 0.0_RKIND
+          swupb_p(i,j)    = 0.0_RKIND  ;  swupbc_p(i,j)   = 0.0_RKIND  ;  swupbcln_p(i,j)   = 0.0_RKIND
+          swupt_p(i,j)    = 0.0_RKIND  ;  swuptc_p(i,j)   = 0.0_RKIND  ;  swuptcln_p(i,j)   = 0.0_RKIND
        enddo
        do k = kts,kte
        do i = its,ite
@@ -643,10 +701,6 @@
        enddo
        enddo
 
-       !On the first time-step of each model run, the local arrays absnxt_p, absnst_p,
-       !and emstot_p are filled with the MPAS arrays abstot, absnxt, and emstot. If it
-       !is a new run, these three arrays will be initialized to zero;If a restart run,
-       !these three arrays will be filled with the restart values.
        if(xtime_s .lt. 1.e-12) then
           do j = jts,jte
           do n = 1,cam_abs_dim1
@@ -659,7 +713,7 @@
           do n = 1,cam_abs_dim2
           do k = kts,kte+1
           do i = its,ite
-              abstot_p(i,k,n,j) = 0.0_RKIND
+             abstot_p(i,k,n,j) = 0.0_RKIND
           enddo
           enddo
           enddo
@@ -671,25 +725,24 @@
           enddo
        endif
 
-       !ozone mixing ratio:
        do k = 1, num_oznlevels
           pin_p(k) = pin(k)
        enddo
        do n = 1, num_months
-          do j = jts,jte
-          do k = 1, num_oznlevels
-          do i = its,ite
-             ozmixm_p(i,k,j,n) = ozmixm(n,k,i)
-          enddo
-          enddo
-          enddo
+       do j = jts,jte
+       do k = 1, num_oznlevels
+       do i = its,ite
+          ozmixm_p(i,k,j,n) = ozmixm(n,k,i)
        enddo
-       !aerosol mixing ratio:
+       enddo
+       enddo
+       enddo
+
        do k = 1, num_aerlevels
           m_hybi_p(k) = m_hybi(k,1)
        enddo
-       do i = its,ite
        do j = jts,jte
+       do i = its,ite
           m_psp_p(i,j) = m_ps(i)
           m_psn_p(i,j) = m_ps(i)
        enddo
@@ -706,6 +759,7 @@
        enddo
 
     case default
+
  end select radiation_lw_select
 
  end subroutine radiation_lw_from_MPAS
@@ -756,7 +810,7 @@
  call mpas_pool_get_array(diag_physics,'olrtoa',olrtoa)
 
  call mpas_pool_get_array(tend_physics,'rthratenlw',rthratenlw)
-
+ call mpas_pool_get_array(tend_physics,'rthratenlwc',rthratenlwc)
  if (config_calc_clean_atm_diag) then
    call mpas_pool_get_array(diag_physics,'lwdnbc',lwdnbc)
    call mpas_pool_get_array(diag_physics,'lwdntc',lwdntc)
@@ -796,7 +850,7 @@
     if (config_calc_clean_atm_diag) then
       rthratenlwc(k,i) = rthratenlwc_p(i,k,j)
     endif
-  enddo
+ enddo
  enddo
  enddo
 
@@ -863,7 +917,6 @@
  end select radiation_lw_select
 
  end subroutine radiation_lw_to_MPAS
-
 !=================================================================================================================
  subroutine radiation_camlw_to_MPAS(diag_physics,its,ite)
 !=================================================================================================================
@@ -1024,13 +1077,14 @@
             has_reqc  = has_reqc   , &
             has_reqi = has_reqi    , has_reqs   = has_reqs      , re_cloud  = recloud_p  , &
             re_ice   = reice_p     , re_snow    = resnow_p      , rre_cloud = rrecloud_p , &
-            rre_ice  = rreice_p    , rre_snow   = rresnow_p     , lwupt     = lwupt_p    , &
+            rre_ice  = rreice_p    , rre_snow   = rresnow_p     , aer_opt   = aer_opt    , &
+            tauaer3d_lw = tauaer_lw_p , lwupt      = lwupt_p       , &
             lwuptc   = lwuptc_p    , lwuptcln   = lwuptcln_p    , lwdnt     = lwdnt_p    , &
             lwdntc   = lwdntc_p    , lwdntcln   = lwdntcln_p    , lwupb     = lwupb_p    , &
-            lwupbc   = lwupbc_p    , lwupbcln   = lwupbcln_p , &
+            lwupbc   = lwupbc_p    , lwupbcln   = lwupbcln_p    , &
             lwdnb    = lwdnb_p     , lwdnbc     = lwdnbc_p      , lwdnbcln  = lwdnbcln_p , &
-            lwupflx   = lwupflx_p  , lwupflxc   = lwupflxc_p    , lwupflxcln = lwupflxcln_p, &
-            lwdnflx   = lwdnflx_p  , lwdnflxc   = lwdnflxc_p    , lwdnflxcln = lwdnflxcln_p, &  
+            lwupflx   = lwupflx_p  , lwupflxc   = lwupflxc_p    , lwupflxcln = lwupflxcln_p,&
+            lwdnflx   = lwdnflx_p  , lwdnflxc   = lwdnflxc_p    , lwdnflxcln = lwdnflxcln_p,&
             config_calc_clean_atm_diag = config_calc_clean_atm_diag, &
             ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,        &
             ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,        &
