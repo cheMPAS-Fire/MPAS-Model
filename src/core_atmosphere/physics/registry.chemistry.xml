@@ -16,10 +16,12 @@
           description="Number of vertical levels in biogenic emission file"/>
       <dim name="nkvolcanic"             definition="namelist:kvolcanic"
           description="Number of vertical levels in volcanic emission file"/>
-      <dim name="nkreswoodcomb"             definition="namelist:kreswoodcomb"
-          description="Number of vertical levels in residential wood combustion emission file"/>
       <dim name="TWENTYFOUR"          definition="24"
           description="A constant value of 24"/>
+      <dim name="TSTEP"     
+          description="CMAP IOAPI Time"/>
+      <dim name="nanthro_pt"
+          description="Number of vertical levels in anthropogenic emission file"/>
    </dims>
 
 <!-- **************************************************************************************** -->
@@ -27,6 +29,12 @@
 <!-- **************************************************************************************** -->
 
    <packages>
+         <package name="mpas_anthro_pt_emis"
+                 active_when="config_anthro_scheme .ne. 'off' .and. config_anthro_pt_scheme .ne. 'off'"
+                 description="package for point source anthropogenic emissions"/>
+         <package name="mpas_smoke_forecast"
+                 active_when="config_smoke_scheme .eq. 'forecast'"
+                 description="package for forcasting emissions"/>
 	 <package name="mpas_smoke_fine"          
 		 active_when="config_smoke_scheme .ne. 'off' .or. config_rwc_scheme .ne. 'off'"
 		 description="parameterization of fine smoke"/>
@@ -136,6 +144,10 @@
            units="-"
            description="configuration for mpas anthropogenic emissions model"
            possible_values="`on',`off'"/>
+      <nml_option name="config_anthro_pt_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas anthropogenic point source emissions model"
+           possible_values="`on',`off'"/>
       <nml_option name="config_pollen_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas pollen model"
@@ -228,6 +240,14 @@
            units="-"
            description="Algorithm choice for plumerise"
            possible_values="Positive integer values"/>
+      <nml_option name="plumerise_opt_rwc" type="integer" default_value="0"
+           units="-"
+           description="Algorithm choice for plumerise of RWC emisisons"
+           possible_values="Positive integer values"/>
+      <nml_option name="plumerise_opt_anthro" type="integer" default_value="0"
+           units="-"
+           description="Algorithm choice for plumerise of anthropogenic point source emisisons"
+           possible_values="Positive integer values"/>
       <nml_option name="plume_wind_eff" type="integer" default_value="0"
            units="-"
            description="Algorithm choice for wind effects in plumerise"
@@ -262,7 +282,15 @@
            possible_values="Positive real values"/>
       <nml_option name="rwc_emis_scale_factor" type="real" default_value="1.0"
            units="-"
-           description="Scale factor applied to residnetial wood fire emissions"
+           description="Scale factor applied to residential wood fire emissions"
+           possible_values="Positive real values"/>
+      <nml_option name="anthro_emis_scale_factor" type="real" default_value="1.0"
+           units="-"
+           description="Scale factor applied to anthropgenic emissions at the surface"
+           possible_values="Positive real values"/>
+      <nml_option name="anthro_pt_emis_scale_factor" type="real" default_value="1.0"
+           units="-"
+           description="Scale factor applied to anthropogenic inline/stack emissions"
            possible_values="Positive real values"/>
       <nml_option name="drydep_opt" type="integer" default_value="0"
            units="-"
@@ -320,7 +348,6 @@
             units="-"
             description="scale factor for weed pollen emissions"
             possible_values="Positive real values"/>
-
    </nml_record>
 
 <!-- **************************************************************************************** -->
@@ -352,6 +379,7 @@
               <var name="PM10"/>
               <var name="max_bb_plume"/>
               <var name="min_bb_plume"/>
+              <var name="max_rwc_plume"/>
               <var name="coef_bb_dc"/>
               <var name="fire_hist"/>
               <var name="fire_peak_hr"/>
@@ -392,6 +420,19 @@
          <var name="fmc_prev24"/>
       </stream>
 
+      <stream name="smoke_emission_input"
+         type="input"
+         filename_template="x1.40962.bb_emis.init.nc"
+         input_interval="initial_only"
+         immutable="true"
+         in_defaults="false">
+          
+         <var name="efs_smold"/>
+         <var name="efs_flam"/>
+         <var name="efs_rsmold"/>
+         <var name="ecoregion_ID"/>
+      </stream>
+
       <stream name="dust_input"
          type="input"
          filename_template="x1.40962.dust.init.nc"
@@ -402,10 +443,8 @@
          <var name="sandfrac_in"/>
          <var name="clayfrac_in"/>
          <var name="uthres_in"/>
-         <var name="uthres_sg_in"/>
-         <var name="sep_in"/>
-         <var name="albedo_drag_m_in"/>
-         <var name="feff_m_in"/>
+         <var name="ssm_in"/>
+         <var name="rdrag_m_in"/>
       </stream>
 
       <stream name="anthro_input"
@@ -443,6 +482,24 @@
          <var name="RWC_annual_sum_unspc_fine"/>
          <var name="RWC_annual_sum_unspc_coarse"/>
        </stream>
+
+      <stream name="anthro_pt_input"
+         type="input"
+         filename_template="anthro_pt.init.nc"
+         input_interval="intial_only"
+         immutable="true"
+         in_defaults="false">
+
+         <var_array name="e_ant_pt_in"/>
+      </stream>
+      <stream name="anthro_pt_stack_group_input"
+         type="input"
+         filename_template="anthro_pt.stack_groups.init.nc"
+         input_interval="intial_only"
+         immutable="true"
+         in_defaults="false">
+         <var_array name="e_ant_stack_groups_in"/>
+      </stream>
 
 </streams>
 
@@ -617,6 +674,35 @@
               packages="mpas_sna_in"/>
       </var_array>
      <!-- Anthropogenic -->
+     <!-- pt src, for now only EGU - deciding on implementation -->
+      <var_array name="e_ant_pt_in" type="real" dimensions="nanthro_pt TSTEP Time" packages="mpas_anthro_pt_emis">
+         <var name="e_ant_pt_in_unspc_fine" name_in_code="e_ant_pt_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input point source anthropogenic fine unspeciated emissions"
+              packages="mpas_anthro_aero_in"/>
+      </var_array>
+      <var_array name="e_ant_stack_groups_in" type="real" dimensions="nanthro_pt" packages="mpas_anthro_pt_emis">
+         <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
+              description="Latitude of the point source"/>
+         <var name="STKLG" name_in_code="STKLG" array_group="ant_pt_in_aerosols" units="degrees"
+              description="Longitude of the point source"/>
+         <var name="STKDM" name_in_code="STKDM" array_group="ant_pt_in_aerosols" units="m"
+              description="Inside stack diameter"/>
+         <var name="STKHT" name_in_code="STKHT" array_group="ant_pt_in_aerosols" units="m"
+              description="Stack height above ground surface "/>
+         <var name="STKTK" name_in_code="STKTK" array_group="ant_pt_in_aerosols" units="K"
+              description="Stack exit temperature"/>
+         <var name="STKVE" name_in_code="STKVE" array_group="ant_pt_in_aerosols" units="m s^{-1}"
+              description="Stack exit velocity"/>
+      </var_array>
+      <var name="ant_pt_local_cell_idx" type="integer" dimensions="nanthro_pt" units="index" 
+           description="Local MPAS cell index for the stack"
+           packages="mpas_anthro_pt_emis" />
+      <var name="ant_pt_global_cell_idx" type="integer" dimensions="nanthro_pt" units="index" 
+           description="Global MPAS cell index for the stack"
+           packages="mpas_anthro_pt_emis" />
+      <var name="ant_pt_rank" type="integer" dimensions="nanthro_pt" units="index" 
+           description="MPAS rank for the stack"
+           packages="mpas_anthro_pt_emis" />
       <var_array name="e_ant_in" type="real" dimensions="nkanthro nCells Time" packages="mpas_anthro_in">
          <var name="e_ant_in_unspc_ultrafine" name_in_code="e_ant_in_unspc_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic ultrafine unspeciated emissions"
@@ -822,6 +908,9 @@
       <var name="max_bb_plume" type="integer" dimensions="nCells Time" units="-"
            description="maximumum biomass burning plumerise injection level"
            packages="mpas_smoke_in"/>
+      <var name="max_rwc_plume" type="integer" dimensions="nCells Time" units="-"
+           description="maximumum RWC plumerise injection level"
+           packages="mpas_rwc_in"/>
       <var name="fire_type" type="integer" dimensions="nCells Time" units="-"
            description="type of fire"
            packages="mpas_smoke_in"/>
@@ -851,20 +940,33 @@
       <var name="hwp" type="real" dimensions="nCells Time" units="-"
            description="Hourly Wildfire Potential"
            packages="mpas_smoke_in"/>
+<!-- TODO Some of these should only be activated if ebb_dcycle = 2, create new package for it -->
       <var name="hwp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="-"
            description="Hourly Wildfire Potential over the last 24 hours"
-           packages="mpas_smoke_in"/>
+           packages="mpas_smoke_forecast"/>
       <var name="frp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="W"
            description="Fire Radiative Power over the last 24 hours"
-           packages="mpas_smoke_in"/>
+           packages="mpas_smoke_forecast"/>
       <var name="fre_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
            description="Fire Radiative Energy over the last 24 hours"
-           packages="mpas_smoke_in"/>
+           packages="mpas_smoke_forecast"/>
       <var name="fmc_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
            description="Fuel Moisture Content over the last 24 hours"
-           packages="mpas_smoke_in"/>
+           packages="mpas_smoke_forecast"/>
       <var name="totprcp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="m" 
            description="Total precipitation over the last 24 hours"
+           packages="mpas_smoke_forecast"/>
+      <var name="ecoregion_ID" type="integer" dimensions="nCells Time" units="-"
+           description="ecoregion ID"
+           packages="mpas_smoke_in"/>
+      <var name="efs_smold" type="real" dimensions="nCells Time" units="g/kg"
+           description="emission factors for smoldering"
+           packages="mpas_smoke_in"/>
+      <var name="efs_rsmold" type="real" dimensions="nCells Time" units="g/kg"
+           description="emission factors for residual smoldering"
+           packages="mpas_smoke_in"/>
+      <var name="efs_flam" type="real" dimensions="nCells Time" units="g/kg"
+           description="emission factors for flaming"
            packages="mpas_smoke_in"/>
       <var name="fire_end_hr" type="real" dimensions="nCells Time" units="hr"
            description="Hours since fire was last detected"
@@ -882,14 +984,11 @@
       <var name="feff"                  type="real" dimensions="nCells Time" units="-"
            description="drag partition (alternate)"
            packages="mpas_dust_in"/>
-      <var name="albedo_drag"           type="real" dimensions="nCells Time" units="-"
+      <var name="rdrag"           type="real" dimensions="nCells Time" units="-"
            description="drag partition"
            packages="mpas_dust_in"/>
       <var name="uthres_in" type="real" dimensions="nCells" units="-"
            description="threshold friction velocity"
-           packages="mpas_dust_in"/>
-      <var name="uthres_sg_in" type="real" dimensions="nCells" units="-"
-           description="threshold friction velocity (alternate)"
            packages="mpas_dust_in"/>
       <var name="sandfrac_in" type="real" dimensions="nCells" units="-"
            description="sand fraction"
@@ -897,13 +996,10 @@
       <var name="clayfrac_in" type="real" dimensions="nCells" units="-"
            description="clay fraction"
            packages="mpas_dust_in"/>
-      <var name="albedo_drag_m_in" type="real" dimensions="nMonths nCells" units="-"
+      <var name="rdrag_m_in" type="real" dimensions="nMonths nCells" units="-"
            description="drag partition"
            packages="mpas_dust_in"/>
-      <var name="feff_m_in" type="real" dimensions="nMonths nCells" units="-"
-           description="drag partition (alternate)"
-           packages="mpas_dust_in"/>
-      <var name="sep_in" type="real" dimensions="nCells" units="-"
+      <var name="ssm_in" type="real" dimensions="nCells" units="-"
            description="soil erosion potential"
            packages="mpas_dust_in"/>
       <var name="aod3d_smoke"     type="real" dimensions="nVertLevels nCells Time" units="-"
@@ -912,19 +1008,19 @@
            description="aerosol optical depth from all aerosols"/>
       <var name="aod550"           type="real" dimensions="nCells Time" units="-"
            description="aerosol optical depth (2D) from all aerosols"/>
-      <var name="RWC_annual_sum" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_smoke_fine" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_smoke_fine" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning fine smoke emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_smoke_coarse" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_smoke_coarse" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning coarse smoke emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_unspc_fine" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_unspc_fine" type="real" dimensions="nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning fine unspc emissions"
 	   packages="mpas_rwc_in"/>
-      <var name="RWC_annual_sum_unspc_coarse" type="real" dimensions="nkreswoodcomb nCells Time" units="ug m^{-2}"
+      <var name="RWC_annual_sum_unspc_coarse" type="real" dimensions="nCells Time" units="ug m^{-2}"
            description="Annual sum of residential wood burning coarse unspc emissions"
 	   packages="mpas_rwc_in"/>
       <var name="RWC_denominator" type="real" dimensions="nCells Time" units="F"

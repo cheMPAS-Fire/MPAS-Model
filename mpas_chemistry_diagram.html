@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>cheMPAS-Fire Chemistry Registry — Full Reference</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #08090d;
+  --bg2:     #0f1118;
+  --bg3:     #171b26;
+  --border:  #252a3a;
+  --muted:   #4a5270;
+  --text:    #c8cfe8;
+  --bright:  #e8edf8;
+  --smoke:   #f97316;
+  --dust:    #c8a227;
+  --pollen:  #86efac;
+  --ssalt:   #38bdf8;
+  --anthro:  #a78bfa;
+  --volc:    #fb7185;
+  --gases:   #34d399;
+  --sna:     #f472b6;
+  --bio:     #4ade80;
+  --misc:    #94a3b8;
+  --fire:    #ff6b35;
+  --depo:    #60a5fa;
+  --rad:     #fbbf24;
+  --rwc:     #e879f9;
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+.page { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 28px 96px; }
+
+/* NAV */
+.top-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,9,13,0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex; align-items: center;
+  overflow-x: auto;
+  margin: 0 -28px 48px;
+  scrollbar-width: none;
+}
+.top-nav::-webkit-scrollbar { display: none; }
+.nav-tab {
+  flex-shrink: 0;
+  padding: 14px 18px;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.nav-tab:hover { color: var(--bright); }
+.nav-tab.active { color: var(--bright); border-bottom-color: var(--bright); }
+
+/* HEADER */
+header { text-align: center; padding-top: 48px; margin-bottom: 48px; }
+header .label {
+  display: inline-block;
+  font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--border);
+  padding: 4px 14px; border-radius: 2px; margin-bottom: 20px;
+}
+header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 3.5vw, 44px);
+  font-weight: 800; color: var(--bright);
+  line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 12px;
+}
+header h1 span { color: var(--smoke); }
+header p { color: var(--muted); font-size: 11px; max-width: 600px; margin: 0 auto; line-height: 1.7; }
+
+/* SEARCH */
+.search-row {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 520px; margin: 0 auto 36px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 8px 16px;
+  transition: border-color 0.2s;
+}
+.search-row:focus-within { border-color: #3a4060; }
+.search-row input {
+  background: none; border: none; outline: none;
+  color: var(--bright); font-family: inherit; font-size: 12px; flex: 1;
+}
+.search-row input::placeholder { color: var(--muted); }
+.count-b { font-size: 9px; color: var(--muted); letter-spacing: 0.05em; white-space: nowrap; }
+
+/* LEGEND */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-bottom: 44px;
+}
+.leg-chip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; padding: 4px 10px;
+  border: 1px solid var(--border); border-radius: 2px;
+  transition: all 0.2s;
+}
+.leg-chip:hover, .leg-chip.on { color: var(--bright); border-color: #3a4060; }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* PANELS */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* TRACER SECTION */
+.t-section { margin-bottom: 52px; }
+.t-section-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 18px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.t-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.t-section-header h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px; font-weight: 700; color: var(--bright);
+  letter-spacing: -0.01em;
+}
+.nm-badge {
+  font-size: 9px; letter-spacing: 0.04em;
+  padding: 3px 10px; border-radius: 2px; border: 1px solid; opacity: 0.75;
+}
+.t-count { font-size: 9px; color: var(--muted); margin-left: auto; }
+.t-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+.t-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px 14px 20px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.t-card:hover {
+  border-color: var(--card-color, #fff);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+}
+.t-bar {
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  border-radius: 4px 0 0 4px; opacity: 0.75;
+}
+.t-name { font-size: 13px; font-weight: 600; color: var(--bright); margin-bottom: 3px; }
+.t-desc { font-size: 10px; color: var(--muted); line-height: 1.5; margin-bottom: 7px; }
+.t-units { font-size: 9px; color: var(--muted); opacity: 0.65; font-style: italic; margin-bottom: 8px; }
+.t-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.t-tag {
+  font-size: 9px; padding: 2px 7px; border-radius: 2px;
+  border: 1px solid; letter-spacing: 0.03em;
+}
+.t-size {
+  font-size: 9px; padding: 2px 7px; border-radius: 2px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.t-cond {
+  margin-top: 8px; font-size: 9px; color: #3e4560; line-height: 1.5;
+  border-top: 1px solid var(--border); padding-top: 6px;
+}
+
+/* NL SECTION */
+.nl-section { margin-bottom: 52px; }
+.nl-section-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 18px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.nl-section-header h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px; font-weight: 700; color: var(--bright);
+  letter-spacing: -0.01em;
+}
+.nl-note {
+  font-size: 10px; color: var(--muted); line-height: 1.6;
+  max-width: 460px; margin-left: auto; text-align: right;
+}
+.nl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 12px;
+}
+.nl-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: 4px;
+  padding: 16px 18px;
+  transition: box-shadow 0.18s;
+}
+.nl-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.nl-name { font-size: 12px; font-weight: 700; color: var(--bright); margin-bottom: 2px; }
+.nl-default { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 2px; background: var(--bg3); border: 1px solid var(--border); color: var(--muted); margin-left: 6px; }
+.nl-meta { font-size: 9px; color: var(--muted); margin-bottom: 8px; }
+.nl-desc { font-size: 10px; color: var(--text); line-height: 1.65; margin-bottom: 10px; }
+.v-label, .a-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+.a-label { margin-top: 9px; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.v-pill {
+  font-size: 9px; padding: 2px 8px; border-radius: 2px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+}
+.v-pill.hl { border-color: #3a4060; color: var(--bright); }
+.a-pill {
+  font-size: 9px; padding: 2px 8px; border-radius: 2px;
+  border: 1px solid; color: var(--bright); opacity: 0.85;
+}
+
+/* PACKAGE MAP */
+.pkg-section h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px; font-weight: 700; color: var(--bright);
+  letter-spacing: -0.01em; margin-bottom: 18px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.pkg-list { display: grid; gap: 8px; }
+.pkg-row {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 16px; align-items: start;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: 4px;
+  transition: box-shadow 0.18s;
+}
+.pkg-row:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.pkg-name { font-size: 11px; font-weight: 600; color: var(--bright); word-break: break-all; margin-bottom: 2px; }
+.pkg-sub { font-size: 9px; color: var(--muted); }
+.pkg-cond { color: var(--muted); line-height: 1.6; font-size: 10px; }
+.pkg-tracers { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="top-nav" id="topNav">
+  <div class="nav-tab active" data-panel="tracers">Tracers</div>
+  <div class="nav-tab" data-panel="nl-scheme">Scheme Switches</div>
+  <div class="nav-tab" data-panel="nl-fire">Fire &amp; Emissions</div>
+  <div class="nav-tab" data-panel="nl-depo">Deposition &amp; Settling</div>
+  <div class="nav-tab" data-panel="nl-dust">Dust Tuning</div>
+  <div class="nav-tab" data-panel="nl-pollen">Pollen Tuning</div>
+  <div class="nav-tab" data-panel="nl-plume">Plumerise</div>
+  <div class="nav-tab" data-panel="nl-misc">Radiation &amp; Mixing</div>
+  <div class="nav-tab" data-panel="nl-dims">Dimensions</div>
+  <div class="nav-tab" data-panel="packages">Packages</div>
+</div>
+
+<div class="page">
+  <header>
+    <div class="label">cheMPAS-Fire · registry.chemistry.xml · Full Reference</div>
+    <h1>Chemistry Registry<br/><span>Tracers, Packages &amp; All Namelist Options</span></h1>
+    <p>All chemical scalars and every namelist option, grouped by subsystem. Use the tabs to navigate. Search filters across all views.</p>
+  </header>
+
+  <div class="search-row">
+    <span style="color:var(--muted)">⌕</span>
+    <input type="text" id="searchInput" placeholder="Search tracers, options, packages…"/>
+    <span class="count-b" id="countBadge"></span>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <!-- TRACERS -->
+  <div class="panel active" id="panel-tracers">
+    <div id="tracerSections"></div>
+  </div>
+
+  <!-- SCHEME SWITCHES -->
+  <div class="panel" id="panel-nl-scheme">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--smoke)"></div>
+        <h2>Scheme On/Off Switches</h2>
+        <p class="nl-note">These character/logical options enable entire aerosol or gas subsystems and activate the corresponding packages and tracers.</p>
+      </div>
+      <div class="nl-grid" id="nl-scheme-grid"></div>
+    </div>
+  </div>
+
+  <!-- FIRE / EMISSIONS -->
+  <div class="panel" id="panel-nl-fire">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--fire)"></div>
+        <h2>Fire &amp; Biomass Burning Emissions</h2>
+        <p class="nl-note">Controls diurnal cycling, emission factors, scaling, online calculation, and fire feedback. Primarily applies when <code style="font-size:9px;color:var(--smoke)">config_smoke_scheme ≠ off</code>.</p>
+      </div>
+      <div class="nl-grid" id="nl-fire-grid"></div>
+    </div>
+  </div>
+
+  <!-- DEPOSITION -->
+  <div class="panel" id="panel-nl-depo">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--depo)"></div>
+        <h2>Deposition &amp; Gravitational Settling</h2>
+        <p class="nl-note">Dry deposition, wet deposition, and gravitational settling options applied across all active chemical tracers via <code style="font-size:9px;color:var(--depo)">nChem</code>-dimensioned diagnostics.</p>
+      </div>
+      <div class="nl-grid" id="nl-depo-grid"></div>
+    </div>
+  </div>
+
+  <!-- DUST TUNING -->
+  <div class="panel" id="panel-nl-dust">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--dust)"></div>
+        <h2>Dust Emission Tuning</h2>
+        <p class="nl-note">Scaling and physical correction factors for FENGSHA dust. Requires <code style="font-size:9px;color:var(--dust)">config_dust_scheme ≠ off</code>.</p>
+      </div>
+      <div class="nl-grid" id="nl-dust-grid"></div>
+    </div>
+  </div>
+
+  <!-- POLLEN TUNING -->
+  <div class="panel" id="panel-nl-pollen">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--pollen)"></div>
+        <h2>Pollen Emission Tuning</h2>
+        <p class="nl-note">Scale factors per pollen species and sub-particle rupture count. Requires <code style="font-size:9px;color:var(--pollen)">config_pollen_scheme ≠ off</code>.</p>
+      </div>
+      <div class="nl-grid" id="nl-pollen-grid"></div>
+    </div>
+  </div>
+
+  <!-- PLUMERISE -->
+  <div class="panel" id="panel-nl-plume">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--fire)"></div>
+        <h2>Plumerise</h2>
+        <p class="nl-note">Algorithm and physical parameter choices for fire smoke injection height. Requires <code style="font-size:9px;color:var(--smoke)">config_smoke_scheme ≠ off</code>.</p>
+      </div>
+      <div class="nl-grid" id="nl-plume-grid"></div>
+    </div>
+  </div>
+
+  <!-- RADIATION / MISC -->
+  <div class="panel" id="panel-nl-misc">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--rad)"></div>
+        <h2>Radiation, PBL Mixing &amp; Flux Feedbacks</h2>
+        <p class="nl-note">Aerosol direct radiative effect, enhanced PBL mixing, and fire heat/moisture flux feedbacks to the atmosphere.</p>
+      </div>
+      <div class="nl-grid" id="nl-misc-grid"></div>
+    </div>
+  </div>
+
+  <!-- DIMENSIONS -->
+  <div class="panel" id="panel-nl-dims">
+    <div class="nl-section">
+      <div class="nl-section-header">
+        <div class="t-dot" style="background:var(--misc)"></div>
+        <h2>Dimension &amp; Count Options</h2>
+        <p class="nl-note">Integer options that control array sizes. <code style="font-size:9px;color:var(--misc)">num_chem</code> must equal the count of active scalars at runtime.</p>
+      </div>
+      <div class="nl-grid" id="nl-dim-grid"></div>
+    </div>
+  </div>
+
+  <!-- PACKAGES -->
+  <div class="panel" id="panel-packages">
+    <div class="pkg-section">
+      <h2>Package Activation Conditions &amp; Controlled Tracers</h2>
+      <div class="pkg-list" id="pkgList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function h2r(hex, a) {
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+const C = {
+  smoke:'#f97316',dust:'#c8a227',pollen:'#86efac',ssalt:'#38bdf8',
+  anthro:'#a78bfa',volc:'#fb7185',gases:'#34d399',sna:'#f472b6',
+  bio:'#4ade80',misc:'#94a3b8',fire:'#ff6b35',depo:'#60a5fa',
+  rad:'#fbbf24',rwc:'#e879f9',
+};
+
+// ── TRACER GROUPS ────────────────────────────────────────────────────────────
+const tracerGroups = [
+  { id:'smoke', label:'Smoke', color:C.smoke,
+    namelist:'config_smoke_scheme · config_rwc_scheme · config_ultrafine · config_coarse',
+    tracers:[
+      {name:'smoke_ultrafine',desc:'Ultrafine smoke mixing ratio',units:'ug kg⁻¹',size:'ultrafine',pkg:'mpas_smoke_ultrafine',cond:'config_ultrafine=true AND (smoke_scheme≠off OR rwc_scheme≠off)'},
+      {name:'smoke_fine',desc:'Fine smoke mixing ratio',units:'ug kg⁻¹',size:'fine',pkg:'mpas_smoke_fine',cond:'config_smoke_scheme≠off OR config_rwc_scheme≠off'},
+      {name:'smoke_coarse',desc:'Coarse smoke mixing ratio',units:'ug kg⁻¹',size:'coarse',pkg:'mpas_smoke_coarse',cond:'config_coarse=true AND (smoke_scheme≠off OR rwc_scheme≠off)'},
+    ]},
+  { id:'dust', label:'Dust', color:C.dust,
+    namelist:'config_dust_scheme · config_ultrafine',
+    tracers:[
+      {name:'dust_ultrafine',desc:'Ultrafine dust mixing ratio',units:'ug kg⁻¹',size:'ultrafine',pkg:'mpas_dust_ultrafine',cond:'config_ultrafine=true AND config_dust_scheme≠off'},
+      {name:'dust_fine',desc:'Fine dust mixing ratio',units:'ug kg⁻¹',size:'fine',pkg:'mpas_dust_in',cond:'config_dust_scheme≠off'},
+      {name:'dust_coarse',desc:'Coarse dust mixing ratio',units:'ug kg⁻¹',size:'coarse',pkg:'mpas_dust_in',cond:'config_dust_scheme≠off'},
+    ]},
+  { id:'pollen', label:'Pollen', color:C.pollen,
+    namelist:'config_pollen_scheme',
+    tracers:[
+      {name:'polp_tree',desc:'Coarse tree pollen (primary)',units:'ug kg⁻¹',size:'coarse',pkg:'speciated_pollen_primary',cond:'pollen_scheme ∈ {speciated_primary, speciated_rupture}'},
+      {name:'polp_grass',desc:'Coarse grass pollen (primary)',units:'ug kg⁻¹',size:'coarse',pkg:'speciated_pollen_primary',cond:'pollen_scheme ∈ {speciated_primary, speciated_rupture}'},
+      {name:'polp_weed',desc:'Coarse weed pollen (primary)',units:'ug kg⁻¹',size:'coarse',pkg:'speciated_pollen_primary',cond:'pollen_scheme ∈ {speciated_primary, speciated_rupture}'},
+      {name:'polp_all',desc:'Combined primary pollen (bulk)',units:'ug kg⁻¹',size:'coarse',pkg:'simple_pollen',cond:"config_pollen_scheme = 'simple'"},
+      {name:'pols_all',desc:'Combined ruptured pollen (bulk)',units:'ug kg⁻¹',size:'fine',pkg:'simple_pollen / speciated_pollen_primary',cond:'pollen_scheme ∈ {simple, speciated_primary, speciated_rupture}'},
+      {name:'pols_tree',desc:'Fine tree pollen (ruptured)',units:'ug kg⁻¹',size:'fine',pkg:'speciated_pollen_rupture',cond:"config_pollen_scheme = 'speciated_rupture'"},
+      {name:'pols_grass',desc:'Fine grass pollen (ruptured)',units:'ug kg⁻¹',size:'fine',pkg:'speciated_pollen_rupture',cond:"config_pollen_scheme = 'speciated_rupture'"},
+      {name:'pols_weed',desc:'Fine weed pollen (ruptured)',units:'ug kg⁻¹',size:'fine',pkg:'speciated_pollen_rupture',cond:"config_pollen_scheme = 'speciated_rupture'"},
+    ]},
+  { id:'ssalt', label:'Sea Salt', color:C.ssalt,
+    namelist:'config_ssalt_scheme',
+    tracers:[
+      {name:'ssalt_fine',desc:'Fine sea salt mixing ratio',units:'ug kg⁻¹',size:'fine',pkg:'mpas_ssalt_in',cond:'config_ssalt_scheme≠off'},
+      {name:'ssalt_coarse',desc:'Coarse sea salt mixing ratio',units:'ug kg⁻¹',size:'coarse',pkg:'mpas_ssalt_in',cond:'config_ssalt_scheme≠off'},
+    ]},
+  { id:'anthro', label:'Anthropogenic Aerosol', color:C.anthro,
+    namelist:'config_anthro_scheme · config_ultrafine · config_coarse',
+    tracers:[
+      {name:'unspc_ultrafine',desc:'Ultrafine anthropogenic primary aerosol',units:'ug kg⁻¹',size:'ultrafine',pkg:'mpas_unspc_ultrafine',cond:'config_ultrafine=true AND anthro_scheme ∈ {simple_aero, simple_gasaero, acomp_gasaero}'},
+      {name:'unspc_fine',desc:'Fine anthropogenic primary aerosol',units:'ug kg⁻¹',size:'fine',pkg:'mpas_anthro_aero_in',cond:'anthro_scheme ∈ {simple_aero, simple_gasaero, acomp_gasaero}'},
+      {name:'unspc_coarse',desc:'Coarse anthropogenic primary aerosol',units:'ug kg⁻¹',size:'coarse',pkg:'mpas_unspc_coarse',cond:'config_coarse=true AND anthro_scheme ∈ {simple_aero, simple_gasaero, acomp_gasaero}'},
+    ]},
+  { id:'volc', label:'Volcanic Ash', color:C.volc,
+    namelist:'config_volc_scheme',
+    tracers:[
+      {name:'vash_fine',desc:'Fine volcanic ash',units:'ug kg⁻¹',size:'fine',pkg:'mpas_volc_in',cond:'config_volc_scheme≠off'},
+      {name:'vash_coarse',desc:'Coarse volcanic ash',units:'ug kg⁻¹',size:'coarse',pkg:'mpas_volc_in',cond:'config_volc_scheme≠off'},
+    ]},
+  { id:'sna', label:'Sulfate-Nitrate-Ammonium', color:C.sna,
+    namelist:'config_sna_scheme · config_anthro_scheme=acomp_gasaero',
+    tracers:[
+      {name:'so4_a_fine',desc:'Fine sulfate aerosol',units:'ug kg⁻¹',size:'fine',pkg:'mpas_sna_in',cond:'config_sna_scheme≠off OR anthro_scheme=acomp_gasaero'},
+      {name:'no3_a_fine',desc:'Fine nitrate aerosol',units:'ug kg⁻¹',size:'fine',pkg:'mpas_sna_in',cond:'config_sna_scheme≠off OR anthro_scheme=acomp_gasaero'},
+      {name:'nh4_a_fine',desc:'Fine ammonium aerosol',units:'ug kg⁻¹',size:'fine',pkg:'mpas_sna_in',cond:'config_sna_scheme≠off OR anthro_scheme=acomp_gasaero'},
+    ]},
+  { id:'gases', label:'Trace Gases', color:C.gases,
+    namelist:'config_smoke_scheme · config_anthro_scheme · config_sna_scheme · config_methane_scheme · config_extra_chemical_tracers',
+    tracers:[
+      {name:'so2',desc:'Sulfur dioxide',units:'mol mol⁻¹',size:'gas',pkg:'mpas_so2_in / mpas_sna_in',cond:"sna_scheme≠off  OR  extra contains ,so2,  OR  smoke=simple_ravegas  OR  anthro ∈ gas variants"},
+      {name:'nh3',desc:'Ammonia',units:'mol mol⁻¹',size:'gas',pkg:'mpas_sna_in',cond:'config_sna_scheme≠off OR anthro_scheme=acomp_gasaero'},
+      {name:'co',desc:'Carbon monoxide',units:'mol mol⁻¹',size:'gas',pkg:'mpas_co_in',cond:"extra contains ,co,  OR  smoke=simple_ravegas  OR  anthro ∈ gas variants"},
+      {name:'nox',desc:'Nitrogen oxides',units:'mol mol⁻¹',size:'gas',pkg:'mpas_nox_in',cond:"extra contains ,nox,  OR  smoke=simple_ravegas  OR  anthro ∈ gas variants"},
+      {name:'ch4',desc:'Methane',units:'mol mol⁻¹',size:'gas',pkg:'mpas_methane_in',cond:'(extra contains ,ch4, OR methane_scheme≠off) AND (smoke≠off OR anthro≠off)'},
+    ]},
+  { id:'bio', label:'Biological / Other', color:C.bio,
+    namelist:'config_mold_scheme · config_bact_scheme · config_dms_scheme · config_plastic_scheme',
+    tracers:[
+      {name:'mold_fine',desc:'Fine mold mixing ratio',units:'ug kg⁻¹',size:'fine',pkg:'mpas_mold_in',cond:'config_mold_scheme≠off'},
+      {name:'bact_fine',desc:'Fine bacteria mixing ratio',units:'ug kg⁻¹',size:'fine',pkg:'mpas_bact_in',cond:'config_bact_scheme≠off'},
+      {name:'dms',desc:'Dimethyl-sulfide',units:'ug kg⁻¹',size:'gas',pkg:'mpas_dms_in',cond:'config_dms_scheme≠off'},
+      {name:'plastic_fine',desc:'Fine microplastic mixing ratio',units:'ug kg⁻¹',size:'fine',pkg:'mpas_plastic_in',cond:'config_plastic_scheme≠off'},
+    ]},
+];
+
+// ── NAMELIST DATA ────────────────────────────────────────────────────────────
+
+const nlScheme = [
+  {name:'config_smoke_scheme',type:'character',def:'off',
+   vals:['off','simple','simple_ravegas','…'],
+   activates:['smoke_fine','smoke_coarse (if coarse=T)','smoke_ultrafine (if ultrafine=T)','co/nox/so2/ch4 (if simple_ravegas)','mpas_smoke_in pkg (fire diagnostics)'],
+   color:C.smoke,
+   desc:"Enables wildfire / biomass burning simulation. 'simple_ravegas' additionally activates gas tracers (CO, NOx, SO₂, CH₄). Also enables e_bb_in/out emission arrays."},
+  {name:'config_dust_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['dust_fine','dust_coarse','dust_ultrafine (if ultrafine=T)','e_dust_out emission arrays','feff, albedo_drag, sep_in diagnostics'],
+   color:C.dust,
+   desc:'Enables the FENGSHA mineral dust emission scheme and associated soil property fields.'},
+  {name:'config_pollen_scheme',type:'character',def:'off',
+   vals:['off','simple','speciated_primary','speciated_rupture'],
+   activates:["polp_all + pols_all (simple)","polp_{tree,grass,weed} + pols_all (speciated_primary)","polp_{tree,grass,weed} + pols_{tree,grass,weed} (speciated_rupture)"],
+   color:C.pollen,
+   desc:"'simple': single bulk pollen+rupture tracer pair. 'speciated_primary': per-species primary particles only. 'speciated_rupture': per-species primary + per-species ruptured sub-pollen."},
+  {name:'config_ssalt_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['ssalt_fine','ssalt_coarse','e_ss_out_fine/coarse emission arrays'],
+   color:C.ssalt,
+   desc:'Enables online sea-salt aerosol emission scheme.'},
+  {name:'config_anthro_scheme',type:'character',def:'off',
+   vals:['off','simple_aero','simple_gas','simple_gasaero','acomp_gasaero'],
+   activates:['unspc_fine (any aero variant)','unspc_ultrafine (aero + ultrafine=T)','unspc_coarse (aero + coarse=T)','co/nox/so2/ch4 (gas variants)','SNA aerosols + nh3 (acomp_gasaero)','e_ant_in/out arrays'],
+   color:C.anthro,
+   desc:"Controls anthropogenic emission tracers. 'acomp_gasaero' is most comprehensive, activating aerosol + gas + full SNA chemistry."},
+  {name:'config_rwc_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['smoke_fine','smoke_coarse (if coarse=T)','smoke_ultrafine (if ultrafine=T)','unspc_fine (if anthro aero)','RWC_annual_sum diagnostics','mpas_rwc_in pkg'],
+   color:C.rwc,
+   desc:'Enables online residential wood combustion emissions. Shares smoke aerosol tracers; also activates mpas_anthro_in and mpas_smoke_fine packages.'},
+  {name:'config_volc_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['vash_fine','vash_coarse','e_vol_in/out_vash_fine/coarse'],
+   color:C.volc,
+   desc:'Enables volcanic ash emission scheme and associated input/output emission arrays.'},
+  {name:'config_sna_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['so4_a_fine','no3_a_fine','nh4_a_fine','so2','nh3','hno3_bkgd (background HNO3)','e_ant/bb SNA species'],
+   color:C.sna,
+   desc:'Enables sulfate-nitrate-ammonium chemistry. Also activated automatically when config_anthro_scheme=acomp_gasaero.'},
+  {name:'config_methane_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['ch4 (combined condition: smoke≠off OR anthro≠off also required)'],
+   color:C.gases,
+   desc:'Enables methane tracer forecast. Must be paired with an active smoke or anthro scheme to produce emissions.'},
+  {name:'config_mold_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['mold_fine'],color:C.bio,
+   desc:'Enables airborne mold spore aerosol simulation.'},
+  {name:'config_bact_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['bact_fine'],color:C.bio,
+   desc:'Enables airborne bacteria / harmful algal bloom aerosol simulation.'},
+  {name:'config_dms_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['dms'],color:C.bio,
+   desc:'Enables dimethyl sulfide (DMS) gas tracer.'},
+  {name:'config_plastic_scheme',type:'character',def:'off',
+   vals:['off','on'],
+   activates:['plastic_fine'],color:C.bio,
+   desc:'Enables microplastic aerosol simulation.'},
+  {name:'config_extra_chemical_tracers',type:'character',def:'off',
+   vals:['off',',co,',',nox,',',so2,',',ch4,','(comma combinations)'],
+   activates:['co (if ,co, present)','nox (if ,nox, present)','so2 (if ,so2, present)','ch4 (if ,ch4, present — also needs smoke/anthro)'],
+   color:C.gases,
+   desc:"Comma-delimited list to activate individual gas tracers without a full scheme, e.g. ',co,nox,' enables CO and NOx only. Must be wrapped with leading/trailing commas."},
+  {name:'config_ultrafine',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['smoke_ultrafine (if smoke/rwc active)','dust_ultrafine (if dust active)','unspc_ultrafine (if anthro aero active)'],
+   color:C.misc,
+   desc:'Adds the ultrafine size bin to all active aerosol species that support it. Works as a modifier on top of the primary scheme switches.'},
+  {name:'config_coarse',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['smoke_coarse (if smoke/rwc active)','unspc_coarse (if anthro aero active)'],
+   color:C.misc,
+   desc:'Adds the coarse size bin to active smoke and anthropogenic aerosol species. Works as a modifier on top of the primary scheme switches.'},
+];
+
+const nlFire = [
+  {name:'bb_emis_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['All e_bb_* biomass burning emission fluxes (smoke, CO, NOx, SO₂, CH₄, NH₃)'],
+   color:C.fire,
+   desc:'Global multiplicative scale factor applied to all biomass burning fire emission fluxes before injection into tracers.'},
+  {name:'rwc_emis_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['All residential wood combustion emission tracers (smoke_fine, smoke_coarse, unspc_fine, unspc_coarse)'],
+   color:C.rwc,
+   desc:'Global scale factor applied to all residential wood combustion (RWC) emissions.'},
+  {name:'ebb_dcycle',type:'integer',def:'0',
+   vals:['0 (off)','1','2','…'],
+   activates:['Diurnal cycle weighting applied to e_bb_* tracers via coef_bb_dc diagnostic'],
+   color:C.fire,
+   desc:'Algorithm choice for wildfire emission diurnal cycle forecast. Controls the temporal distribution of fire emissions within a day.'},
+  {name:'calc_bb_emis_online',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['Online FRP/HWP → e_bb_* tracer emission calculation'],
+   color:C.fire,
+   desc:'When true, computes biomass burning emissions online from fire radiative power (FRP) and hourly wildfire potential (HWP) rather than reading from input files.'},
+  {name:'bb_input_prevh',type:'integer',def:'24',
+   vals:['1','2','3','4','6','8','12','24'],
+   activates:['hwp_prev24, frp_prev24, fre_prev24, fmc_prev24, totprcp_prev24 rolling arrays'],
+   color:C.fire,
+   desc:'Number of previous hours to average for smoke input variables used in online emission calculations. Must be a factor of 24.'},
+  {name:'bb_beta',type:'integer',def:'1',
+   vals:['1','2'],
+   activates:['Emission factor dataset selection → affects all e_bb_* tracer magnitudes'],
+   color:C.fire,
+   desc:'Selects which emission factor (EF) dataset to use for converting fire activity to per-species biomass burning emissions.'},
+  {name:'bb_qv_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['qfx_bb (water vapor flux from wildfire)'],
+   color:C.fire,
+   desc:'Scaling factor for the water vapor emission flux from wildfires, affecting atmospheric moisture input near fires.'},
+  {name:'hwp_method',type:'integer',def:'1',
+   vals:['1','2','…'],
+   activates:['hwp (Hourly Wildfire Potential) diagnostic'],
+   color:C.fire,
+   desc:'Algorithm choice for computing the Hourly Wildfire Potential (HWP), which is used to modulate fire emissions when calc_bb_emis_online=true.'},
+  {name:'hwp_alpha',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['hwp scaling'],
+   color:C.fire,
+   desc:'Linear scale factor applied to the computed Hourly Wildfire Potential before use in emission calculations.'},
+  {name:'add_fire_heat_flux',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['hfx_bb → fed back into atmospheric sensible heat (requires mpas_smoke_in)'],
+   color:C.fire,
+   desc:'When true, the fire sensible heat flux (hfx_bb, W m⁻²) is passed into the atmospheric boundary layer, affecting thermodynamics near fires.'},
+  {name:'add_fire_moist_flux',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['qfx_bb → fed back into atmospheric moisture (requires mpas_smoke_in)'],
+   color:C.fire,
+   desc:'When true, fire moisture flux (qfx_bb, kg m⁻²) is fed back into the atmospheric boundary layer.'},
+];
+
+const nlDepo = [
+  {name:'drydep_opt',type:'integer',def:'0',
+   vals:['0 (off)','1','2','…'],
+   activates:['ddvel[nChem] (dry deposition velocity)','drydep_flux[nChem] — all active tracers'],
+   color:C.depo,
+   desc:'Algorithm choice for dry deposition. When > 0, computes size/species-dependent deposition velocities and surface fluxes for all active chemistry tracers in the nChem array.'},
+  {name:'wetdep_ls_opt',type:'integer',def:'0',
+   vals:['0 (off)','1','…'],
+   activates:['wetdep_resolved[nChem] — all active tracers'],
+   color:C.depo,
+   desc:'Enables offline large-scale wet deposition removal. When > 0 and wetdep_ls_alpha > 0, applies a fractional removal to all active chemical tracers at each timestep.'},
+  {name:'wetdep_ls_alpha',type:'real',def:'0.0',
+   vals:['0.0 – 1.0'],
+   activates:['Fractional removal rate in wetdep_resolved[nChem]'],
+   color:C.depo,
+   desc:'Removal fraction applied per timestep by large-scale wet deposition when wetdep_ls_opt > 0. A value of 1.0 removes all tracer in one step; 0.0 disables removal.'},
+  {name:'pm_settling',type:'integer',def:'0',
+   vals:['0 (off)','1','2'],
+   activates:['tend_chem_settle[nChem, nVertLevels] — all aerosol tracers'],
+   color:C.depo,
+   desc:'Algorithm choice for gravitational settling of particulate matter. The resulting tendency (tend_chem_settle) is applied to all active aerosol tracers dimensioned by nChem.'},
+];
+
+const nlDust = [
+  {name:'dust_alpha',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['e_dust_out_dust_fine, e_dust_out_dust_coarse, e_dust_out_dust_ultrafine'],
+   color:C.dust,
+   desc:'Linear scaling factor for FENGSHA dust emission fluxes. Applied multiplicatively to all computed dust emission rates before injection into dust tracers.'},
+  {name:'dust_gamma',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['Sediment supply term → dust_fine, dust_coarse'],
+   color:C.dust,
+   desc:'Exponential scaling factor controlling the sediment supply (erodibility) contribution in the FENGSHA dust emission parameterization.'},
+  {name:'dust_moist_correction',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['Soil moisture suppression term → dust_fine, dust_coarse'],
+   color:C.dust,
+   desc:'Correction factor modifying how sensitive dust emissions are to soil moisture. Higher values increase moisture suppression of dust.'},
+  {name:'dust_drylimit_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['Soil moisture dry-limit threshold in FENGSHA → dust_fine, dust_coarse'],
+   color:C.dust,
+   desc:'Scales the soil moisture dry-limit threshold below which dust can be emitted. Adjusts the transition between dust-emitting and non-emitting soil conditions.'},
+];
+
+const nlPollen = [
+  {name:'pollen_emis_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['All e_bio_out_* pollen emission fluxes'],
+   color:C.pollen,
+   desc:'Global scale factor applied to all pollen species emissions. Acts as an overall multiplier before per-species scale factors are applied.'},
+  {name:'tree_pollen_emis_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['polp_tree / pols_tree emission fluxes (e_bio_out_polp_tree)'],
+   color:C.pollen,
+   desc:'Species-specific emission scale factor for tree pollen. Applied in addition to pollen_emis_scale_factor.'},
+  {name:'grass_pollen_emis_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['polp_grass / pols_grass emission fluxes (e_bio_out_polp_grass)'],
+   color:C.pollen,
+   desc:'Species-specific emission scale factor for grass pollen. Applied in addition to pollen_emis_scale_factor.'},
+  {name:'weed_pollen_emis_scale_factor',type:'real',def:'1.0',
+   vals:['positive real'],
+   activates:['polp_weed / pols_weed emission fluxes (e_bio_out_polp_weed)'],
+   color:C.pollen,
+   desc:'Species-specific emission scale factor for weed pollen. Applied in addition to pollen_emis_scale_factor.'},
+  {name:'num_pols_per_polp',type:'real',def:'1000.0',
+   vals:['positive real'],
+   activates:['pols_tree, pols_grass, pols_weed, pols_all (rupture tracers)'],
+   color:C.pollen,
+   desc:'Number of fine sub-pollen particles (pols_*) generated per rupture event of a single primary pollen particle (polp_*). Controls the ratio of ruptured to primary pollen mass.'},
+];
+
+const nlPlume = [
+  {name:'plumerise_opt',type:'integer',def:'0',
+   vals:['0 (off)','1','2','…'],
+   activates:['min_bb_plume, max_bb_plume injection levels','Vertical distribution of smoke_fine, smoke_coarse, smoke_ultrafine'],
+   color:C.fire,
+   desc:'Algorithm choice for wildfire plumerise injection height calculation. Determines which vertical levels receive fire emissions. 0=no plumerise (surface injection only).'},
+  {name:'plume_wind_eff',type:'integer',def:'0',
+   vals:['0','1'],
+   activates:['Wind-tilt correction to plumerise → affects min/max_bb_plume'],
+   color:C.fire,
+   desc:'Algorithm choice for accounting for ambient wind effects in the plumerise vertical extent calculation.'},
+  {name:'plume_alpha',type:'real',def:'0.0',
+   vals:['positive real'],
+   activates:['Entrainment in updraft → affects min/max_bb_plume and smoke injection profile'],
+   color:C.fire,
+   desc:'Entrainment constant used in the plumerise updraft mass-flux calculation. Larger values allow more ambient air entrainment, limiting plume height.'},
+  {name:'plumerisefire_frq',type:'integer',def:'60',
+   vals:['positive integer (minutes)'],
+   activates:['Frequency of plumerise calculation → smoke injection height updated periodically'],
+   color:C.fire,
+   desc:'Call frequency of the fire plumerise routine in minutes. Lower values give more frequent injection height updates but increase computational cost.'},
+];
+
+const nlMisc = [
+  {name:'aero_dir_rad_fdb',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['All active aerosol tracers → shortwave/longwave feedback via aod3d, aod3d_smoke, aod550'],
+   color:C.rad,
+   desc:'Enables the direct aerosol radiative effect, coupling computed aerosol optical depth (AOD) back into the radiation scheme. Affects all active aerosol tracers.'},
+  {name:'config_mynn_enh_mix',type:'logical',def:'.false.',
+   vals:['.false.','.true.'],
+   activates:['aero_emis_for_enhmix → artificially enhances PBL exchange coefficients for all aerosols'],
+   color:C.rad,
+   desc:'Artificially enhances MYNN PBL exchange coefficients proportional to total aerosol emission flux (aero_emis_for_enhmix). Intended to improve near-source vertical mixing.'},
+];
+
+const nlDims = [
+  {name:'num_chem',type:'integer',def:'0',
+   vals:['positive integer'],
+   activates:['nChem array dimension → scalars, ddvel, drydep_flux, wetdep_resolved, tend_chem_settle'],
+   color:C.misc,
+   desc:'Total number of chemical tracers (nscalar minus nmoist). This sets the nChem dimension used by all per-species deposition, optical, and tendency arrays. Must match the count of active scalar variables at runtime.'},
+  {name:'kanthro',type:'integer',def:'1',
+   vals:['positive integer'],
+   activates:['nkanthro dimension → e_ant_in[nkanthro,nCells], e_ant_out[nkanthro,nCells]'],
+   color:C.anthro,
+   desc:'Number of vertical levels in the anthropogenic emission input file. Sets the kanthro/nkanthro dimension for all e_ant_in and e_ant_out arrays.'},
+  {name:'kwildfire',type:'integer',def:'1',
+   vals:['positive integer'],
+   activates:['nkwildfire dimension → e_bb_in[nkwildfire,nCells], e_bb_out[nkwildfire,nCells]'],
+   color:C.fire,
+   desc:'Number of vertical levels in the biomass burning emission input file. Sets the nkwildfire dimension for e_bb_in/out arrays.'},
+  {name:'kbiogenic',type:'integer',def:'1',
+   vals:['positive integer'],
+   activates:['nkbiogenic dimension → e_bio_in[nkbiogenic,nCells]'],
+   color:C.pollen,
+   desc:'Number of vertical levels in the biogenic emission input file (pollen). Sets the nkbiogenic dimension.'},
+  {name:'kvolcanic',type:'integer',def:'1',
+   vals:['positive integer'],
+   activates:['nkvolcanic dimension → e_vol_in[nkvolcanic,nCells]'],
+   color:C.volc,
+   desc:'Number of vertical levels in the volcanic emission input file. Sets the nkvolcanic dimension for e_vol_in arrays.'},
+  {name:'kreswoodcomb',type:'integer',def:'1',
+   vals:['positive integer'],
+   activates:['nkreswoodcomb dimension → RWC_annual_sum[nkreswoodcomb,nCells] and related fields'],
+   color:C.rwc,
+   desc:'Number of vertical levels in the residential wood combustion emission input file. Sets the nkreswoodcomb dimension for RWC climatology arrays.'},
+];
+
+// ── PACKAGES ─────────────────────────────────────────────────────────────────
+const packages = [
+  {name:'mpas_smoke_fine',        color:C.smoke, desc:'Fine smoke aerosol',
+   cond:"config_smoke_scheme ≠ 'off'  OR  config_rwc_scheme ≠ 'off'",
+   tracers:['smoke_fine','e_bb_in/out_smoke_fine','e_ant_in/out_smoke_fine']},
+  {name:'mpas_smoke_ultrafine',   color:C.smoke, desc:'Ultrafine smoke aerosol',
+   cond:"config_ultrafine=true  AND  (config_smoke_scheme ≠ 'off' OR config_rwc_scheme ≠ 'off')",
+   tracers:['smoke_ultrafine','e_bb_in/out_smoke_ultrafine','e_ant_in/out_smoke_ultrafine']},
+  {name:'mpas_smoke_coarse',      color:C.smoke, desc:'Coarse smoke aerosol',
+   cond:"config_coarse=true  AND  (config_smoke_scheme ≠ 'off' OR config_rwc_scheme ≠ 'off')",
+   tracers:['smoke_coarse','e_bb_in/out_smoke_coarse','e_ant_in/out_smoke_coarse']},
+  {name:'mpas_smoke_in',          color:C.fire,  desc:'Wildfire diagnostics & emission arrays',
+   cond:"config_smoke_scheme ≠ 'off'",
+   tracers:['hfx_bb','qfx_bb','frp_in/out','fre_in/out','hwp','hwp_prev24','fire_type','fire_hist','coef_bb_dc','min/max_bb_plume','fire_peak_hr','fire_end_hr','e_bb_in','e_bb_out']},
+  {name:'mpas_dust_in',           color:C.dust,  desc:'Fine + coarse dust',
+   cond:"config_dust_scheme ≠ 'off'",
+   tracers:['dust_fine','dust_coarse','e_dust_out_fine/coarse','feff','albedo_drag','sandfrac_in','clayfrac_in','sep_in','uthres_in','uthres_sg_in']},
+  {name:'mpas_dust_ultrafine',    color:C.dust,  desc:'Ultrafine dust',
+   cond:"config_ultrafine=true  AND  config_dust_scheme ≠ 'off'",
+   tracers:['dust_ultrafine','e_dust_out_dust_ultrafine']},
+  {name:'mpas_anthro_in',         color:C.anthro,desc:'Anthropogenic emissions (parent array)',
+   cond:"config_anthro_scheme ≠ 'off'  OR  config_rwc_scheme ≠ 'off'",
+   tracers:['e_ant_in (all species)','e_ant_out (all species)']},
+  {name:'mpas_anthro_aero_in',    color:C.anthro,desc:'Anthropogenic fine aerosol',
+   cond:"anthro_scheme ∈ {simple_aero, simple_gasaero, acomp_gasaero}",
+   tracers:['unspc_fine','e_ant_in/out_unspc_fine']},
+  {name:'mpas_anthro_gas_in',     color:C.gases, desc:'Anthropogenic gas emissions (parent)',
+   cond:"anthro_scheme ∈ {simple_gas, simple_gasaero, acomp_gasaero}",
+   tracers:['co, nox, so2, ch4 (via sub-packages)','e_ant_in/out gas species']},
+  {name:'mpas_unspc_ultrafine',   color:C.anthro,desc:'Ultrafine unspeciated anthropogenic aerosol',
+   cond:"config_ultrafine=true  AND  anthro_scheme ∈ {aero variants}",
+   tracers:['unspc_ultrafine','e_ant_in/out_unspc_ultrafine']},
+  {name:'mpas_unspc_coarse',      color:C.anthro,desc:'Coarse unspeciated anthropogenic aerosol',
+   cond:"config_coarse=true  AND  anthro_scheme ∈ {aero variants}",
+   tracers:['unspc_coarse','e_ant_in/out_unspc_coarse']},
+  {name:'mpas_rwc_in',            color:C.rwc,   desc:'Residential wood combustion diagnostics',
+   cond:"config_rwc_scheme ≠ 'off'",
+   tracers:['RWC_annual_sum','RWC_denominator','RWC_annual_sum_smoke_fine/coarse','RWC_annual_sum_unspc_fine/coarse']},
+  {name:'speciated_pollen_rupture',color:C.pollen,desc:'Per-species ruptured sub-pollen',
+   cond:"config_pollen_scheme = 'speciated_rupture'",
+   tracers:['pols_tree','pols_grass','pols_weed']},
+  {name:'speciated_pollen_primary',color:C.pollen,desc:'Per-species primary pollen',
+   cond:"config_pollen_scheme ∈ {speciated_primary, speciated_rupture}",
+   tracers:['polp_tree','polp_grass','polp_weed','pols_all']},
+  {name:'simple_pollen',          color:C.pollen,desc:'Bulk pollen (simple mode)',
+   cond:"config_pollen_scheme = 'simple'",
+   tracers:['polp_all','pols_all']},
+  {name:'mpas_ssalt_in',          color:C.ssalt, desc:'Sea salt',
+   cond:"config_ssalt_scheme ≠ 'off'",
+   tracers:['ssalt_fine','ssalt_coarse','e_ss_out_fine/coarse']},
+  {name:'mpas_co_in',             color:C.gases, desc:'Carbon monoxide (CO)',
+   cond:"extra contains ,co,  OR  smoke=simple_ravegas  OR  anthro ∈ gas variants",
+   tracers:['co','e_bb_in/out_co','e_ant_in/out_co']},
+  {name:'mpas_nox_in',            color:C.gases, desc:'Nitrogen oxides (NOx)',
+   cond:"extra contains ,nox,  OR  smoke=simple_ravegas  OR  anthro ∈ gas variants",
+   tracers:['nox','e_bb_in/out_nox','e_ant_in/out_nox']},
+  {name:'mpas_so2_in',            color:C.gases, desc:'Sulfur dioxide (SO₂)',
+   cond:"extra contains ,so2,  OR  smoke=simple_ravegas  OR  anthro ∈ gas variants",
+   tracers:['so2','e_bb_in/out_so2','e_ant_in/out_so2']},
+  {name:'mpas_methane_in',        color:C.gases, desc:'Methane (CH₄)',
+   cond:"(extra contains ,ch4, OR methane_scheme≠off) AND (smoke≠off OR anthro≠off)",
+   tracers:['ch4','e_bb_in/out_ch4','e_ant_in/out_ch4']},
+  {name:'mpas_mold_in',           color:C.bio,   desc:'Mold spores',
+   cond:"config_mold_scheme ≠ 'off'",tracers:['mold_fine']},
+  {name:'mpas_bact_in',           color:C.bio,   desc:'Bacteria / HAB',
+   cond:"config_bact_scheme ≠ 'off'",tracers:['bact_fine']},
+  {name:'mpas_dms_in',            color:C.bio,   desc:'Dimethyl sulfide (DMS)',
+   cond:"config_dms_scheme ≠ 'off'",tracers:['dms']},
+  {name:'mpas_plastic_in',        color:C.bio,   desc:'Microplastics',
+   cond:"config_plastic_scheme ≠ 'off'",tracers:['plastic_fine']},
+  {name:'mpas_volc_in',           color:C.volc,  desc:'Volcanic ash',
+   cond:"config_volc_scheme ≠ 'off'",
+   tracers:['vash_fine','vash_coarse','e_vol_in/out_vash_fine/coarse']},
+  {name:'mpas_sna_in',            color:C.sna,   desc:'Sulfate-Nitrate-Ammonium chemistry',
+   cond:"config_sna_scheme ≠ 'off'  OR  anthro_scheme = acomp_gasaero",
+   tracers:['so4_a_fine','no3_a_fine','nh4_a_fine','so2','nh3','hno3_bkgd','e_ant/bb SNA species']},
+];
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+
+function nlCard(opt) {
+  const vp = opt.vals.map(v=>`<span class="v-pill ${v!=='off'&&v!=='.false.'&&v!=='0'?'hl':''}">${v}</span>`).join('');
+  const ap = opt.activates.map(a=>`<span class="a-pill" style="color:${opt.color};border-color:${h2r(opt.color,.3)}">${a}</span>`).join('');
+  return `<div class="nl-card" style="border-left-color:${h2r(opt.color,.6)}">
+    <div class="nl-name">${opt.name}<span class="nl-default">${opt.def}</span></div>
+    <div class="nl-meta">type: ${opt.type}</div>
+    <div class="nl-desc">${opt.desc}</div>
+    <div class="v-label">Possible values</div><div class="pill-row">${vp}</div>
+    <div class="a-label">Activates</div><div class="pill-row">${ap}</div>
+  </div>`;
+}
+
+function renderNl(id, data) {
+  document.getElementById(id).innerHTML = data.map(nlCard).join('');
+}
+
+function renderTracers() {
+  const cont = document.getElementById('tracerSections');
+  tracerGroups.forEach(g => {
+    const sec = document.createElement('div');
+    sec.className = 't-section'; sec.dataset.group = g.id;
+    sec.innerHTML = `
+      <div class="t-section-header">
+        <div class="t-dot" style="background:${g.color}"></div>
+        <h2>${g.label}</h2>
+        <span class="nm-badge" style="color:${g.color};border-color:${h2r(g.color,.35)}">${g.namelist}</span>
+        <span class="t-count">${g.tracers.length} scalar${g.tracers.length>1?'s':''}</span>
+      </div>
+      <div class="t-grid">${g.tracers.map(t=>`
+        <div class="t-card" data-name="${t.name}" data-desc="${t.desc.toLowerCase()}" style="--card-color:${g.color}">
+          <div class="t-bar" style="background:${g.color}"></div>
+          <div class="t-name">${t.name}</div>
+          <div class="t-desc">${t.desc}</div>
+          <div class="t-units">${t.units}</div>
+          <div class="t-tags">
+            <span class="t-size">${t.size}</span>
+            <span class="t-tag" style="color:${g.color};border-color:${h2r(g.color,.3)}">${t.pkg}</span>
+          </div>
+          <div class="t-cond">Condition: ${t.cond}</div>
+        </div>`).join('')}
+      </div>`;
+    cont.appendChild(sec);
+  });
+}
+
+function renderPackages() {
+  document.getElementById('pkgList').innerHTML = packages.map(p=>`
+    <div class="pkg-row" style="border-left-color:${h2r(p.color,.6)}">
+      <div>
+        <div class="pkg-name">${p.name}</div>
+        <div class="pkg-sub">${p.desc}</div>
+      </div>
+      <div>
+        <div class="pkg-cond">${p.cond}</div>
+        <div class="pkg-tracers">${p.tracers.map(t=>`<span class="t-tag" style="color:${p.color};border-color:${h2r(p.color,.3)}">${t}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  const all = document.createElement('div');
+  all.className='leg-chip on';
+  all.innerHTML=`<span class="leg-dot" style="background:#555"></span>All`;
+  all.addEventListener('click',()=>{filterGroup(null);setChip(all);});
+  el.appendChild(all);
+  tracerGroups.forEach(g=>{
+    const c=document.createElement('div');
+    c.className='leg-chip'; c.dataset.group=g.id;
+    c.innerHTML=`<span class="leg-dot" style="background:${g.color}"></span>${g.label}`;
+    c.addEventListener('click',()=>{filterGroup(g.id);setChip(c);});
+    el.appendChild(c);
+  });
+}
+function setChip(el){document.querySelectorAll('.leg-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
+function filterGroup(id){
+  document.querySelectorAll('.t-section').forEach(s=>s.classList.toggle('hidden',!!(id&&s.dataset.group!==id)));
+  updateCount();
+}
+
+// NAV
+document.getElementById('topNav').addEventListener('click',e=>{
+  const tab=e.target.closest('.nav-tab'); if(!tab)return;
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tab.dataset.panel).classList.add('active');
+  updateCount();
+});
+
+// SEARCH
+document.getElementById('searchInput').addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.t-card').forEach(c=>{
+    c.classList.toggle('hidden',!!(q&&!c.dataset.name.includes(q)&&!c.dataset.desc.includes(q)));
+  });
+  document.querySelectorAll('.t-section').forEach(s=>{
+    s.classList.toggle('hidden',!Array.from(s.querySelectorAll('.t-card')).some(c=>!c.classList.contains('hidden')));
+  });
+  document.querySelectorAll('.nl-card, .pkg-row').forEach(c=>{
+    c.classList.toggle('hidden',!!(q&&!c.innerText.toLowerCase().includes(q)));
+  });
+  updateCount();
+});
+
+function updateCount(){
+  const ap=document.querySelector('.panel.active');
+  let n=0,lbl='';
+  if(ap.id==='panel-tracers'){
+    n=Array.from(ap.querySelectorAll('.t-card')).filter(c=>!c.classList.contains('hidden')).length;
+    lbl=`${n} tracer${n!==1?'s':''}`;
+  } else if(ap.id==='panel-packages'){
+    n=Array.from(ap.querySelectorAll('.pkg-row')).filter(r=>!r.classList.contains('hidden')).length;
+    lbl=`${n} package${n!==1?'s':''}`;
+  } else {
+    n=Array.from(ap.querySelectorAll('.nl-card')).filter(c=>!c.classList.contains('hidden')).length;
+    lbl=`${n} option${n!==1?'s':''}`;
+  }
+  document.getElementById('countBadge').textContent=lbl;
+}
+
+renderTracers();
+renderNl('nl-scheme-grid', nlScheme);
+renderNl('nl-fire-grid',   nlFire);
+renderNl('nl-depo-grid',   nlDepo);
+renderNl('nl-dust-grid',   nlDust);
+renderNl('nl-pollen-grid', nlPollen);
+renderNl('nl-plume-grid',  nlPlume);
+renderNl('nl-misc-grid',   nlMisc);
+renderNl('nl-dim-grid',    nlDims);
+renderPackages();
+renderLegend();
+updateCount();
+</script>
+</body>
+</html>

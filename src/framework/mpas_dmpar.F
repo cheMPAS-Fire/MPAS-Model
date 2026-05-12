@@ -1087,6 +1087,8 @@ include 'mpif.h'
       integer :: mpi_ierr, threadNum
       real(kind=RKIND), dimension(2,1) :: recvbuf, sendbuf
 
+      threadNum = mpas_threading_get_thread_num()
+
       if ( threadNum == 0 ) then
 #ifdef _MPI
          sendbuf(1,1) = r

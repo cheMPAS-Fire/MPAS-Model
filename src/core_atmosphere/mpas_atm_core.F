@@ -557,6 +557,7 @@ module atm_core
                             uReconstructMeridional     &
                            )
    
+
 #ifdef DO_PHYSICS
       !proceed with initialization of physics parameterization if moist_physics is set to true:
       call mpas_pool_get_subpool(block % structs, 'sfc_input', sfc_input)
@@ -587,11 +588,10 @@ module atm_core
 
          !initialization of all physics:
          call physics_init(dminfo, stream_manager, clock, block % configs, mesh, diag, tend, state, 1,       &
-                           diag_physics, diag_physics_noahmp, ngw_input, atm_input, sfc_input, output_noahmp)
-         call tempo_ml_init(block % configs)
+                           diag_physics, diag_physics_noahmp, ngw_input, atm_input, sfc_input, emission_input,output_noahmp)
       endif
 #endif
-   
+
       call atm_compute_mesh_scaling(mesh, block % configs)
 
       call atm_compute_damping_coefs(mesh, block % configs)
