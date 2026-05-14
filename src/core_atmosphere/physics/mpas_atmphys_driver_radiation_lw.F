@@ -384,8 +384,10 @@
  logical,pointer:: config_o3climatology
  logical,pointer:: config_calc_clean_atm_diag
  logical,pointer:: config_microp_re
+ integer,pointer:: config_mie_aod_opt                           
  integer,pointer:: aero_dir_rad_fdb
  integer,pointer:: aer_opt
+ integer :: aero_dir_rad_fdb_local
  character(len=StrKIND),pointer:: radt_lw_scheme
  character(len=StrKIND),pointer:: microp_scheme
 
@@ -412,6 +414,7 @@
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
  call mpas_pool_get_config(configs,'aero_dir_rad_fdb'        ,aero_dir_rad_fdb    )
  call mpas_pool_get_config(configs,'aer_opt'                 ,aer_opt             )
+ call mpas_pool_get_config(configs,'config_mie_aod_opt',config_mie_aod_opt)
 
  call mpas_pool_get_array(mesh,'latCell',latCell)
  call mpas_pool_get_array(mesh,'lonCell',lonCell)
@@ -492,17 +495,28 @@
 !-----------------------------------------------------------------------------------------------------------------
 ! Section 3: RRTMG-specific initialization
 !-----------------------------------------------------------------------------------------------------------------
+! Adding safeguard here
+ aero_dir_rad_fdb_local = aero_dir_rad_fdb
+
+ if ( config_mie_aod_opt == 0 .and. &
+      (aero_dir_rad_fdb_local == 2 .or. aero_dir_rad_fdb_local == 4) ) then
+   call mpas_log_write('WARNING: LW Mie aerosol feedback requested, but config_mie_aod_opt=0. ' // &
+                        'Falling back to no LW direct feedback.', &
+                        messageType=MPAS_LOG_WARN)
+    aero_dir_rad_fdb_local = 0
+ endif
  radiation_lw_select: select case (trim(radt_lw_scheme))
     case("rrtmg_lw")
        !----------------------------------------------------------------------
        ! Section 3a: Aerosol longwave direct radiative feedback
        ! Controlled by aero_dir_rad_fdb (MPAS driver-level)
        ! Note: Only aero_dir_rad_fdb=2 (Mie/SMOKE) is valid for LW.
-       !       Options 1, 3, 4 have no LW aerosol pathway and fall back to 0.
+       !       Options 1, 3 have no LW aerosol pathway and fall back to 0.
        !       tauaer_lw is the only optical property needed (no SSA/asymmetry
        !       in LW since aerosol scattering is negligible at LW wavelengths).
+       !       4 = Mie
        !----------------------------------------------------------------------
-       lw_direct_feedback_select: select case(aero_dir_rad_fdb)
+       lw_direct_feedback_select: select case(aero_dir_rad_fdb_local)
 
           !--- Case 0: No direct feedback
           case(0)
@@ -519,7 +533,7 @@
              !$OMP END PARALLEL DO
 
           !--- Case 2: Mie calculation from SMOKE driver
-          case(2)
+          case(2,4)
              !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)
              do n = 1,nbndlw
              do j = jts,jte
@@ -532,9 +546,9 @@
              enddo
              !$OMP END PARALLEL DO
 
-          !--- Cases 1, 3, 4: No LW pathway available, fall back to no direct feedback
-          case(1,3,4)
-             call mpas_log_write('WARNING: aero_dir_rad_fdb=1,3,4 have no longwave aerosol pathway. ' // &
+          !--- Cases 1, 3: No LW pathway available, fall back to no direct feedback
+          case(1,3)
+             call mpas_log_write('WARNING: aero_dir_rad_fdb=1,3 have no longwave aerosol pathway. ' // &
                                  'Falling back to no LW direct feedback (aero_dir_rad_fdb=0).',          &
                                  messageType=MPAS_LOG_WARN)
              !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,n)

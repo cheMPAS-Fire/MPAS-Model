@@ -360,7 +360,7 @@
 
  end subroutine deallocate_smoke
 
- !=================================================================================================================
+!=================================================================================================================
  subroutine smoke_from_MPAS(dt_dyn, time_lev, emission_input, state, configs,  &
                             mesh,sfc_input, diag_physics, tend_physics, its, ite       )
 !=================================================================================================================
@@ -436,7 +436,7 @@
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
       logical, pointer :: calc_bb_emis_online
-     
+      
       real(kind=RKIND),dimension(:,:,:),pointer :: scalars
       real(kind=RKIND),dimension(:,:,:),pointer :: chem
       integer, pointer :: bb_input_prevh !JR
@@ -1645,7 +1645,7 @@ endif
  logical,pointer                :: calc_bb_emis_online
  logical,pointer                :: add_fire_heat_flux
  logical,pointer                :: add_fire_moist_flux
- logical,pointer                :: config_mie_aod_opt
+ integer,pointer                :: config_mie_aod_opt
  integer,pointer                :: aero_dir_rad_fdb
  integer,pointer                :: plumerisefire_frq
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
@@ -1662,10 +1662,10 @@ endif
                                    do_mpas_sna, do_mpas_methane, &
                                    do_mpas_hab, do_mpas_rwc, do_mpas_anthro_pt
  integer                        :: i,j,k,nblocks, n
- ! --------------------------------------------------------------------------------------
- !  Local Variables for Spectral Interpolation
- ! --------------------------------------------------------------------------------------
- ! 1. Source Wavelengths (Smoke output: 300, 400, 600, 999 nm)
+! --------------------------------------------------------------------------------------
+!  Local Variables for Spectral Interpolation
+! --------------------------------------------------------------------------------------
+! 1. Source Wavelengths (Smoke output: 300, 400, 600, 999 nm)
  real(kind=RKIND), dimension(4), parameter :: src_wav = &
       (/ 0.300_RKIND, 0.400_RKIND, 0.600_RKIND, 0.999_RKIND /)
 ! 2. Target Wavelengths (RRTMG Bands 1-14 midpoints)
@@ -1853,7 +1853,7 @@ endif
  call mpas_pool_get_dimension(state,'index_dust_fine'  ,index_dust_fine )
  call mpas_pool_get_dimension(state,'index_dust_coarse'  ,index_dust_coarse )
  ! Mie Calculation added here
-! call mpas_pool_get_config(configs,'config_mie_aod_opt', config_mie_aod_opt)
+ call mpas_pool_get_config(configs,'config_mie_aod_opt', config_mie_aod_opt)
 ! call aero_rad_init(configs)
  call mpas_pool_get_array(diag_physics, 'tauaer_sw', tauaer_sw)
  call mpas_pool_get_array(diag_physics, 'tauaer_lw', tauaer_lw)
@@ -1942,224 +1942,320 @@ endif
  if (config_anthro_pt_scheme .ne. 'off') then
     do_mpas_anthro_pt = .true.
  endif
- call mpas_timer_start('mpas_smoke')
- call mpas_smoke_driver(                                                                 &
-           configs = configs, &
+  call mpas_timer_start('mpas_smoke')
+  call mpas_smoke_driver(                                              &
+!--- Configs
+            configs = configs,                                                &
 !--- Chemistry array
-           chem  = chem_p, & 
-           num_chem = num_chem, &
-           chemistry_start = chemistry_start,       &
+            chem  = chem_p,                                                   &
+            num_chem = num_chem,                                              &
+            chemistry_start = chemistry_start,                                &
 !--- Number vertical levels in emissions
-           kanthro = kanthro,  &
-           kfire = kwildfire, &
-           kbio = kbiogenic, &
-           kvol = kvolcanic, &
+            kanthro = kanthro,                                                &
+            kfire   = kwildfire,                                              &
+            kbio    = kbiogenic,                                              &
+            kvol    = kvolcanic,                                              &
 !--- Emission arrays
-           do_mpas_anthro_pt = do_mpas_anthro_pt,       &
-           e_ant_pt_in = e_ant_pt_in_p,             &
-           e_ant_stack_groups_in = e_ant_stack_groups_in_p, &
-           num_e_ant_pt_in = num_e_ant_pt_in,       &
-           num_e_ant_stack_groups_in = num_e_ant_stack_groups_in, &
-           num_anthro_pt      = num_anthro_pt,                    &
-           index_STKHT = index_STKHT, index_STKDM=index_STKDM, &
-           index_STKTK = index_STKTK, index_STKVE=index_STKVE, &
-           index_STKLT = index_STKLT, index_STKLG=index_STKLG, &
-           index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine, &
-           ant_pt_local_cell_idx  = ant_pt_local_cell_idx,  &
-           ant_pt_rank = ant_pt_rank, &
-           myrank = myrank, &
-!           ant_pt_global_cell_idx  = ant_pt_global_cell_idx,  &
-!           globalCells = globalCells, &
-           e_ant_in       = e_ant_in_p,    &
-           e_bb_in        = e_bb_in_p,                   &
-           e_bio_in       = e_bio_in_p,    &
-           e_vol_in       = e_vol_in_p,                  &
-           e_ant_out      = e_ant_out_p,   &
-           e_bb_out       = e_bb_out_p,                  &
-           e_bio_out      = e_bio_out_p,   &
-           e_dust_out     = e_dust_out_p,                &
-           e_ss_out       = e_ss_out_p,   &
-           e_vol_out      = e_vol_out_p,                 &
+            do_mpas_anthro_pt = do_mpas_anthro_pt,                            &
+            e_ant_pt_in = e_ant_pt_in_p,                                      &
+            e_ant_stack_groups_in = e_ant_stack_groups_in_p,                  &
+            num_e_ant_pt_in = num_e_ant_pt_in,                                &
+            num_e_ant_stack_groups_in = num_e_ant_stack_groups_in,            &
+            num_anthro_pt = num_anthro_pt,                                    &
+            index_STKHT = index_STKHT,                                        &
+            index_STKDM = index_STKDM,                                        &
+            index_STKTK = index_STKTK,                                        &
+            index_STKVE = index_STKVE,                                        &
+            index_STKLT = index_STKLT,                                        &
+            index_STKLG = index_STKLG,                                        &
+            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
+            ant_pt_local_cell_idx = ant_pt_local_cell_idx,                    &
+            ant_pt_rank = ant_pt_rank,                                        &
+            myrank = myrank,                                                  &
+            e_ant_in  = e_ant_in_p,                                           &
+            e_bb_in   = e_bb_in_p,                                            &
+            e_bio_in  = e_bio_in_p,                                           &
+            e_vol_in  = e_vol_in_p,                                           &
+            e_ant_out = e_ant_out_p,                                          &
+            e_bb_out  = e_bb_out_p,                                           &
+            e_bio_out = e_bio_out_p,                                          &
+            e_dust_out = e_dust_out_p,                                        &
+            e_ss_out   = e_ss_out_p,                                          &
+            e_vol_out  = e_vol_out_p,                                         &
 !--- Number of emissions in each array
-           num_e_ant_in   = num_e_ant_in,  num_e_bb_in    = num_e_bb_in,                 &
-           num_e_bio_in   = num_e_bio_in,  num_e_vol_in   = num_e_vol_in,                &
-           num_e_ant_out  = num_e_ant_out, num_e_bb_out   = num_e_bb_out,                &
-           num_e_bio_out  = num_e_bio_out, num_e_dust_out = num_e_dust_out,              &
-           num_e_ss_out   = num_e_ss_out,  num_e_vol_out  = num_e_vol_out,               &
+            num_e_ant_in   = num_e_ant_in,                                    &
+            num_e_bb_in    = num_e_bb_in,                                     &
+            num_e_bio_in   = num_e_bio_in,                                    &
+            num_e_vol_in   = num_e_vol_in,                                    &
+            num_e_ant_out  = num_e_ant_out,                                   &
+            num_e_bb_out   = num_e_bb_out,                                    &
+            num_e_bio_out  = num_e_bio_out,                                   &
+            num_e_dust_out = num_e_dust_out,                                  &
+            num_e_ss_out   = num_e_ss_out,                                    &
+            num_e_vol_out  = num_e_vol_out,                                   &
 !--- Tracer indices
-           config_extra_chemical_tracers = config_extra_chemical_tracers, &
-           config_ultrafine = config_ultrafine, config_coarse = config_coarse, &
-           index_smoke_ultrafine = index_smoke_ultrafine, &
-           index_dust_ultrafine = index_dust_ultrafine,   &
-           index_unspc_ultrafine = index_unspc_ultrafine, &
-           index_co = index_co, index_nox = index_nox, &
-           index_smoke_fine = index_smoke_fine, index_smoke_coarse = index_smoke_coarse, &  
-           index_dust_fine  = index_dust_fine,  index_dust_coarse  = index_dust_coarse,  &
-           index_ssalt_fine = index_ssalt_fine, index_ssalt_coarse = index_ssalt_coarse, &
-           index_polp_tree  = index_polp_tree,  index_polp_grass   = index_polp_grass,   &
-           index_polp_weed  = index_polp_weed,  index_polp_all     = index_polp_all,     &
-           index_pols_all   = index_pols_all,   index_pols_tree    = index_pols_tree,    &
-           index_pols_grass = index_pols_grass, index_pols_weed    = index_pols_weed,    &
-           index_unspc_fine = index_unspc_fine, index_unspc_coarse = index_unspc_coarse, &
-           index_so4_a_fine = index_so4_a_fine, index_no3_a_fine   = index_no3_a_fine,   &
-           index_nh4_a_fine = index_nh4_a_fine, index_so2          = index_so2,          &
-           index_nh3        = index_nh3,        index_ch4          = index_ch4,          &
-           index_bact_fine  = index_bact_fine,                                           &
-! --- Emission (input) indices
-           index_e_bb_in_smoke_ultrafine     = index_e_bb_in_smoke_ultrafine,                      &
-           index_e_bb_in_smoke_fine     = index_e_bb_in_smoke_fine,                      &
-           index_e_bb_in_smoke_coarse   = index_e_bb_in_smoke_coarse,                    &
-           index_e_bb_in_ch4            = index_e_bb_in_ch4,                             &
-           index_e_bb_in_nox            = index_e_bb_in_nox,                             &
-           index_e_bb_in_so2            = index_e_bb_in_so2,                             &
-           index_e_bb_in_nh3            = index_e_bb_in_nh3,                             &
-           index_e_bb_in_co             = index_e_bb_in_co,                             &
-           index_e_ant_in_unspc_ultrafine    = index_e_ant_in_unspc_ultrafine,                     &
-           index_e_ant_in_unspc_fine    = index_e_ant_in_unspc_fine,                     &
-           index_e_ant_in_unspc_coarse  = index_e_ant_in_unspc_coarse,                   &
-           index_e_ant_in_smoke_ultrafine    = index_e_ant_in_smoke_ultrafine,                     &
-           index_e_ant_in_smoke_fine    = index_e_ant_in_smoke_fine,                     &
-           index_e_ant_in_smoke_coarse  = index_e_ant_in_smoke_coarse,                   &
-           index_e_ant_in_no3_a_fine    = index_e_ant_in_no3_a_fine,                     &
-           index_e_ant_in_so4_a_fine    = index_e_ant_in_so4_a_fine,                     &
-           index_e_ant_in_nh4_a_fine    = index_e_ant_in_nh4_a_fine,                     &
-           index_e_ant_in_nh3           = index_e_ant_in_nh3,                            &
-           index_e_ant_in_so2           = index_e_ant_in_so2,                            &
-           index_e_ant_in_ch4           = index_e_ant_in_ch4,                            &
-           index_e_ant_in_nox           = index_e_ant_in_nox,                            &
-           index_e_ant_in_co            = index_e_ant_in_co,                            &
-           index_e_bio_in_polp_tree     = index_e_bio_in_polp_tree,                      &
-           index_e_bio_in_polp_grass    = index_e_bio_in_polp_grass,                     &
-           index_e_bio_in_polp_weed     = index_e_bio_in_polp_weed,                      &
-           index_e_vol_in_vash_fine     = index_e_vol_in_vash_fine,                      &
-           index_e_vol_in_vash_coarse   = index_e_vol_in_vash_coarse,                    &
-! --- Emission (output) indices
-           index_e_bb_out_smoke_ultrafine    = index_e_bb_out_smoke_ultrafine,                     &
-           index_e_bb_out_smoke_fine    = index_e_bb_out_smoke_fine,                     &
-           index_e_bb_out_smoke_coarse  = index_e_bb_out_smoke_coarse,                   &
-           index_e_bb_out_ch4           = index_e_bb_out_ch4,                            &
-           index_e_bb_out_nox           = index_e_bb_out_nox,                            &
-           index_e_bb_out_so2           = index_e_bb_out_so2,                            &
-           index_e_bb_out_nh3           = index_e_bb_out_nh3,                            &
-           index_e_bb_out_co            = index_e_bb_out_co,                            &
-           index_e_ant_out_unspc_ultrafine   =index_e_ant_out_unspc_ultrafine,                    &
-           index_e_ant_out_unspc_fine   = index_e_ant_out_unspc_fine,                    &
-           index_e_ant_out_unspc_coarse = index_e_ant_out_unspc_coarse,                  &
-           index_e_ant_out_smoke_ultrafine   = index_e_ant_out_smoke_ultrafine,                    &
-           index_e_ant_out_smoke_fine   = index_e_ant_out_smoke_fine,                    &
-           index_e_ant_out_smoke_coarse = index_e_ant_out_smoke_coarse,                  &
-           index_e_ant_out_no3_a_fine   = index_e_ant_out_no3_a_fine,                    &
-           index_e_ant_out_so4_a_fine   = index_e_ant_out_so4_a_fine,                    &
-           index_e_ant_out_nh4_a_fine   = index_e_ant_out_nh4_a_fine,                    &
-           index_e_ant_out_nh3          = index_e_ant_out_nh3,                           &
-           index_e_ant_out_so2          = index_e_ant_out_so2,                           &
-           index_e_ant_out_ch4          = index_e_ant_out_ch4,                           &
-           index_e_ant_out_nox          = index_e_ant_out_nox,                           &
-           index_e_ant_out_co           = index_e_ant_out_co,                           &
-           index_e_bio_out_polp_tree    = index_e_bio_out_polp_tree,                     &
-           index_e_bio_out_polp_grass   = index_e_bio_out_polp_grass,                    &
-           index_e_bio_out_polp_weed    = index_e_bio_out_polp_weed,                     &
-           index_e_dust_out_dust_ultrafine   = index_e_dust_out_dust_ultrafine,                    &
-           index_e_dust_out_dust_fine   = index_e_dust_out_dust_fine,                    &
-           index_e_dust_out_dust_coarse = index_e_dust_out_dust_coarse,                  &
-           index_e_ss_out_ssalt_fine    = index_e_ss_out_ssalt_fine,                     &
-           index_e_ss_out_ssalt_coarse  = index_e_ss_out_ssalt_coarse,                   &
-           index_e_vol_out_vash_fine    = index_e_vol_out_vash_fine,                     &
-           index_e_vol_out_vash_coarse  = index_e_vol_out_vash_coarse,                   &
-! --- Wildfire related arrays
-           hwp            =  hwp_p,                                                      &
-           hwp_method     =  hwp_method,       hwp_alpha = hwp_alpha,                    &
-           frp_in         = frp_in_p,            frp_out = frp_out_p,                    &
-           fre_in         = fre_in_p,            fre_out = fre_out_p,                    &
-           totprcp_prev24 = totprcp_prev24_p,    hwp_avg = hwp_avg_p,                    &!JR
-           frp_avg        = frp_avg_p,           fre_avg = fre_avg_p,                    &!JR
-           fire_end_hr    = fire_end_hr_p,       eco_id  = ecoregion_ID_p,               &!JR:as the avg blocks are calculated here
-           calc_bb_emis_online = calc_bb_emis_online,                                    &
-           efs_smold      = efs_smold_p,        efs_flam = efs_flam_p,                   &!JR
-           efs_rsmold     = efs_rsmold_p,        fmc_avg = fmc_avg_p,                    &!JR
-           hfx_bb         = hfx_bb_p,             qfx_bb = qfx_bb_p,                     &
-           frac_grid_burned = frac_grid_burned_p,                                        &
-           min_bb_plume   = min_bb_plume_p, max_bb_plume = max_bb_plume_p,               &
-           coef_bb_dc     = coef_bb_dc_p, nblocks = nblocks,                             &
-! -- Residential Wood Combustion related arrays
-           RWC_denominator = RWC_denominator_p, RWC_annual_sum = RWC_annual_sum_p,       &
-           RWC_annual_sum_smoke_fine = RWC_annual_sum_smoke_fine_p,                      &
-           RWC_annual_sum_smoke_coarse = RWC_annual_sum_smoke_coarse_p,                  &
-           RWC_annual_sum_unspc_fine = RWC_annual_sum_unspc_fine_p,                      &
-           RWC_annual_sum_unspc_coarse = RWC_annual_sum_unspc_coarse_p,                  &
-           max_rwc_plume = max_rwc_plume_p,                                              &
-! --- (FENGSHA) Dust related arrays 
-           sandfrac_in    = sandfrac_in_p, clayfrac_in    = clayfrac_in_p,               &
-           uthres_in      = uthres_in_p,  rdrag_in = rdrag_p, ssm_in = ssm_in_p,         &
-! --- Dry/Wet deposition, settling
-           wetdep_ls_opt = wetdep_ls_opt,         drydep_flux = drydep_flux_p,           &
-           tend_chem_settle = tend_chem_settle_p,       ddvel = ddvel_p,                 &
-           wetdep_resolved = wetdep_resolved_p,                                          &
-! --- Package activation
-           do_mpas_smoke = do_mpas_smoke, do_mpas_dust   = do_mpas_dust,                 &
-           do_mpas_pollen= do_mpas_pollen, do_mpas_anthro = do_mpas_anthro,              &
-           do_mpas_ssalt = do_mpas_ssalt,  do_mpas_volc   = do_mpas_volc,                &
-           do_mpas_sna   = do_mpas_sna,    do_mpas_methane= do_mpas_methane,             &
-           do_mpas_hab   = do_mpas_hab,    do_mpas_rwc = do_mpas_rwc,                    &
-! --- Namelist: Wildfire
-           plume_wind_eff         = plume_wind_eff,  plume_alpha   = plume_alpha,        &
-           bb_emis_scale_factor   = bb_emis_scale_factor,                                &
-           bb_qv_scale_factor     = bb_qv_scale_factor,                                  &
-           ebb_dcycle             = ebb_dcycle,                                          &
-           add_fire_heat_flux  = add_fire_heat_flux,                                     &
-           add_fire_moist_flux = add_fire_moist_flux,                                    &
-           plumerisefire_frq   = plumerisefire_frq,                                      &
-           bb_beta = bb_beta,   bb_input_prevh = bb_input_prevh,                         &
-! --- Namelist: Pollen
-           pollen_emis_scale_factor = pollen_emis_scale_factor,                          &
-           tree_pollen_emis_scale_factor = tree_pollen_emis_scale_factor,                &
-           grass_pollen_emis_scale_factor = grass_pollen_emis_scale_factor,              &
-           weed_pollen_emis_scale_factor = weed_pollen_emis_scale_factor,                &
-           num_pols_per_polp = num_pols_per_polp,                                        &
-! --- Namelist: Dry/Wet deposition and settling
-           wetdep_ls_alpha        = wetdep_ls_alpha, plumerise_opt = plumerise_opt,      &
-           drydep_opt          = drydep_opt, pm_settling = pm_settling,                  &
-! --- Namelist: Dust
-           dust_alpha = dust_alpha, dust_gamma = dust_gamma,                             &
-           dust_drylimit_factor  = dust_drylimit_factor,                                 &
-           dust_moist_correction = dust_moist_correction,                                &
-! --- Namelist: Other
-           rwc_emis_scale_factor = rwc_emis_scale_factor,                                &
-           plumerise_opt_rwc = plumerise_opt_rwc,                                        &
-           anthro_emis_scale_factor = anthro_emis_scale_factor,                          &
-           anthro_pt_emis_scale_factor = anthro_pt_emis_scale_factor,                    &
-! --- Met variables
-           nifa           = nifa_p,              nwfa    = nwfa_p,                       &
-           ktau    = itimestep   , dt       = dt_dyn     , dxcell   = dx_p       ,       &
-           area    = area_p      ,                                                       &
-           xland   = xland_p     , u10      = u10_p      , v10      = v10_p      ,       &
-           ust     = ust_p       , xlat     = xlat_p     , xlong    = xlon_p     ,       &
-           tskin   = tsk_p       , pblh     = hpbl_p     , t2m      = t2m_p      ,       &
-           p8w     = pres2_hyd_p , dz8w     = dz_p       , z_at_w   = zgrid_p    ,       &
-           p_phy   = pres_hyd_p  , t_phy    = t_p        , u_phy    = u_p        ,       &
-           v_phy   = v_p         , qv       = qv_p       , vvel     = w_p        ,       &
-           qc_vis  = qc_p, qr_vis = qr_p, qi_vis = qi_p, qs_vis = qs_p, qg_vis = qg_p,   &
-           blcldw_vis = qcbl_p, blcldi_vis = qibl_p,                                     &
-           coszen = coszr_p,                                                             &
-           config_mie_aod_opt = config_mie_aod_opt,                                      &
-           aod3d_smoke = aod3d_smoke_p, aod3d = aod3d_p, aod3d_simple = aod3d_simple_p,  &
-           vis = vis_p, tauaer_lw_p = tauaer_lw_p,                                       &
-           tauaer_sw_p = tauaer_sw_p, ssaaer_sw_p = ssaaer_sw_p, asyaer_sw_p = asyaer_sw_p, &
-           pi_phy  = pi_p        , rho_phy  = rho_p      , kpbl     = kpbl_p     ,       &
-           nsoil   = num_soils   , smois    = smois_p    , tslb     = tslb_p     ,       &
-           ivgtyp  = ivgtyp_p    , isltyp   = isltyp_p   , nlcat    = num_landcat,       &
-           swdown  = swdown_p    , z0       = z0_p       , snowh    = snowh_p    ,       &
-           julian  = curr_julday , rmol     = rmol_p     , raincv   = raincv_p   ,       &
-           rainncv = rainncv_p   , dpt2m    = dpt2m_p    , znt      = znt_p      ,       &
-           mavail  = mavail_p    , g        = gravity    , vegfra   = vegfra_p   ,       &
-           landusef = landusef_p , cldfrac  = cldfrac_p  , ktop_deep= ktop_deep_p,       &
-           cp      = cp          , rd       = R_d        , gmt      = gmt        ,       &
-           ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,       &
-           ims = ims , ime = ime , jms = jms , jme = jme , kms = kds , kme = kme ,       &
-           its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte         )
+            config_extra_chemical_tracers = config_extra_chemical_tracers,    &
+            config_ultrafine = config_ultrafine,                              &
+            config_coarse = config_coarse,                                    &
+            index_smoke_ultrafine = index_smoke_ultrafine,                    &
+            index_dust_ultrafine = index_dust_ultrafine,                      &
+            index_unspc_ultrafine = index_unspc_ultrafine,                    &
+            index_co = index_co,                                              &
+            index_nox = index_nox,                                            &
+            index_smoke_fine = index_smoke_fine,                              &
+            index_smoke_coarse = index_smoke_coarse,                          &
+            index_dust_fine = index_dust_fine,                                &
+            index_dust_coarse = index_dust_coarse,                            &
+            index_ssalt_fine = index_ssalt_fine,                              &
+            index_ssalt_coarse = index_ssalt_coarse,                          &
+            index_polp_tree = index_polp_tree,                                &
+            index_polp_grass = index_polp_grass,                              &
+            index_polp_weed = index_polp_weed,                                &
+            index_polp_all = index_polp_all,                                  &
+            index_pols_all = index_pols_all,                                  &
+            index_pols_tree = index_pols_tree,                                &
+            index_pols_grass = index_pols_grass,                              &
+            index_pols_weed = index_pols_weed,                                &
+            index_unspc_fine = index_unspc_fine,                              &
+            index_unspc_coarse = index_unspc_coarse,                          &
+            index_so4_a_fine = index_so4_a_fine,                              &
+            index_no3_a_fine = index_no3_a_fine,                              &
+            index_nh4_a_fine = index_nh4_a_fine,                              &
+            index_so2 = index_so2,                                            &
+            index_nh3 = index_nh3,                                            &
+            index_ch4 = index_ch4,                                            &
+            index_bact_fine = index_bact_fine,                                &
+!--- Emission input indices
+            index_e_bb_in_smoke_ultrafine = index_e_bb_in_smoke_ultrafine,    &
+            index_e_bb_in_smoke_fine = index_e_bb_in_smoke_fine,              &
+            index_e_bb_in_smoke_coarse = index_e_bb_in_smoke_coarse,          &
+            index_e_bb_in_ch4 = index_e_bb_in_ch4,                            &
+            index_e_bb_in_nox = index_e_bb_in_nox,                            &
+            index_e_bb_in_so2 = index_e_bb_in_so2,                            &
+            index_e_bb_in_nh3 = index_e_bb_in_nh3,                            &
+            index_e_bb_in_co  = index_e_bb_in_co,                             &
+            index_e_ant_in_unspc_ultrafine = index_e_ant_in_unspc_ultrafine,  &
+            index_e_ant_in_unspc_fine = index_e_ant_in_unspc_fine,            &
+            index_e_ant_in_unspc_coarse = index_e_ant_in_unspc_coarse,        &
+            index_e_ant_in_smoke_ultrafine = index_e_ant_in_smoke_ultrafine,  &
+            index_e_ant_in_smoke_fine = index_e_ant_in_smoke_fine,            &
+            index_e_ant_in_smoke_coarse = index_e_ant_in_smoke_coarse,        &
+            index_e_ant_in_no3_a_fine = index_e_ant_in_no3_a_fine,            &
+            index_e_ant_in_so4_a_fine = index_e_ant_in_so4_a_fine,            &
+            index_e_ant_in_nh4_a_fine = index_e_ant_in_nh4_a_fine,            &
+            index_e_ant_in_nh3 = index_e_ant_in_nh3,                          &
+            index_e_ant_in_so2 = index_e_ant_in_so2,                          &
+            index_e_ant_in_ch4 = index_e_ant_in_ch4,                          &
+            index_e_ant_in_nox = index_e_ant_in_nox,                          &
+            index_e_ant_in_co  = index_e_ant_in_co,                           &
+            index_e_bio_in_polp_tree = index_e_bio_in_polp_tree,              &
+            index_e_bio_in_polp_grass = index_e_bio_in_polp_grass,            &
+            index_e_bio_in_polp_weed = index_e_bio_in_polp_weed,              &
+            index_e_vol_in_vash_fine = index_e_vol_in_vash_fine,              &
+            index_e_vol_in_vash_coarse = index_e_vol_in_vash_coarse,          &
+!--- Emission output indices
+            index_e_bb_out_smoke_ultrafine = index_e_bb_out_smoke_ultrafine,  &
+            index_e_bb_out_smoke_fine = index_e_bb_out_smoke_fine,            &
+            index_e_bb_out_smoke_coarse = index_e_bb_out_smoke_coarse,        &
+            index_e_bb_out_ch4 = index_e_bb_out_ch4,                          &
+            index_e_bb_out_nox = index_e_bb_out_nox,                          &
+            index_e_bb_out_so2 = index_e_bb_out_so2,                          &
+            index_e_bb_out_nh3 = index_e_bb_out_nh3,                          &
+            index_e_bb_out_co  = index_e_bb_out_co,                           &
+            index_e_ant_out_unspc_ultrafine = index_e_ant_out_unspc_ultrafine,&
+            index_e_ant_out_unspc_fine = index_e_ant_out_unspc_fine,          &
+            index_e_ant_out_unspc_coarse = index_e_ant_out_unspc_coarse,      &
+            index_e_ant_out_smoke_ultrafine = index_e_ant_out_smoke_ultrafine,&
+            index_e_ant_out_smoke_fine = index_e_ant_out_smoke_fine,          &
+            index_e_ant_out_smoke_coarse = index_e_ant_out_smoke_coarse,      &
+            index_e_ant_out_no3_a_fine = index_e_ant_out_no3_a_fine,          &
+            index_e_ant_out_so4_a_fine = index_e_ant_out_so4_a_fine,          &
+            index_e_ant_out_nh4_a_fine = index_e_ant_out_nh4_a_fine,          &
+            index_e_ant_out_nh3 = index_e_ant_out_nh3,                        &
+            index_e_ant_out_so2 = index_e_ant_out_so2,                        &
+            index_e_ant_out_ch4 = index_e_ant_out_ch4,                        &
+            index_e_ant_out_nox = index_e_ant_out_nox,                        &
+            index_e_ant_out_co  = index_e_ant_out_co,                         &
+            index_e_bio_out_polp_tree = index_e_bio_out_polp_tree,            &
+            index_e_bio_out_polp_grass = index_e_bio_out_polp_grass,          &
+            index_e_bio_out_polp_weed = index_e_bio_out_polp_weed,            &
+            index_e_dust_out_dust_ultrafine = index_e_dust_out_dust_ultrafine,&
+            index_e_dust_out_dust_fine = index_e_dust_out_dust_fine,          &
+            index_e_dust_out_dust_coarse = index_e_dust_out_dust_coarse,      &
+            index_e_ss_out_ssalt_fine = index_e_ss_out_ssalt_fine,            &
+            index_e_ss_out_ssalt_coarse = index_e_ss_out_ssalt_coarse,        &
+            index_e_vol_out_vash_fine = index_e_vol_out_vash_fine,            &
+            index_e_vol_out_vash_coarse = index_e_vol_out_vash_coarse,        &
+!--- Wildfire related arrays
+            hwp = hwp_p,                                                      &
+            hwp_method = hwp_method,                                          &
+            hwp_alpha = hwp_alpha,                                            &
+            frp_in = frp_in_p,                                                &
+            frp_out = frp_out_p,                                              &
+            fre_in = fre_in_p,                                                &
+            fre_out = fre_out_p,                                              &
+            totprcp_prev24 = totprcp_prev24_p,                                &
+            hwp_avg = hwp_avg_p,                                              &
+            frp_avg = frp_avg_p,                                              &
+            fre_avg = fre_avg_p,                                              &
+            fire_end_hr = fire_end_hr_p,                                      &
+            coef_bb_dc = coef_bb_dc_p,                                        &
+            nblocks = nblocks,                                                &
+            eco_id = ecoregion_ID_p,                                          &
+            calc_bb_emis_online = calc_bb_emis_online,                        &
+            efs_smold = efs_smold_p,                                          &
+            efs_flam = efs_flam_p,                                            &
+            efs_rsmold = efs_rsmold_p,                                        &
+            fmc_avg = fmc_avg_p,                                              &
+            hfx_bb = hfx_bb_p,                                                &
+            qfx_bb = qfx_bb_p,                                                &
+            frac_grid_burned = frac_grid_burned_p,                            &
+            min_bb_plume = min_bb_plume_p,                                    &
+            max_bb_plume = max_bb_plume_p,                                    &
+            max_rwc_plume = max_rwc_plume_p,                                  &
+!--- Residential Wood Combustion related arrays
+            RWC_denominator = RWC_denominator_p,                              &
+            RWC_annual_sum = RWC_annual_sum_p,                                &
+            RWC_annual_sum_smoke_fine = RWC_annual_sum_smoke_fine_p,          &
+            RWC_annual_sum_smoke_coarse = RWC_annual_sum_smoke_coarse_p,      &
+            RWC_annual_sum_unspc_fine = RWC_annual_sum_unspc_fine_p,          &
+            RWC_annual_sum_unspc_coarse = RWC_annual_sum_unspc_coarse_p,      &
+!--- Dust related arrays
+            sandfrac_in = sandfrac_in_p,                                      &
+            clayfrac_in = clayfrac_in_p,                                      &
+            uthres_in = uthres_in_p,                                          &
+            rdrag_in = rdrag_p,                                               &
+            ssm_in = ssm_in_p,                                                &
+!--- Dry/Wet deposition, settling
+            wetdep_ls_opt = wetdep_ls_opt,                                    &
+            drydep_flux = drydep_flux_p,                                      &
+            tend_chem_settle = tend_chem_settle_p,                            &
+            ddvel = ddvel_p,                                                  &
+            wetdep_resolved = wetdep_resolved_p,                              &
+!--- Package activation
+            do_mpas_smoke = do_mpas_smoke,                                    &
+            do_mpas_dust = do_mpas_dust,                                      &
+            do_mpas_pollen = do_mpas_pollen,                                  &
+            do_mpas_anthro = do_mpas_anthro,                                  &
+            do_mpas_ssalt = do_mpas_ssalt,                                    &
+            do_mpas_volc = do_mpas_volc,                                      &
+            do_mpas_sna = do_mpas_sna,                                        &
+            do_mpas_methane = do_mpas_methane,                                &
+            do_mpas_hab = do_mpas_hab,                                        &
+            do_mpas_rwc = do_mpas_rwc,                                        &
+!--- Namelist wildfire
+            plume_wind_eff = plume_wind_eff,                                  &
+            plume_alpha = plume_alpha,                                        &
+            bb_emis_scale_factor = bb_emis_scale_factor,                      &
+            bb_qv_scale_factor = bb_qv_scale_factor,                          &
+            ebb_dcycle = ebb_dcycle,                                          &
+            add_fire_heat_flux = add_fire_heat_flux,                          &
+            add_fire_moist_flux = add_fire_moist_flux,                        &
+            plumerisefire_frq = plumerisefire_frq,                            &
+            bb_beta = bb_beta,                                                &
+            bb_input_prevh = bb_input_prevh,                                  &
+!--- Namelist pollen
+            pollen_emis_scale_factor = pollen_emis_scale_factor,              &
+            tree_pollen_emis_scale_factor = tree_pollen_emis_scale_factor,    &
+            grass_pollen_emis_scale_factor = grass_pollen_emis_scale_factor,  &
+            weed_pollen_emis_scale_factor = weed_pollen_emis_scale_factor,    &
+            num_pols_per_polp = num_pols_per_polp,                            &
+!--- Namelist dry/wet deposition and settling
+            wetdep_ls_alpha = wetdep_ls_alpha,                                &
+            plumerise_opt = plumerise_opt,                                    &
+            drydep_opt = drydep_opt,                                          &
+            pm_settling = pm_settling,                                        &
+!--- Namelist dust
+            dust_alpha = dust_alpha,                                          &
+            dust_gamma = dust_gamma,                                          &
+            dust_drylimit_factor = dust_drylimit_factor,                      &
+            dust_moist_correction = dust_moist_correction,                    &
+!--- Namelist other
+            rwc_emis_scale_factor = rwc_emis_scale_factor,                    &
+            plumerise_opt_rwc = plumerise_opt_rwc,                            &
+            anthro_emis_scale_factor = anthro_emis_scale_factor,              &
+            anthro_pt_emis_scale_factor = anthro_pt_emis_scale_factor,        &
+!--- Met variables
+            nifa = nifa_p,                                                    &
+            nwfa = nwfa_p,                                                    &
+            ktau = itimestep,                                                 &
+            dt = dt_dyn,                                                      &
+            dxcell = dx_p,                                                    &
+            area = area_p,                                                    &
+            xland = xland_p,                                                  &
+            u10 = u10_p,                                                      &
+            v10 = v10_p,                                                      &
+            ust = ust_p,                                                      &
+            xlat = xlat_p,                                                    &
+            xlong = xlon_p,                                                   &
+            tskin = tsk_p,                                                    &
+            pblh = hpbl_p,                                                    &
+            t2m = t2m_p,                                                      &
+            p8w = pres2_hyd_p,                                                &
+            dz8w = dz_p,                                                      &
+            z_at_w = zgrid_p,                                                 &
+            p_phy = pres_hyd_p,                                               &
+            t_phy = t_p,                                                      &
+            u_phy = u_p,                                                      &
+            v_phy = v_p,                                                      &
+            qv = qv_p,                                                        &
+            vvel = w_p,                                                       &
+            qc_vis = qc_p,                                                    &
+            qr_vis = qr_p,                                                    &
+            qi_vis = qi_p,                                                    &
+            qs_vis = qs_p,                                                    &
+            qg_vis = qg_p,                                                    &
+            blcldw_vis = qcbl_p,                                              &
+            blcldi_vis = qibl_p,                                              &
+            coszen = coszr_p,                                                 &
+            config_mie_aod_opt = config_mie_aod_opt,                          &
+            aod3d_smoke = aod3d_smoke_p,                                      &
+            aod3d = aod3d_p,                                                  &
+            aod3d_simple = aod3d_simple_p,                                    &
+            tauaer_lw_p = tauaer_lw_p,                                        &
+            tauaer_sw_p = tauaer_sw_p,                                        &
+            ssaaer_sw_p = ssaaer_sw_p,                                        &
+            asyaer_sw_p = asyaer_sw_p,                                        &
+            vis = vis_p,                                                      &
+            pi_phy = pi_p,                                                    &
+            rho_phy = rho_p,                                                  &
+            kpbl = kpbl_p,                                                    &
+            nsoil = num_soils,                                                &
+            smois = smois_p,                                                  &
+            tslb = tslb_p,                                                    &
+            ivgtyp = ivgtyp_p,                                                &
+            isltyp = isltyp_p,                                                &
+            nlcat = num_landcat,                                              &
+            swdown = swdown_p,                                                &
+            z0 = z0_p,                                                        &
+            snowh = snowh_p,                                                  &
+            julian = curr_julday,                                             &
+            rmol = rmol_p,                                                    &
+            raincv = raincv_p,                                                &
+            rainncv = rainncv_p,                                              &
+            dpt2m = dpt2m_p,                                                  &
+            znt = znt_p,                                                      &
+            mavail = mavail_p,                                                &
+            g = gravity,                                                      &
+            vegfra = vegfra_p,                                                &
+            landusef = landusef_p,                                            &
+            cldfrac = cldfrac_p,                                              &
+            ktop_deep = ktop_deep_p,                                          &
+            cp = cp,                                                          &
+            rd = R_d,                                                         &
+            gmt = gmt,                                                        &
+            ids = ids, ide = ide,                                             &
+            jds = jds, jde = jde,                                             &
+            kds = kds, kde = kde,                                             &
+            ims = ims, ime = ime,                                             &
+            jms = jms, jme = jme,                                             &
+            kms = kds, kme = kme,                                             &
+            its = its, ite = ite,                                             &
+            jts = jts, jte = jte,                                             &
+            kts = kts, kte = kte                                              )
  call mpas_timer_stop('mpas_smoke')
  
- ! Update PM2.5/PM10
+! Update PM2.5/PM10
 
  do j = jts,jte
  do k = kts,kte
@@ -2216,7 +2312,7 @@ endif
  idx_999 = 4
  k_end = min(kte, ubound(tauaer_sw, 2))
 
- if ( aero_dir_rad_fdb .eq. 2 ) then
+ if ( aero_dir_rad_fdb .eq. 2 .or. aero_dir_rad_fdb .eq. 4 ) then
  do j = jts,jte
    do i = its,ite
      do k = kts,k_end !k_end declared here only in this subroutine

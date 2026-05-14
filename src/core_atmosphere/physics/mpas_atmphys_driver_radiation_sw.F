@@ -462,6 +462,7 @@
 
 !local variables:
  integer:: i,j,k,n
+ integer:: aero_dir_rad_fdb_local
  real(kind=RKIND):: tau_thompson, tau_mie, ssa_thompson, ssa_mie, asy_thompson, asy_mie
  real(kind=RKIND):: tau_total, ssa_num, asy_num
 
@@ -471,6 +472,7 @@
  logical,pointer:: config_tempo_aerosolaware
  logical,pointer:: config_calc_clean_atm_diag
  integer,pointer:: aero_dir_rad_fdb
+ integer,pointer:: config_mie_aod_opt
  integer,pointer:: aer_opt
  character(len=StrKIND),pointer:: radt_sw_scheme
  character(len=StrKIND),pointer:: microp_scheme
@@ -503,6 +505,7 @@
  call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag',config_calc_clean_atm_diag)
  call mpas_pool_get_config(configs,'aero_dir_rad_fdb'        ,aero_dir_rad_fdb        )
+ call mpas_pool_get_config(configs,'config_mie_aod_opt',config_mie_aod_opt)
  call mpas_pool_get_config(configs,'aer_opt'                 ,aer_opt                 )
 
  call mpas_pool_get_array(mesh,'latCell',latCell)
@@ -669,7 +672,40 @@
        !   3 = Thompson internal pathway (WFA/IFA climatology)
        !   4 = Thompson WFA/IFA + Mie combined (optical weighting)
        !----------------------------------------------------------------------
-       direct_feedback_select: select case(aero_dir_rad_fdb)
+       ! adding one safeguard here, Minsu Choi, CIRES/NOAA GSL
+       ! adding local dir_rad_fdb for safeguard fallback
+       aero_dir_rad_fdb_local = aero_dir_rad_fdb
+
+       if ( config_mie_aod_opt == 0 .and. aero_dir_rad_fdb_local == 2) then
+         call mpas_log_write( 'WARNING: aero_dir_rad_fdb=2 requires config_mie_aod_opt > 0. ' // &
+                              'Falling back to no direct feedback.', &
+                               messageType=MPAS_LOG_WARN )
+         aero_dir_rad_fdb_local = 0
+       else if ( config_mie_aod_opt == 0 .and. aero_dir_rad_fdb_local == 4 ) then
+         call mpas_log_write( 'WARNING: aero_dir_rad_fdb=4 requested, but config_mie_aod_opt=0. ' // &
+                              'Feedback will use Thompson only. Recommended for research purpose only.', &
+                              messageType=MPAS_LOG_WARN )
+       endif
+
+       if ( aero_dir_rad_fdb_local == 0 .and. aer_opt /= 0 ) then
+          call mpas_log_write( 'WARNING: aero_dir_rad_fdb=0 but aer_opt is not 0. ' // &
+                               'RRTMG aerosol option may still activate aerosol effects.', &
+                               messageType=MPAS_LOG_WARN )
+       
+       else if ( (aero_dir_rad_fdb_local == 1 .or. &
+                  aero_dir_rad_fdb_local == 2 .or. &
+                  aero_dir_rad_fdb_local == 4) .and. aer_opt /= 2 ) then
+          call mpas_log_write( 'WARNING: aero_dir_rad_fdb requests driver-provided aerosol optics, ' // &
+                               'but aer_opt is not 2. RRTMG may ignore tauaer3d/ssaaer3d/asyaer3d.', &
+                               messageType=MPAS_LOG_WARN )
+       
+       else if ( aero_dir_rad_fdb_local == 3 .and. aer_opt /= 3 ) then
+          call mpas_log_write( 'WARNING: aero_dir_rad_fdb=3 requests Thompson internal aerosol pathway, ' // &
+                               'but aer_opt is not 3.', &
+                               messageType=MPAS_LOG_WARN )
+       endif
+
+       direct_feedback_select: select case(aero_dir_rad_fdb_local)
 
           !--- Case 0: No direct feedback
           !    Arrays already initialized to no-aerosol defaults above
@@ -708,7 +744,7 @@
                       asyaer   = asyaer_p,                                   &
                       aod5503d = taod5503d_sim_p, aod5502d = taod5502d_sim_p,&
                       aer_type = taer_type_p,                                &
-                      aer_aod550_opt = 1, aer_angexp_opt = 3,                &
+                      aer_aod550_opt = 2, aer_angexp_opt = 3,                &
                       aer_ssa_opt    = 3, aer_asy_opt    = 3,                &
                       aer_aod550_val = 0., aer_angexp_val = 0.,              &
                       aer_ssa_val    = 0., aer_asy_val    = 0.,              &
@@ -776,7 +812,7 @@
                               ssaaer   = ssaaer_p    , asyaer   = asyaer_p    , &
                               aod5502d = taod5502d_p , aod5503d = taod5503d_p , &
                               aer_type = taer_type_p ,                                               &
-                              aer_aod550_opt = taer_aod550_opt, aer_angexp_opt = taer_angexp_opt,    &
+                              aer_aod550_opt = 2, aer_angexp_opt = taer_angexp_opt,    &
                               aer_ssa_opt    = taer_ssa_opt   , aer_asy_opt    = taer_asy_opt   ,    &
                               aer_aod550_val = aer_aod550_val , aer_angexp_val = aer_angexp_val ,    &
                               aer_ssa_val    = aer_ssa_val    , aer_asy_val    = aer_asy_val    ,    &
@@ -842,7 +878,7 @@
                               ssaaer   = ssaaer_thompson_tmp    , asyaer   = asyaer_thompson_tmp    , &
                               aod5502d = taod5502d_p , aod5503d = taod5503d_p , &
                               aer_type = taer_type_p ,                                               &
-                              aer_aod550_opt = taer_aod550_opt, aer_angexp_opt = taer_angexp_opt,    &
+                              aer_aod550_opt = 2, aer_angexp_opt = taer_angexp_opt,    &
                               aer_ssa_opt    = taer_ssa_opt   , aer_asy_opt    = taer_asy_opt   ,    &
                               aer_aod550_val = aer_aod550_val , aer_angexp_val = aer_angexp_val ,    &
                               aer_ssa_val    = aer_ssa_val    , aer_asy_val    = aer_asy_val    ,    &
