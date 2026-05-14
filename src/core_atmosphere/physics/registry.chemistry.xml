@@ -348,10 +348,10 @@
             units="-"
             description="scale factor for weed pollen emissions"
             possible_values="Positive real values"/>
-       <nml_option name="config_mie_aod_opt" type="logical" default_value="false" in_defaults="false"
+       <nml_option name="config_mie_aod_opt" type="integer" default_value="0" in_defaults="false"
             units="-"
             description="Flag that controls Mie calculation"
-            possbile_values=".true. or .false."/>
+            possbile_values="no Mie calculation = 0, Mie (Homogeneous Mixing) = 1"/>
    </nml_record>
 
 <!-- **************************************************************************************** -->
