@@ -444,6 +444,7 @@
       integer:: i,j,k,n,h,t
       integer:: nblocks, blk !JR
       integer ::t_start, t_end, n_active, last_obs, t_size !JR
+      integer :: nchem_state, nchem_work
       real(kind=RKIND) :: sum_fre, sum_frp, sum_hwp, sum_prcp, sum_cldfrac !JR
       
       call mpas_pool_get_array(state,'scalars',scalars,time_lev)
@@ -618,8 +619,14 @@
       endif
      
       chem => scalars(chemistry_start:chemistry_end,:,:)
+
+      
+      nchem_state = SIZE(chem,1)
+      nchem_work  = MIN(num_chem, nchem_state)
+
+      chem_p(:,:,:,:) = 1.e-12_RKIND
      
-      do n = 1, num_chem
+      do n = 1, nchem_work
       do j = jts, jte
       do k = kts, kte
       do i = its, ite
@@ -882,7 +889,7 @@
       endif
 
       ! Chem diags
-      do n= 1,num_chem
+      do n= 1,nchem_work
       do j= jts, jte
       do i= its, ite
              if ( drydep_opt .ne. 0 ) then
@@ -1032,6 +1039,7 @@
  logical, pointer :: calc_bb_emis_online
 
  integer:: i,k,j,n, i0,k0,n0, j0
+ integer :: nchem_state, nchem_work
 
 !local pointers:
  call mpas_pool_get_array(state,'scalars',scalars,time_lev)
@@ -1125,6 +1133,8 @@
  endif
 
  chem => scalars(chemistry_start:chemistry_end,:,:)
+ nchem_state = SIZE(chem,1)
+ nchem_work  = MIN(num_chem, nchem_state)
 
       do j = jts,jte
       do k = kts,kte
@@ -1148,7 +1158,7 @@
       enddo
       enddo
       !
-      do n = 1, num_chem
+      do n = 1, nchem_work
       do j = jts,jte
       do k = kts,kte
       do i = its,ite
@@ -1163,9 +1173,9 @@
       enddo
       enddo
 
-      do n = 1,num_chem
+      do n = 1,nchem_work
       do j = jts,jte
-      do i = its, kte
+      do i = its,ite
         if (drydep_opt .ne. 0 ) then
            ddvel(n,i) = ddvel_p(i,j,n)
            drydep_flux(n,i) = drydep_flux_p(i,j,n)
