@@ -320,9 +320,9 @@
             units="minutes"
             description="frequency of call to fire plumerise"
             possible_values="Positive integer values"/>
-       <nml_option name="aero_dir_rad_fdb" type="logical" default_value="false" in_defaults="false"
+       <nml_option name="aero_dir_rad_fdb" type="integer" default_value="0"
             units="-"
-            description="Flag that controls the direct aerosol effect"
+            description="Integer to control the direct aerosol effect"
             possbile_values=".true. or .false."/>
        <nml_option name="config_mynn_enh_mix" type="logical" default_value="false" in_defaults="false"
             units="-"
@@ -348,6 +348,10 @@
             units="-"
             description="scale factor for weed pollen emissions"
             possible_values="Positive real values"/>
+       <nml_option name="config_mie_aod_opt" type="logical" default_value="false" in_defaults="false"
+            units="-"
+            description="Flag that controls Mie calculation"
+            possbile_values=".true. or .false."/>
    </nml_record>
 
 <!-- **************************************************************************************** -->
@@ -364,8 +368,10 @@
 	      <var name="swdnb"/>
               <var name="swdnbc"/>
               <var name="aod3d_smoke"/>
+              <var name="aod3d_simple"/>
               <var name="aod3d"/>
               <var name="aod550"/>
+              <var name="aod550_simple"/>
               <var name="vis"/>
               <var name="ddvel"/>
               <var name="drydep_flux"/>
@@ -722,12 +728,12 @@
          <var name="e_ant_in_smoke_coarse" name_in_code="e_ant_in_smoke_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic coarse smoke emissions"
               packages="mpas_smoke_coarse"/>
-         <var name="e_ant_in_no3_a_fine" name_in_code="e_ant_in_no3_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input anthropogenic fine nitrate emissions"
-	      packages="mpas_sna_in"/>
          <var name="e_ant_in_so4_a_fine" name_in_code="e_ant_in_so4_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic fine sulfate emissions"
               packages="mpas_sna_in"/>
+         <var name="e_ant_in_no3_a_fine" name_in_code="e_ant_in_no3_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic fine nitrate emissions"
+	      packages="mpas_sna_in"/>
          <var name="e_ant_in_nh4_a_fine" name_in_code="e_ant_in_nh4_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic fine ammonium emissions"
               packages="mpas_sna_in"/>
@@ -820,14 +826,14 @@
          <var name="e_ant_out_smoke_coarse" name_in_code="e_ant_out_smoke_coarse" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="output anthropogenic coarse smoke emissions"
               packages="mpas_smoke_coarse"/>
+         <var name="e_ant_out_so4_a_fine" name_in_code="e_ant_out_so4_a_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
+              description="ouput anthropogenic fine sulfate (SO4) emissions"
+              packages="mpas_sna_in"/>
          <var name="e_ant_out_no3_a_fine" name_in_code="e_ant_out_no3_a_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="ouput anthropogenic fine nitrate (NO3) emissions"
               packages="mpas_sna_in"/>
          <var name="e_ant_out_nh4_a_fine" name_in_code="e_ant_out_nh4_a_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
               description="ouput anthropogenic fine ammonium (NH4) emissions"
-              packages="mpas_sna_in"/>
-         <var name="e_ant_out_so4_a_fine" name_in_code="e_ant_out_so4_a_fine" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
-              description="ouput anthropogenic fine sulfate (SO4) emissions"
               packages="mpas_sna_in"/>
          <var name="e_ant_out_nh3" name_in_code="e_ant_out_nh3" array_group="ant_out_gases" units="mol m^{-2} s^{-1}"
               description="ouput anthropogenic fine ammonia (NH3) emissions"
@@ -1006,8 +1012,20 @@
            description="aerosol optical depth from smoke"/>
       <var name="aod3d"           type="real" dimensions="nVertLevels nCells Time" units="-"
            description="aerosol optical depth from all aerosols"/>
-      <var name="aod550"           type="real" dimensions="nCells Time" units="-"
+      <var name="aod3d_simple"    type="real" dimensions="nVertLevels nCells Time" units="unitless"
+           description="simplified aerosol optical depth from constant parameters"/>
+      <var name="aod550"           type="real" dimensions="nCells Time" units="unitless"
            description="aerosol optical depth (2D) from all aerosols"/>
+      <var name="aod550_simple"    type="real" dimensions="nCells Time" units="unitless"
+           description="aerosol optical depth (2D) from all aerosols, simple"/>
+      <var name="tauaer_sw"        type="real" dimensions="nSWbds nVertLevels nCells Time" units="unitless"
+           description="layer aerosol optical thickness, shortwave"/>
+      <var name="ssaaer_sw"         type="real" dimensions="nSWbds nVertLevels nCells Time" units="unitless"
+           description="Single Scattering Albedo, shortwave"/>
+      <var name="asyaer_sw"         type="real" dimensions="nSWbds nVertLevels nCells Time" units="unitless"
+           description="asymmetry parameter, shortwave"/>
+      <var name="tauaer_lw"        type="real" dimensions="nLWbds nVertLevels nCells Time" units="unitless"
+           description="layer aerosol optical thickness, longwave"/>
       <var name="RWC_annual_sum" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning emissions"
 	   packages="mpas_rwc_in"/>
