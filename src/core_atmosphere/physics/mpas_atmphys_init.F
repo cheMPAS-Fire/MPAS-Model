@@ -139,6 +139,7 @@ use mpas_stream_manager
                    config_anthro_pt_scheme
 
  integer,pointer:: nCellsSolve,nLags
+ integer,pointer:: config_mie_aod_opt
  integer,dimension(:),pointer:: i_rainc,i_rainnc
  integer,dimension(:),pointer:: i_acswdnb,i_acswdnbc,i_acswdnt,i_acswdntc, &
                                 i_acswupb,i_acswupbc,i_acswupt,i_acswuptc, &
@@ -203,6 +204,7 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_sna_scheme'       ,config_sna_scheme       )
  call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme      )
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
+ call mpas_pool_get_config(configs,'config_mie_aod_opt',config_mie_aod_opt)
 
  call mpas_pool_get_dimension(mesh,'nCellsSolve',nCellsSolve)
  call mpas_pool_get_dimension(mesh,'nLags'      ,nLags      )
@@ -306,7 +308,12 @@ use mpas_stream_manager
                          f_ssalt_fine,f_ssalt_coarse,                                        &
                          f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4            )
 
- call rrtmgaeropt_init()                 
+
+ if (config_mie_aod_opt > 0) then
+   call mpas_log_write('Initializing RRTMG aerosol optical table for Mie AOD.')
+   call rrtmgaeropt_init()
+ endif                 
+
 !initialization of counters i_rainc and i_rainnc. i_rainc and i_rainnc track the number of
 !times the accumulated convective (rainc) and grid-scale (rainnc) rain exceed the prescribed
 !threshold value:
