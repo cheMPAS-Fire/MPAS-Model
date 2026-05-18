@@ -59,8 +59,14 @@
 	 <package name="mpas_anthro_aero_in"
 		 active_when="( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ))"
 		 description="parameterization of emisssions of anthropogenic aerosols"/>
+         <package name="mpas_anthro_pt_aero_in"
+                 active_when="( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ) .and. config_anthro_pt_scheme .ne. 'off')"
+                 description="parameterization of emisssions of anthropogenic aerosols"/>
 	 <package name="mpas_anthro_gas_in"
 		 active_when="( ANY( [ CHARACTER(len=20) :: 'simple_gas', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ))"
+		 description="parameterization of emissions of anthropogenic gases"/>
+	 <package name="mpas_anthro_pt_gas_in"
+		 active_when="( ANY( [ CHARACTER(len=20) :: 'simple_gas', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ) .and. config_anthro_pt_scheme .ne. 'off')"
 		 description="parameterization of emissions of anthropogenic gases"/>
 	 <package name="mpas_unspc_ultrafine"
 		 active_when="config_ultrafine .and. ( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ))"
@@ -684,7 +690,7 @@
       <var_array name="e_ant_pt_in" type="real" dimensions="nanthro_pt TSTEP Time" packages="mpas_anthro_pt_emis">
          <var name="e_ant_pt_in_unspc_fine" name_in_code="e_ant_pt_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input point source anthropogenic fine unspeciated emissions"
-              packages="mpas_anthro_aero_in"/>
+              packages="mpas_anthro_pt_aero_in"/>
       </var_array>
       <var_array name="e_ant_stack_groups_in" type="real" dimensions="nanthro_pt" packages="mpas_anthro_pt_emis">
          <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
