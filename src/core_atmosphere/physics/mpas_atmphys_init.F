@@ -30,6 +30,7 @@
  use mpas_atmphys_o3climatology
  use mpas_atmphys_lsm_noahmpinit,only: init_lsm_noahmp
  use mpas_atmphys_driver_smoke,only: init_smoke
+ use module_data_rrtmgaeropt, only: rrtmgaeropt_init                    
 
  use bl_ugwpv1_ngw, only: ugwpv1_ngw_init
 
@@ -305,6 +306,7 @@ use mpas_stream_manager
                          f_ssalt_fine,f_ssalt_coarse,                                        &
                          f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4            )
 
+ call rrtmgaeropt_init()                 
 !initialization of counters i_rainc and i_rainnc. i_rainc and i_rainnc track the number of
 !times the accumulated convective (rainc) and grid-scale (rainnc) rain exceed the prescribed
 !threshold value:
