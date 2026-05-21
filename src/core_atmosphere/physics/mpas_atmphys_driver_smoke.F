@@ -1416,9 +1416,11 @@ if (brute_search ) then
       xPoint = R*(cos(lat1) * cos(lon1))
       yPoint = R*(cos(lat1) * sin(lon1))
       zPoint = R*(sin(lat1))
-      is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
-                    yC, zC, nEdgesOnCell(n), &
-                    verticesOnCell(:,n), xVertex, yVertex, zVertex)
+      if ( R > 0 ) then
+         is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
+                      yC, zC, nEdgesOnCell(n), &
+                      verticesOnCell(:,n), xVertex, yVertex, zVertex)
+      endif
       if (is_inside) then
 !         best_cell_global(s) = global_cell_list(n)
          best_cell_work(s) = n
@@ -1495,9 +1497,11 @@ else
    yPoint = R*(cos(lat1) * sin(lon1))
    zPoint = R*(sin(lat1))
 ! Test
-   is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
-                 yC, zC, nEdgesOnCell(c_nearest), &
-                 verticesOnCell(:,c_nearest), xVertex, yVertex, zVertex)
+   if ( R > 0 ) then
+      is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
+                   yC, zC, nEdgesOnCell(c_nearest), &
+                   verticesOnCell(:,c_nearest), xVertex, yVertex, zVertex)
+   endif
 ! Place a -1, only the one inside will be positive
    if ( is_inside) then
       best_cell_work(s) = c_nearest
