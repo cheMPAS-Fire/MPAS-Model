@@ -57,6 +57,7 @@
  integer, pointer :: wetdep_ls_opt
  ! Code has been added by Minsu Choi, CIRES/NOAA GSL
  ! Now we are adding simple Mie calculation for smoke_fine particle
+ integer, pointer :: config_soa_scheme
  integer, pointer :: drydep_opt
  integer, pointer :: config_mie_aod_opt
  integer, pointer :: plumerise_opt
@@ -72,6 +73,7 @@
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
 
@@ -191,6 +193,15 @@
  if(.not.allocated(chem_p))               allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
+
+ if (config_soa_scheme .ge. 1) then
+    if(.not.allocated(PM2_5_SOA_p))          allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
+ endif
+ if (config_soa_scheme .ge. 2) then
+    if(.not.allocated(PM2_5_ANT_SOA_p))      allocate(PM2_5_ANT_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_SMOKE_SOA_p))    allocate(PM2_5_SMOKE_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_SOA_p))          allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
+ endif         
  
  if ( num_e_ant_pt_in .gt. 0 ) then
     if(.not.allocated(e_ant_pt_in_p))   allocate(e_ant_pt_in_p(25,1:num_anthro_pt,1:num_e_ant_pt_in))
@@ -332,6 +343,9 @@
 
  if(allocated(chem_p)       )         deallocate(chem_p       )
  if(allocated(PM2_5_p)      )         deallocate(PM2_5_p      )
+ if(allocated(PM2_5_SOA_p)  )         deallocate(PM2_5_SOA_p  )
+ if(allocated(PM2_5_SMOKE_SOA_p))     deallocate(PM2_5_SMOKE_SOA_p)
+ if(allocated(PM2_5_ANT_SOA_p)  )     deallocate(PM2_5_ANT_SOA_p )
  if(allocated(PM10_p)       )         deallocate(PM10_p       )
  if(allocated(aod550_p)     )         deallocate(aod550_p     )
  if(allocated(aod550_simple_p))       deallocate(aod550_simple_p)
@@ -431,6 +445,7 @@
       character(len=StrKIND),pointer :: config_sna_scheme
       character(len=StrKIND),pointer :: config_rwc_scheme
       character(len=StrKIND),pointer :: config_convection_scheme
+      integer, pointer :: config_soa_scheme
       integer, pointer :: wetdep_ls_opt
       integer, pointer :: drydep_opt
       integer, pointer :: plumerise_opt
@@ -458,6 +473,7 @@
       call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
       call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
       call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+      call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
 
       call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
       call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
@@ -1002,6 +1018,8 @@
  real(kind=RKIND),dimension(:),    pointer:: frp_out, fre_out, hwp, coef_bb_dc, fire_ef_out
  real(kind=RKIND),dimension(:),    pointer:: hfx_bb, qfx_bb, frac_grid_burned
  real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10
+ real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10, PM2_5_SOA
+ real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5_SMOKE_SOA, PM2_5_ANT_SOA
  real(kind=RKIND),dimension(:,:)  ,pointer:: aod3d_smoke, aod3d, aod3d_simple
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_sw, asyaer_sw, ssaaer_sw
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_lw
@@ -1025,6 +1043,7 @@
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
+ integer, pointer :: config_soa_scheme
  integer, pointer :: wetdep_ls_opt
  integer, pointer :: drydep_opt
  integer, pointer :: plumerise_opt
@@ -1062,6 +1081,7 @@
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
@@ -1077,6 +1097,14 @@
     call mpas_pool_get_dimension(state,'index_nifa',index_nifa)
     nifa => scalars(index_nifa,:,:)
     nwfa => scalars(index_nwfa,:,:)
+ endif
+
+ if ( config_soa_scheme .ge. 1 ) then
+   call mpas_pool_get_array(diag_physics,'PM2_5_SOA',PM2_5_SOA)
+   call mpas_pool_get_array(diag_physics,'PM2_5_SMOKE_SOA',PM2_5_SMOKE_SOA)
+ endif
+ if ( config_soa_scheme .ge. 2 ) then
+   call mpas_pool_get_array(diag_physics,'PM2_5_ANT_SOA',PM2_5_ANT_SOA)
  endif
 
  if (num_e_ant_out .gt. 0 ) then
@@ -1132,6 +1160,14 @@
       !
          PM2_5(k,i)     = PM2_5_p(i,k,j)
          PM10(k,i)      = PM10_p(i,k,j)
+         if ( config_soa_scheme .ge. 1 ) then
+           PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
+         endif
+         if ( config_soa_scheme .ge. 2 ) then
+           PM2_5_ANT_SOA(k,i) = PM2_5_ANT_SOA_p(i,k,j)
+           PM2_5_SMOKE_SOA(k,i) = PM2_5_SMOKE_SOA_p(i,k,j)
+           PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
+         endif
 
          aod3d(k,i) = aod3d_p(i,k,j)
          aod3d_simple(k,i) = aod3d_simple_p(i,k,j)
@@ -1421,6 +1457,9 @@ if (brute_search ) then
                       yC, zC, nEdgesOnCell(n), &
                       verticesOnCell(:,n), xVertex, yVertex, zVertex)
       endif
+      is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
+                    yC, zC, nEdgesOnCell(n), &
+                    verticesOnCell(:,n), xVertex, yVertex, zVertex)
       if (is_inside) then
 !         best_cell_global(s) = global_cell_list(n)
          best_cell_work(s) = n
@@ -1502,6 +1541,9 @@ else
                    yC, zC, nEdgesOnCell(c_nearest), &
                    verticesOnCell(:,c_nearest), xVertex, yVertex, zVertex)
    endif
+   is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
+                 yC, zC, nEdgesOnCell(c_nearest), &
+                 verticesOnCell(:,c_nearest), xVertex, yVertex, zVertex)
 ! Place a -1, only the one inside will be positive
    if ( is_inside) then
       best_cell_work(s) = c_nearest
@@ -1548,6 +1590,7 @@ endif
 
  !local pointers:
  integer,pointer :: index_smoke_ultrafine, index_smoke_fine, index_smoke_coarse
+ integer,pointer :: index_bbvoc, index_antvoc, index_bbsoa, index_antsoa, index_soa
  integer,pointer :: index_dust_ultrafine, index_dust_fine, index_dust_coarse
  integer,pointer :: index_polp_tree, index_polp_grass, index_polp_weed, index_polp_all,&
                     index_pols_tree, index_pols_grass, index_pols_weed, index_pols_all
@@ -1597,6 +1640,10 @@ endif
  integer,pointer :: index_e_ant_pt_in_co
  integer,pointer :: index_e_ant_pt_in_voc
  integer,pointer :: index_e_ant_pt_in_bc, index_e_ant_pt_in_oc
+
+ integer,pointer :: index_STKHT,index_STKDM,index_STKTK,index_STKVE, &
+                    index_STKLT,index_STKLG
+ integer,pointer :: index_e_ant_pt_in_unspc_fine
  integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
 ! integer,dimension(:),pointer :: ant_pt_global_cell_idx
  integer         :: myrank, ierr
@@ -1654,6 +1701,8 @@ endif
  integer,pointer                :: config_soa_scheme
  character(len=StrKIND),pointer :: config_carbon_aero_scheme
  logical,pointer                :: config_ultrafine, config_coarse
+ logical,pointer :: config_ultrafine, config_coarse
+ integer,pointer :: config_soa_scheme
  integer,pointer                :: hwp_method
  real(kind=RKIND),pointer       :: hwp_alpha
  integer,pointer                :: wetdep_ls_opt
@@ -1689,6 +1738,8 @@ endif
                                    do_mpas_anthro_pt,            &
                                    do_mpas_soa,                  &
                                    do_mpas_carbon_aero
+                                   do_mpas_soa, &
+                                   do_mpas_hab, do_mpas_rwc, do_mpas_anthro_pt
  integer                        :: i,j,k,nblocks, n
 ! --------------------------------------------------------------------------------------
 !  Local Variables for Spectral Interpolation
@@ -1728,6 +1779,10 @@ endif
  do_mpas_rwc    = .false.
  do_mpas_soa    = .false.
  do_mpas_carbon_aero = .false.
+ do_mpas_soa    = .false.
+ do_mpas_methane= .false.
+ do_mpas_hab    = .false.
+ do_mpas_rwc    = .false.
  nblocks        = 1
 
 !copy MPAS arrays to local arrays:
@@ -1743,6 +1798,7 @@ endif
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
  call mpas_pool_get_config(configs,'config_methane_scheme',config_methane_scheme)
  call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
  call mpas_pool_get_config(configs,'config_ultrafine',config_ultrafine)
@@ -1831,6 +1887,7 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_voc',index_e_ant_pt_in_voc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_bc',index_e_ant_pt_in_bc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_oc',index_e_ant_pt_in_oc)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_unspc_fine',index_e_ant_pt_in_unspc_fine)
  call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
  call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
 ! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
@@ -1908,6 +1965,12 @@ endif
  call mpas_pool_get_dimension(state,'index_smoke_fine'  ,index_smoke_fine )
  call mpas_pool_get_dimension(state,'index_smoke_coarse'  ,index_smoke_coarse ) 
 !
+ call mpas_pool_get_dimension(state,'index_antvoc' ,index_antvoc)
+ call mpas_pool_get_dimension(state,'index_bbvoc'  ,index_bbvoc)
+ call mpas_pool_get_dimension(state,'index_antsoa' ,index_antsoa)
+ call mpas_pool_get_dimension(state,'index_bbsoa'  ,index_bbsoa)
+ call mpas_pool_get_dimension(state,'index_soa'   ,index_soa)
+
  call mpas_pool_get_dimension(state,'index_dust_ultrafine' ,index_dust_ultrafine )
  call mpas_pool_get_dimension(state,'index_dust_fine'  ,index_dust_fine )
  call mpas_pool_get_dimension(state,'index_dust_coarse'  ,index_dust_coarse )
@@ -2021,6 +2084,16 @@ endif
     do_mpas_carbon_aero = .true.
  endif
  
+ if (config_bact_scheme .ne. 'off' .and. index_bact_fine .gt. 0) then
+    do_mpas_hab = .true.
+ endif
+ if (config_anthro_pt_scheme .ne. 'off') then
+    do_mpas_anthro_pt = .true.
+ endif
+ if (config_soa_scheme .ne. 0 ) then
+   do_mpas_soa = .true.
+ endif
+
   call mpas_timer_start('mpas_smoke')
   call mpas_smoke_driver(                                              &
 !--- Configs
@@ -2047,6 +2120,7 @@ endif
             index_STKVE = index_STKVE,                                        &
             index_STKLT = index_STKLT,                                        &
             index_STKLG = index_STKLG,                                        &
+            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
             ant_pt_local_cell_idx = ant_pt_local_cell_idx,                    &
             ant_pt_rank = ant_pt_rank,                                        &
             myrank = myrank,                                                  &
@@ -2082,6 +2156,12 @@ endif
             index_nox = index_nox,                                            &
             index_smoke_fine = index_smoke_fine,                              &
             index_smoke_coarse = index_smoke_coarse,                          &
+            index_soa = index_soa,                                            &
+            index_bbsoa = index_bbsoa,                                        &
+            index_antsoa = index_antsoa,                                      &
+            index_bbvoc = index_bbvoc,                                        &
+            index_antvoc = index_antvoc,                                      &
+            config_soa_scheme = config_soa_scheme,                            &
             index_dust_fine = index_dust_fine,                                &
             index_dust_coarse = index_dust_coarse,                            &
             index_ssalt_fine = index_ssalt_fine,                              &
@@ -2265,6 +2345,10 @@ endif
             do_mpas_rwc = do_mpas_rwc,                                        &
             do_mpas_soa = do_mpas_soa,                                        &
             do_mpas_carbon_aero = do_mpas_carbon_aero,                        &
+            do_mpas_soa = do_mpas_soa,                                        &
+            do_mpas_methane = do_mpas_methane,                                &
+            do_mpas_hab = do_mpas_hab,                                        &
+            do_mpas_rwc = do_mpas_rwc,                                        &
 !--- Namelist wildfire
             plume_wind_eff = plume_wind_eff,                                  &
             plume_alpha = plume_alpha,                                        &
@@ -2407,6 +2491,74 @@ endif
       if (index_polp_grass .gt.   0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_grass   - chemistry_start + 1)
       if (index_polp_weed .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_weed   - chemistry_start + 1)
     PM10_p(i,k,j) = PM10_p(i,k,j) *  rho_p(i,k,j)
+ do j = jts, jte
+ do k = kts, kte
+ do i = its, ite
+ 
+   PM2_5_p(i,k,j)           = 0.0_RKIND
+   PM2_5_SOA_p(i,k,j)       = 0.0_RKIND
+   PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
+   PM2_5_ANT_SOA_p(i,k,j)   = 0.0_RKIND
+   PM10_p(i,k,j)            = 0.0_RKIND
+ 
+   if (index_smoke_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_smoke_fine - chemistry_start + 1)
+   if (index_dust_fine  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_dust_fine  - chemistry_start + 1)
+   if (index_unspc_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_unspc_fine - chemistry_start + 1)
+   if (index_ssalt_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_ssalt_fine - chemistry_start + 1)
+   if (index_pols_all   .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_all   - chemistry_start + 1)
+   if (index_pols_tree  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_tree  - chemistry_start + 1)
+   if (index_pols_grass .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_grass - chemistry_start + 1)
+   if (index_pols_weed  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_weed  - chemistry_start + 1)
+   if (index_no3_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1)
+   if (index_so4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1)
+   if (index_nh4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1)
+ 
+   select case (config_soa_scheme)
+ 
+   case (1)
+ 
+      if (index_soa .gt. 0) then
+         PM2_5_SOA_p(i,k,j) = chem_p(i,k,j,index_soa - chemistry_start + 1)
+      endif
+ 
+   case (2)
+ 
+      if (index_bbsoa .gt. 0) then
+         PM2_5_SMOKE_SOA_p(i,k,j) = chem_p(i,k,j,index_bbsoa - chemistry_start + 1)
+      endif
+ 
+      if (index_antsoa .gt. 0) then
+         PM2_5_ANT_SOA_p(i,k,j) = chem_p(i,k,j,index_antsoa - chemistry_start + 1)
+      endif
+ 
+      PM2_5_SOA_p(i,k,j) = PM2_5_SMOKE_SOA_p(i,k,j) + PM2_5_ANT_SOA_p(i,k,j)
+ 
+   case default
+ 
+      PM2_5_SOA_p(i,k,j)       = 0.0_RKIND
+      PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
+      PM2_5_ANT_SOA_p(i,k,j)   = 0.0_RKIND
+ 
+   end select
+ 
+   PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + PM2_5_SOA_p(i,k,j)
+ 
+   PM2_5_p(i,k,j)           = PM2_5_p(i,k,j)           * rho_p(i,k,j)
+   PM2_5_SOA_p(i,k,j)       = PM2_5_SOA_p(i,k,j)       * rho_p(i,k,j)
+   PM2_5_SMOKE_SOA_p(i,k,j) = PM2_5_SMOKE_SOA_p(i,k,j) * rho_p(i,k,j)
+   PM2_5_ANT_SOA_p(i,k,j)   = PM2_5_ANT_SOA_p(i,k,j)   * rho_p(i,k,j)
+ 
+   if (index_smoke_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_smoke_coarse - chemistry_start + 1)
+   if (index_dust_coarse .gt.  0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_dust_coarse  - chemistry_start + 1)
+   if (index_unspc_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_unspc_coarse - chemistry_start + 1) 
+   if (index_ssalt_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_ssalt_coarse - chemistry_start + 1)
+   if (index_polp_all .gt.     0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_all    - chemistry_start + 1) 
+   if (index_polp_tree .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_tree    - chemistry_start + 1) 
+   if (index_polp_grass .gt.   0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_grass   - chemistry_start + 1)
+   if (index_polp_weed .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_weed   - chemistry_start + 1)
+
+   PM10_p(i,k,j) = PM10_p(i,k,j) *  rho_p(i,k,j)
+
  enddo
  enddo
  enddo

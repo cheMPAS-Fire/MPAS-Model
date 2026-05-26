@@ -134,6 +134,15 @@
 	 <package name="mpas_brown_carbon_in"
 		 active_when="config_carbon_aero_scheme .eq. 'brown'"
 		 description="parameterization of organic carbon"/>
+	 <package name="mpas_soa_in"
+                 active_when="config_soa_scheme .ne. 0"
+                 description="biomass burning SOA"/>
+	 <package name="mpas_bbsoa_in"
+                 active_when="config_soa_scheme .eq. 2"
+                 description="biomass burning SOA"/>
+         <package name="mpas_antsoa_in"
+                 active_when="config_soa_scheme .eq. 2"
+                 description="anthropogenic SOA"/>
    </packages>
 
 
@@ -189,6 +198,10 @@
            units="-"
            description="configuration for mpas sulfate nitrate ammonium model"
            possible_values="`on',`off'"/>
+      <nml_option name="config_soa_scheme" type="integer" default_value="0" in_defaults="false"
+           units="-"
+           description="configuration for mpas SOA"
+           possible_values="0 = no SOA, 1 = SOA from CO, 2 = SOA Emission"/>
       <nml_option name="config_methane_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas methane model"
@@ -411,6 +424,9 @@
               <var name="hfx_bb"/>
               <var name="qfx_bb"/>
               <var name="PM2_5"/>
+              <var name="PM2_5_SMOKE_SOA"/>
+              <var name="PM2_5_ANT_SOA"/>
+              <var name="PM2_5_SOA"/>
               <var name="PM10"/>
               <var name="max_bb_plume"/>
               <var name="min_bb_plume"/>
@@ -708,6 +724,22 @@
          <var name="brc" array_group="chemistry" units="ug kg^{-1}"
               description="brown carbon"
               packages="mpas_brown_carbon_in"/>
+
+         <var name="bbsoa" array_group="chemistry" units="ug kg^{-1}"
+              description="biomass burning SOA"
+		 packages="mpas_bbsoa_in"/>
+
+         <var name="antsoa" array_group="chemistry" units="ug kg^{-1}"
+              description="Anthropogenic emission driven SOA"
+              packages="mpas_antsoa_in"/>
+
+         <var name="bbvoc" array_group="chemistry" units="ug kg^{-1}"
+              description="biomass burning SOA"
+		 packages="mpas_bbsoa_in"/>
+
+         <var name="antvoc" array_group="chemistry" units="ug kg^{-1}"
+              description="Anthropogenic emission driven SOA"
+              packages="mpas_antsoa_in"/>
       </var_array>
    </var_struct>
 
@@ -1130,6 +1162,12 @@
            description="resolved wet deposition flux"/>
       <var name="PM2_5"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
            description="particulate matter less than or equal to 2.5 micrometers in diameter"/>
+      <var name="PM2_5_SMOKE_SOA"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
+           description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
+      <var name="PM2_5_ANT_SOA"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
+           description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
+      <var name="PM2_5_SOA"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
+           description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
       <var name="PM10"             type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
            description="particulate matter less than or equal to 10 micrometers in diameter"/>
       <var name="feff"                  type="real" dimensions="nCells Time" units="-"
@@ -1297,6 +1335,21 @@
           <var name="tend_brc" name_in_code="brc" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of brown carbon mass per unit volume divided by d(zeta)/dz"
                packages="mpas_brown_carbon_in"/>
+          <var name="tend_soa" name_in_code="soa" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of SOA mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_in"/>
+          <var name="tend_bbsoa" name_in_code="bbsoa" array_group="chemistry" units="ug kg^{-1}"
+               description="Tendency of biomass burning SOA mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_bbsoa_in"/>
+          <var name="tend_antsoa" name_in_code="antsoa" array_group="chemistry" units="ug kg^{-1}"
+               description="Tendency of Anthropogenic SOA mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_antsoa_in"/>
+          <var name="tend_bbvoc" name_in_code="bbvoc" array_group="chemistry" units="ug kg^{-1}"
+               description="Tendency of biomass burning SOA precursors"
+               packages="mpas_bbsoa_in"/>
+          <var name="tend_antvoc" name_in_code="antvoc" array_group="chemistry" units="ug kg^{-1}"
+               description="Tendency of Anthropogenic SOA precursors"
+               packages="mpas_antsoa_in"/>
       </var_array>
 #endif
         </var_struct>
