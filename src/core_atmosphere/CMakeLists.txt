@@ -134,6 +134,7 @@ set(ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES
     seas_data_mod.F90
     seas_ngac_mod.F90
     ssalt_mod.F90
+    module_hab_emissions.F90
     module_anthro_emissions.F90
     module_anthro_pt_emissions.F90
     module_rwc_emissions.F90

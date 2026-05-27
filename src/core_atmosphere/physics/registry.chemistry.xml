@@ -495,6 +495,16 @@
          <var name="RWC_annual_sum_unspc_coarse"/>
        </stream>
 
+      <stream name="hab_input"
+         type="input"
+         filename_template="hab.init.nc"
+         input_interval="intial_only"
+         immutable="true"
+         in_defaults="false">
+
+         <var name="bact_water_conc"/>
+      </stream>
+
       <stream name="anthro_pt_input"
          type="input"
          filename_template="anthro_pt.init.nc"
@@ -1032,6 +1042,9 @@
            description="asymmetry parameter, shortwave"/>
       <var name="tauaer_lw"        type="real" dimensions="nLWbds nVertLevels nCells Time" units="unitless"
            description="layer aerosol optical thickness, longwave"/>
+      <var name="bact_water_conc" type="real" dimensions="nCells Time" units="ug m^{-3}"
+	   description="Bacteria concenctration at water surface"
+	   packages="mpas_bact_in"/>
       <var name="RWC_annual_sum" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning emissions"
 	   packages="mpas_rwc_in"/>
