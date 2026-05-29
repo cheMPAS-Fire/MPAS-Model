@@ -53,6 +53,7 @@
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
+ character(len=StrKIND),pointer :: config_lightning_option
  integer, pointer :: ebb_dcycle
  integer, pointer :: wetdep_ls_opt
  ! Code has been added by Minsu Choi, CIRES/NOAA GSL
@@ -74,6 +75,7 @@
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
+ call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
 
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
@@ -88,6 +90,7 @@
  if(.not.allocated(dx_p)        ) allocate(dx_p(ims:ime,jms:jme)                 )
  if(.not.allocated(area_p)      ) allocate(area_p(ims:ime,jms:jme)               )
  if(.not.allocated(xland_p)     ) allocate(xland_p(ims:ime,jms:jme)              )
+ if(.not.allocated(ter_p)       ) allocate(ter_p(ims:ime,jms:jme)                )
  if(.not.allocated(u10_p)       ) allocate(u10_p(ims:ime,jms:jme)                )
  if(.not.allocated(v10_p)       ) allocate(v10_p(ims:ime,jms:jme)                )
  if(.not.allocated(ust_p)       ) allocate(ust_p(ims:ime,jms:jme)                )
@@ -118,6 +121,7 @@
 
  if(.not.allocated(cldfrac_p)   ) allocate(cldfrac_p(ims:ime,kms:kme,jms:jme)    )
  if(.not.allocated(ktop_deep_p) ) allocate(ktop_deep_p(ims:ime,jms:jme)          )
+ if(.not.allocated(refl10cm_p)  ) allocate(refl10cm_p(ims:ime,kms:kme,jms:jme)   )
 
  if(.not.allocated(smois_p)     ) allocate(smois_p(ims:ime,1:num_soils,jms:jme)  )
  if(.not.allocated(tslb_p)      ) allocate(tslb_p(ims:ime,1:num_soils,jms:jme)   )
@@ -187,7 +191,15 @@
     if(.not.allocated(ddvel_p))              allocate(ddvel_p(ims:ime,jms:jme,1:num_chem))
     if(.not.allocated(drydep_flux_p))        allocate(drydep_flux_p(ims:ime,jms:jme,1:num_chem))
  endif
-
+!
+ if ( config_lightning_option .ne. 'off' ) then
+    if(.not.allocated(ic_flashcount_p))        allocate(ic_flashcount_p(ims:ime,jms:jme))
+    if(.not.allocated(ic_flashrate_p))        allocate(ic_flashrate_p(ims:ime,jms:jme))
+    if(.not.allocated(cg_flashcount_p))        allocate(cg_flashcount_p(ims:ime,jms:jme))
+    if(.not.allocated(cg_flashrate_p))        allocate(cg_flashrate_p(ims:ime,jms:jme))
+    if(.not.allocated(lpi_p))                allocate(lpi_p(ims:ime,jms:jme))
+ endif
+!
  if(.not.allocated(chem_p))               allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
@@ -258,6 +270,7 @@
  if(allocated(dx_p)           ) deallocate(dx_p           )
  if(allocated(area_p)         ) deallocate(area_p         )
  if(allocated(xland_p)        ) deallocate(xland_p        )
+ if(allocated(ter_p)          ) deallocate(ter_p          )
  if(allocated(u10_p)          ) deallocate(u10_p          )
  if(allocated(v10_p)          ) deallocate(v10_p          )
  if(allocated(ust_p)          ) deallocate(ust_p          )
@@ -287,6 +300,7 @@
 
  if(allocated(cldfrac_p)      ) deallocate(cldfrac_p      )
  if(allocated(ktop_deep_p)    ) deallocate(ktop_deep_p    )
+ if(allocated(refl10cm_p)     ) deallocate(refl10cm_p     )
 
  if(allocated(smois_p)        ) deallocate(smois_p        )
  if(allocated(tslb_p)         ) deallocate(tslb_p         )
@@ -347,7 +361,7 @@
  if(allocated(e_bb_in_p)    )         deallocate(e_bb_in_p )
  if(allocated(e_bio_in_p))            deallocate(e_bio_in_p)
  if(allocated(e_vol_in_p))            deallocate(e_vol_in_p)
- if(allocated(e_ant_pt_in_p))      deallocate(e_ant_pt_in_p)
+ if(allocated(e_ant_pt_in_p))         deallocate(e_ant_pt_in_p)
  if(allocated(e_ant_stack_groups_in_p)) deallocate(e_ant_stack_groups_in_p)
  if(allocated(e_ant_out_p))           deallocate(e_ant_out_p)
  if(allocated(e_bb_out_p)   )         deallocate(e_bb_out_p   )
@@ -355,6 +369,12 @@
  if(allocated(e_dust_out_p) )         deallocate(e_dust_out_p )
  if(allocated(e_ss_out_p))            deallocate(e_ss_out_p)
  if(allocated(e_vol_out_p))           deallocate(e_vol_out_p)
+ 
+ if(allocated(ic_flashcount_p))       deallocate(ic_flashcount_p)
+ if(allocated(ic_flashrate_p))        deallocate(ic_flashrate_p)
+ if(allocated(cg_flashcount_p))       deallocate(cg_flashcount_p)
+ if(allocated(cg_flashrate_p))        deallocate(cg_flashrate_p)
+ if(allocated(lpi_p))                 deallocate(lpi_p)
  
 !-----------------------------------------------------------------------------------------------------------------
 
@@ -380,8 +400,9 @@
       !local pointers:
       integer,pointer                            :: index_nifa, index_nwfa
       integer,dimension(:),pointer               :: ktop_deep
+      real(kind=RKIND),dimension(:,:),pointer    :: refl10cm
       real(kind=RKIND),dimension(:),pointer      :: meshDensity
-      real(kind=RKIND),dimension(:),pointer      :: xland
+      real(kind=RKIND),dimension(:),pointer      :: xland, ter
       real(kind=RKIND),pointer                   :: len_disp
       real(kind=RKIND),dimension(:),pointer      :: ust
       real(kind=RKIND),dimension(:),pointer      :: latCell,lonCell
@@ -416,6 +437,7 @@
       real(kind=RKIND),dimension(:,:),pointer    :: e_ant_stack_groups_in
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_out, e_bb_out, e_bio_out, &
                                                     e_vol_out, e_dust_out, e_ss_out
+      real(kind=RKIND),dimension(:),pointer      :: ic_flashcount,ic_flashrate,cg_flashcount,cg_flashrate, lpi
       integer,dimension(:),pointer               :: isltyp,ivgtyp,kpbl
      
       integer,pointer                            :: chemistry_start,chemistry_end
@@ -431,6 +453,7 @@
       character(len=StrKIND),pointer :: config_sna_scheme
       character(len=StrKIND),pointer :: config_rwc_scheme
       character(len=StrKIND),pointer :: config_convection_scheme
+      character(len=StrKIND),pointer :: config_lightning_option
       integer, pointer :: wetdep_ls_opt
       integer, pointer :: drydep_opt
       integer, pointer :: plumerise_opt
@@ -458,7 +481,7 @@
       call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
       call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
       call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
-
+      call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
       call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
       call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
       call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
@@ -479,6 +502,7 @@
       call mpas_pool_get_array(mesh,'lonCell',lonCell)
       call mpas_pool_get_array(mesh,'areaCell',areaCell)
       call mpas_pool_get_array(sfc_input,'xland',xland)
+      call mpas_pool_get_array(sfc_input,'ter',ter)
       call mpas_pool_get_array(diag_physics,'ust',ust)
       call mpas_pool_get_array(diag_physics,'coszr',coszr)
       call mpas_pool_get_array(diag_physics,'u10',u10)
@@ -489,8 +513,16 @@
       call mpas_pool_get_array(diag_physics,'znt',znt)
       call mpas_pool_get_array(diag_physics,'qc_bl'     ,qc_bl     )
       call mpas_pool_get_array(diag_physics,'qi_bl'     ,qi_bl     )
+      call mpas_pool_get_array(diag_physics,'refl10cm', refl10cm)
       if ( config_convection_scheme .eq. 'cu_grell_freitas_li' ) then
          call mpas_pool_get_array(diag_physics,'ktop_deep',ktop_deep)
+      endif
+      if ( config_lightning_option .ne. 'off' ) then
+         call mpas_pool_get_array(diag_physics,'ic_flashcount',ic_flashcount)
+         call mpas_pool_get_array(diag_physics,'ic_flashrate',ic_flashrate)
+         call mpas_pool_get_array(diag_physics,'cg_flashcount',cg_flashcount)
+         call mpas_pool_get_array(diag_physics,'cg_flashrate',cg_flashrate)
+         call mpas_pool_get_array(diag_physics,'lpi',lpi)
       endif
      
       call mpas_pool_get_array(mesh,'zgrid',zgrid)
@@ -635,6 +667,7 @@
       do j = jts, jte
       do k = kts, kte
       do i = its, ite
+         refl10cm_p(i,k,j)   = refl10cm(k,i)
          zgrid_p(i,k,j)      = zgrid(k,i)
          cldfrac_p(i,k,j)    = cldfrac(k,i)
          qcbl_p(i,k,j)     = qc_bl(k,i)
@@ -833,6 +866,7 @@
          dx_p(i,j)      = len_disp / meshDensity(i)**0.25
          area_p(i,j)    = areaCell(i)
          xland_p(i,j)   = xland(i)
+         ter_p(i,j)     = ter(i)
          ust_p(i,j)     = ust(i)
          xlat_p(i,j)    = latCell(i) / degrad
          xlon_p(i,j)    = lonCell(i) / degrad
@@ -973,6 +1007,18 @@
       enddo
       enddo
       endif
+!
+      if ( config_lightning_option .ne. 'off' ) then
+      do j = jts,jte
+      do i = its,ite
+         ic_flashcount_p(i,j) = ic_flashcount(i)
+         ic_flashrate_p(i,j)  = ic_flashrate(i)
+         cg_flashcount_p(i,j) = cg_flashcount(i)
+         cg_flashrate_p(i,j)  = cg_flashrate(i)
+         lpi_p(i,j)  = lpi(i)
+      enddo
+      enddo
+      endif
 
  end subroutine smoke_from_MPAS
 
@@ -1012,6 +1058,7 @@
                                              e_vol_out, e_dust_out, e_ss_out
  real(kind=RKIND),dimension(:),pointer :: aero_emis_for_enhmix
  integer,dimension(:),pointer:: min_bb_plume, max_bb_plume, max_rwc_plume
+ real(kind=RKIND),dimension(:),    pointer:: ic_flashcount,ic_flashrate,cg_flashcount,cg_flashrate,lpi
  
  integer,pointer :: chemistry_start,chemistry_end
  integer,pointer                :: index_nifa, index_nwfa
@@ -1025,6 +1072,7 @@
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
+ character(len=StrKIND),pointer :: config_lightning_option
  integer, pointer :: wetdep_ls_opt
  integer, pointer :: drydep_opt
  integer, pointer :: plumerise_opt
@@ -1063,6 +1111,7 @@
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
+ call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
@@ -1290,6 +1339,23 @@
             max_rwc_plume(i) = max_rwc_plume_p(i,j)
          enddo
          enddo
+     endif
+
+     if ( config_lightning_option .ne. 'off' ) then
+        call mpas_pool_get_array(diag_physics,'ic_flashcount',ic_flashcount) 
+        call mpas_pool_get_array(diag_physics,'ic_flashrate',ic_flashrate) 
+        call mpas_pool_get_array(diag_physics,'cg_flashcount',cg_flashcount) 
+        call mpas_pool_get_array(diag_physics,'cg_flashrate',cg_flashrate) 
+        call mpas_pool_get_array(diag_physics,'lpi',lpi) 
+        do j = jts,jte
+        do i = its,ite
+           ic_flashcount(i) = ic_flashcount_p(i,j)
+           ic_flashrate(i) = ic_flashrate_p(i,j)
+           cg_flashcount(i) = cg_flashcount_p(i,j)
+           cg_flashrate(i) = cg_flashrate_p(i,j)
+           lpi(i) = lpi_p(i,j)
+        enddo
+        enddo
      endif
 
  end subroutine smoke_to_MPAS
@@ -1652,6 +1718,7 @@ endif
  integer,pointer                :: config_mie_aod_opt
  integer,pointer                :: aero_dir_rad_fdb
  integer,pointer                :: plumerisefire_frq
+ logical,pointer                :: do_pollen_rh_rupture, do_pollen_lightning_rupture
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
  real(kind=RKIND),pointer       :: anthro_emis_scale_factor, anthro_pt_emis_scale_factor
  real(kind=RKIND),pointer       :: dust_alpha, dust_gamma
@@ -1660,6 +1727,19 @@ endif
  real(kind=RKIND),pointer       :: tree_pollen_emis_scale_factor,  &
                                    grass_pollen_emis_scale_factor, &
                                    weed_pollen_emis_scale_factor
+!
+ character(len=StrKIND),pointer :: config_convection_scheme,config_microp_scheme
+! Lightning options
+ character(len=StrKIND), pointer :: config_lightning_option
+ real (kind=RKIND), pointer      :: lightning_dt
+ real (kind=RKIND), pointer      :: lightning_start_seconds
+ real (kind=RKIND), pointer      :: flashrate_factor
+ integer, pointer                :: iccg_method
+ real (kind=RKIND), pointer      :: iccg_prescribed_num
+ real (kind=RKIND), pointer      :: iccg_prescribed_den
+ integer, pointer                :: lightning_cellcount_method
+ real (kind=RKIND), pointer      :: lightning_cldtop_adjustment
+!
  logical                        :: do_mpas_smoke,do_mpas_pollen, &
                                    do_mpas_dust,do_mpas_anthro,  &
                                    do_mpas_ssalt, do_mpas_volc,  &
@@ -1761,6 +1841,21 @@ endif
  call mpas_pool_get_config(configs,'tree_pollen_emis_scale_factor',tree_pollen_emis_scale_factor)
  call mpas_pool_get_config(configs,'grass_pollen_emis_scale_factor',grass_pollen_emis_scale_factor)
  call mpas_pool_get_config(configs,'weed_pollen_emis_scale_factor',weed_pollen_emis_scale_factor)
+ call mpas_pool_get_config(configs,'do_pollen_lightning_rupture',do_pollen_lightning_rupture)
+ call mpas_pool_get_config(configs,'do_pollen_rh_rupture',do_pollen_rh_rupture)
+! Namelist: Lightning
+ call mpas_pool_get_config(configs, 'config_lightning_option',     config_lightning_option)
+ call mpas_pool_get_config(configs, 'lightning_dt',                lightning_dt)
+ call mpas_pool_get_config(configs, 'lightning_start_seconds',     lightning_start_seconds)
+ call mpas_pool_get_config(configs, 'flashrate_factor',            flashrate_factor)
+ call mpas_pool_get_config(configs, 'iccg_method',                 iccg_method)
+ call mpas_pool_get_config(configs, 'iccg_prescribed_num',         iccg_prescribed_num)
+ call mpas_pool_get_config(configs, 'iccg_prescribed_den',         iccg_prescribed_den)
+ call mpas_pool_get_config(configs, 'lightning_cellcount_method',  lightning_cellcount_method)
+ call mpas_pool_get_config(configs, 'lightning_cldtop_adjustment', lightning_cldtop_adjustment)
+!
+ call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
+ call mpas_pool_get_config(configs,'config_microp_scheme',config_microp_scheme)
 ! Indexes: emissions in
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_smoke_ultrafine', index_e_ant_in_smoke_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_smoke_fine', index_e_ant_in_smoke_fine)
@@ -2136,6 +2231,12 @@ endif
             tend_chem_settle = tend_chem_settle_p,                            &
             ddvel = ddvel_p,                                                  &
             wetdep_resolved = wetdep_resolved_p,                              &
+! --- Lightning
+            ic_flashcount = ic_flashcount_p,                                  &
+            ic_flashrate = ic_flashrate_p,                                    &
+            cg_flashcount = cg_flashcount_p,                                  &
+            cg_flashrate = cg_flashrate_p,                                    &
+            lpi          = lpi_p,                                             &
 !--- Package activation
             do_mpas_smoke = do_mpas_smoke,                                    &
             do_mpas_dust = do_mpas_dust,                                      &
@@ -2164,6 +2265,18 @@ endif
             grass_pollen_emis_scale_factor = grass_pollen_emis_scale_factor,  &
             weed_pollen_emis_scale_factor = weed_pollen_emis_scale_factor,    &
             num_pols_per_polp = num_pols_per_polp,                            &
+            do_pollen_lightning_rupture  = do_pollen_lightning_rupture,  &
+            do_pollen_rh_rupture        = do_pollen_rh_rupture,        &
+            !--- Namelist lightning
+            config_lightning_option     = config_lightning_option,     &
+            lightning_dt                = lightning_dt,                &
+            lightning_start_seconds     = lightning_start_seconds,     &
+            flashrate_factor            = flashrate_factor,            &
+            iccg_method                 = iccg_method,                 &
+            iccg_prescribed_num         = iccg_prescribed_num,         &
+            iccg_prescribed_den         = iccg_prescribed_den,         &
+            lightning_cellcount_method  = lightning_cellcount_method,  &
+            lightning_cldtop_adjustment = lightning_cldtop_adjustment, &
 !--- Namelist dry/wet deposition and settling
             wetdep_ls_alpha = wetdep_ls_alpha,                                &
             plumerise_opt = plumerise_opt,                                    &
@@ -2179,6 +2292,8 @@ endif
             plumerise_opt_rwc = plumerise_opt_rwc,                            &
             anthro_emis_scale_factor = anthro_emis_scale_factor,              &
             anthro_pt_emis_scale_factor = anthro_pt_emis_scale_factor,        &
+            config_convection_scheme = config_convection_scheme,              &
+            config_microp_scheme = config_microp_scheme,                      &
 !--- Met variables
             nifa = nifa_p,                                                    &
             nwfa = nwfa_p,                                                    &
@@ -2187,6 +2302,7 @@ endif
             dxcell = dx_p,                                                    &
             area = area_p,                                                    &
             xland = xland_p,                                                  &
+            ter = ter_p,                                                      &
             u10 = u10_p,                                                      &
             v10 = v10_p,                                                      &
             ust = ust_p,                                                      &
@@ -2245,6 +2361,7 @@ endif
             landusef = landusef_p,                                            &
             cldfrac = cldfrac_p,                                              &
             ktop_deep = ktop_deep_p,                                          &
+            refl10cm = refl10cm_p,                                            &
             cp = cp,                                                          &
             rd = R_d,                                                         &
             gmt = gmt,                                                        &

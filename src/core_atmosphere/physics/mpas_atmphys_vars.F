@@ -305,6 +305,9 @@
     e_ant_stack_groups_in_p
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_out_p, e_bb_out_p, e_bio_out_p, e_dust_out_p, e_ss_out_p, e_vol_out_p
+! Lightning
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+   ic_flashcount_p,ic_flashrate_p,cg_flashcount_p,cg_flashrate_p, lpi_p
       
 !... arrays located at w (vertical velocity) points, or at interface between layers:
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
@@ -1142,7 +1145,8 @@
     tsk_p,            &!surface-skin temperature                                                               [K]
     sst_p,            &!sea-surface temperature                                                                [K]
     xice_p,           &!ice mask                                                                               [-]
-    xland_p            !land mask    (1 for land; 2 for water)                                                 [-]
+    xland_p,          &!land mask    (1 for land; 2 for water)                                                 [-]
+    ter_p              !terrain height
 
 !=================================================================================================================
 !.. variables needed for the surface layer scheme and land surface scheme when config_frac_seaice

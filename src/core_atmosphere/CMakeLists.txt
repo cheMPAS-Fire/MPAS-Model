@@ -139,6 +139,7 @@ set(ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES
     module_rwc_emissions.F90
     module_tactic_sna.F90
     pollen_mod.F90
+    module_lightning_driver.F90
 )
 list(TRANSFORM ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES PREPEND physics/physics_noaa/SMOKE/)
 

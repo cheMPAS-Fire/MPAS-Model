@@ -119,6 +119,9 @@
 	 <package name="mpas_sna_in"
 		 active_when="config_sna_scheme .ne. 'off' .or. config_anthro_scheme .eq. 'acomp_gasaero'"
 		 description="parameterization of sulfate-nitrate-ammonium"/>
+         <package name="mpas_lightning_in"
+                 active_when="config_lightning_option .ne. 'off'"
+                 description="parameterization for lightning"/>
    </packages>
 
 
@@ -354,10 +357,38 @@
             units="-"
             description="scale factor for weed pollen emissions"
             possible_values="Positive real values"/>
+       <nml_option name="do_pollen_lightning_rupture" type="logical" default_value="false" in_defaults="false"
+            units="-"
+            description="flag to control rupture of polp to pols from lightning"
+            possbile_values=".true. or .false."/>
+       <nml_option name="do_pollen_rh_rupture" type="logical" default_value="false" in_defaults="false"
+            units="-"
+            description="flag to control rupture of polp to pols from relative humidity"
+            possbile_values=".true. or .false."/>
        <nml_option name="config_mie_aod_opt" type="integer" default_value="0" in_defaults="false"
             units="-"
             description="Flag that controls Mie calculation"
             possbile_values="no Mie calculation = 0, Mie (Homogeneous Mixing) = 1"/>
+<!-- Lightning namelist options -->
+       <nml_option name="config_lightning_option" type="character" default_value="off" units="-" 
+                description="Lightning flash parameterization"
+                possible_values="`ltng_crm_PR92w',`ltng_crm_PR92z',`ltng_cpm_PR92z',`ltng_lpi'"/>
+       <nml_option name="lightning_dt" type="real" default_value="0." units="s" 
+                   description="Lightning time step" />
+       <nml_option name="lightning_start_seconds" type="real" default_value="0." units="s" 
+                   description="Lightning start time in seconds" />
+       <nml_option name="flashrate_factor" type="real" default_value="1.0" units="-" 
+                   description="Tuning factor" />
+       <nml_option name="iccg_method" type="integer" default_value="0" units="-" 
+                   description="IC:CG partitioning method" />
+       <nml_option name="iccg_prescribed_num" type="real" default_value="0.0" units="-" 
+                   description="Numerator of user-specified prescribed IC:CG" />
+       <nml_option name="iccg_prescribed_den" type="real" default_value="1.0" units="-" 
+                   description="Denominator of user-specified prescribed IC:CG" />
+       <nml_option name="lightning_cellcount_method" type="integer" default_value="0" units="-" 
+                   description="0=auto, 1=tile, 2=domain" />
+       <nml_option name="lightning_cldtop_adjustment" type="real" default_value="0." units="km" 
+                   description="Adjustment to cloud top for ltng param" />
    </nml_record>
 
 <!-- **************************************************************************************** -->
@@ -1053,6 +1084,21 @@
       <var name="hno3_bkgd"             type="real" dimensions="nVertLevels nCells Time" units="mol mol^{-1}"
            description="background HNO3 (nitric acid) concentration"
            packages="mpas_sna_in"/>
+      <var name="ic_flashcount" type="real" dimensions="nCells Time" units="-"
+           description="Accumulated IC flash count"
+           packages="mpas_lightning_in"/>
+      <var name="ic_flashrate" type="real" dimensions="nCells Time" units="-"
+           description="IC flash rate"
+           packages="mpas_lightning_in"/>
+      <var name="cg_flashcount" type="real" dimensions="nCells Time" units="-"
+           description="Accumulated CG flash count"
+           packages="mpas_lightning_in"/>
+      <var name="cg_flashrate" type="real" dimensions="nCells Time" units="-"
+           description="CG flash rate"
+           packages="mpas_lightning_in"/>
+      <var name="lpi" type="real" dimensions="nCells Time" units="-"
+           description="lightning potential indexe"
+           packages="mpas_lightning_in"/>
   </var_struct>
 
 
