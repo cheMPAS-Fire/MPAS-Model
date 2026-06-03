@@ -74,6 +74,12 @@
 	 <package name="mpas_unspc_coarse"
 		 active_when="config_coarse .and. ( ANY( [ CHARACTER(len=20) :: 'simple_aero', 'simple_gasaero', 'acomp_gasaero' ] == TRIM(config_anthro_scheme) ))"
 		 description="parameterization of coarse unspeciated aerosol"/>
+         <package name="mpas_soa_simple_in"
+                 active_when="config_soa_scheme .eq. 1"
+                 description="parameterization of simple, combined SOA"/>
+         <package name="mpas_soa_simple_voc_in"
+                 active_when="config_soa_scheme .eq. 2"
+                 description="parameterization of simple VOC emission based SOA"/>
 	 <package name="mpas_rwc_in"
 		 active_when="config_rwc_scheme .ne. 'off'"
 		 description="parameterization of residential wood combustion"/>
@@ -119,6 +125,15 @@
 	 <package name="mpas_sna_in"
 		 active_when="config_sna_scheme .ne. 'off' .or. config_anthro_scheme .eq. 'acomp_gasaero'"
 		 description="parameterization of sulfate-nitrate-ammonium"/>
+	 <package name="mpas_black_carbon_in"
+                 active_when="( ANY( [ CHARACTER(len=20) :: 'black', 'brown' ] == TRIM(config_carbon_aero_scheme) ))"
+		 description="parameterization of black carbon"/>
+	 <package name="mpas_organic_carbon_in"
+                 active_when="( ANY( [ CHARACTER(len=20) :: 'organic', 'brown' ] == TRIM(config_carbon_aero_scheme) ))"
+		 description="parameterization of organic carbon"/>
+	 <package name="mpas_brown_carbon_in"
+		 active_when="config_carbon_aero_scheme .eq. 'brown'"
+		 description="parameterization of organic carbon"/>
    </packages>
 
 
@@ -358,6 +373,14 @@
             units="-"
             description="Flag that controls Mie calculation"
             possbile_values="no Mie calculation = 0, Mie (Homogeneous Mixing) = 1"/>
+       <nml_option name="config_soa_scheme" type="integer" default_value="0" in_defaults="false"
+            units="-"
+            description="Flag that controls SOA option"
+            possbile_values="no SOA = 0, simple_SOA = 1; 2 = emission/VOC ant/bb SOA"/>
+       <nml_option name="config_carbon_aero_scheme" type="character" default_value="off" in_defaults="false"
+            units="-"
+            description="Flag that controls black/organic/brown option"
+            possbile_values="`off',`black',`organic',`brown'"/>
    </nml_record>
 
 <!-- **************************************************************************************** -->
@@ -653,6 +676,38 @@
          <var name="ch4" array_group="chemistry" units="mol mol^{-1}"
               description="methane"
               packages="mpas_methane_in"/>
+
+         <var name="soa" array_group="chemistry" units="ug kg^{-1}"
+              description="combined SOA"
+              packages="mpas_soa_simple_in"/>
+
+         <var name="antsoa" array_group="chemistry" units="ug kg^{-1}"
+              description="anthropogenic SOA"
+              packages="mpas_soa_simple_voc_in"/>
+
+         <var name="bbsoa" array_group="chemistry" units="ug kg^{-1}"
+              description="biomass burning SOA"
+              packages="mpas_soa_simple_voc_in"/>
+
+         <var name="antvoc" array_group="chemistry" units="mol mol^{-1}"
+              description="anthropogenic VOC"
+              packages="mpas_soa_simple_voc_in"/>
+
+         <var name="bbvoc" array_group="chemistry" units="mol mol^{-1}"
+              description="biomass burning VOC"
+              packages="mpas_soa_simple_voc_in"/>
+
+         <var name="bc" array_group="chemistry" units="ug kg^{-1}"
+              description="black (elemental) carbon"
+              packages="mpas_black_carbon_in"/>
+
+         <var name="oc" array_group="chemistry" units="ug kg^{-1}"
+              description="organic carbon"
+              packages="mpas_organic_carbon_in"/>
+
+         <var name="brc" array_group="chemistry" units="ug kg^{-1}"
+              description="brown carbon"
+              packages="mpas_brown_carbon_in"/>
       </var_array>
    </var_struct>
 
@@ -684,13 +739,70 @@
          <var name="e_bb_in_nh3" name_in_code="e_bb_in_nh3" array_group="bb_in_tracers" units="mol m^{-2} s^{-1}"
               description="input biomass burning NH3 emissions"
               packages="mpas_sna_in"/>
+         <var name="e_bb_in_voc" name_in_code="e_bb_in_voc" array_group="bb_in_tracers" units="mol m^{-2} s^{-1}"
+              description="input biomass burning VOC emissions"
+              packages="mpas_soa_simple_voc_in"/>
+         <var name="e_bb_in_bc" name_in_code="e_bb_in_bc" array_group="bb_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input biomass burning black carbon emissions"
+              packages="mpas_black_carbon_in"/>
+         <var name="e_bb_in_oc" name_in_code="e_bb_in_oc" array_group="bb_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input biomass burning organic carbon emissions"
+              packages="mpas_organic_carbon_in"/>
       </var_array>
      <!-- Anthropogenic -->
      <!-- pt src, for now only EGU - deciding on implementation -->
       <var_array name="e_ant_pt_in" type="real" dimensions="nanthro_pt TSTEP Time" packages="mpas_anthro_pt_emis">
          <var name="e_ant_pt_in_unspc_fine" name_in_code="e_ant_pt_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input point source anthropogenic fine unspeciated emissions"
+              description="input point source anthropogenic pt fine unspeciated emissions"
               packages="mpas_anthro_pt_aero_in"/>
+         <var name="e_ant_pt_in_unspc_ultrafine" name_in_code="e_ant_pt_in_unspc_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt ultrafine unspeciated emissions"
+              packages="mpas_unspc_ultrafine"/>
+         <var name="e_ant_pt_in_unspc_coarse" name_in_code="e_ant_pt_in_unspc_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt coarse unspeciated emissions"
+              packages="mpas_unspc_coarse"/>
+         <var name="e_ant_pt_in_smoke_ultrafine" name_in_code="e_ant_pt_in_smoke_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt ultrafine smoke emissions"
+              packages="mpas_smoke_ultrafine"/>
+         <var name="e_ant_pt_in_smoke_fine" name_in_code="e_ant_pt_in_smoke_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt fine smoke emissions"
+              packages="mpas_smoke_fine"/>
+         <var name="e_ant_pt_in_smoke_coarse" name_in_code="e_ant_pt_in_smoke_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt coarse smoke emissions"
+              packages="mpas_smoke_coarse"/>
+         <var name="e_ant_pt_in_so4_a_fine" name_in_code="e_ant_pt_in_so4_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt fine sulfate emissions"
+              packages="mpas_sna_in"/>
+         <var name="e_ant_pt_in_no3_a_fine" name_in_code="e_ant_pt_in_no3_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt fine nitrate emissions"
+	      packages="mpas_sna_in"/>
+         <var name="e_ant_pt_in_nh4_a_fine" name_in_code="e_ant_pt_in_nh4_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt fine ammonium emissions"
+              packages="mpas_sna_in"/>
+         <var name="e_ant_pt_in_so2" name_in_code="e_ant_pt_in_so2" array_group="ant_in_gases" units="mol m^{-2} hr^{-1}"
+              description="input anthropogenic sulfur dioxide (SO2) emissions"
+              packages="mpas_sna_in;mpas_so2_in"/>
+         <var name="e_ant_pt_in_nh3" name_in_code="e_ant_pt_in_nh3" array_group="ant_in_gases" units="mol m^{-2} hr^{-1}"
+              description="input anthropogenic pt ammonia (NH3) emissions"
+              packages="mpas_sna_in"/>
+         <var name="e_ant_pt_in_ch4" name_in_code="e_ant_pt_in_ch4" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
+              description="input anthropogenic pt methane (CH4) emissions"
+              packages="mpas_methane_in"/>
+         <var name="e_ant_pt_in_co" name_in_code="e_ant_pt_in_co" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
+              description="input anthropogenic pt carbon monoxide (CO) emissions"
+              packages="mpas_co_in"/>
+         <var name="e_ant_pt_in_nox" name_in_code="e_ant_pt_in_nox" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
+              description="input anthropogenic pt nitrogen dioxide (NOx) emissions"
+              packages="mpas_nox_in"/>
+         <var name="e_ant_pt_in_voc" name_in_code="e_ant_pt_in_voc" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
+              description="input anthropogenic pt VOC emissions"
+              packages="mpas_nox_in"/>
+         <var name="e_ant_pt_in_bc" name_in_code="e_ant_pt_in_bc" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt black carbon emissions"
+              packages="mpas_black_carbon_in"/>
+         <var name="e_ant_pt_in_oc" name_in_code="e_ant_pt_in_oc" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic pt organic carbon emissions"
+              packages="mpas_organic_carbon_in"/>
       </var_array>
       <var_array name="e_ant_stack_groups_in" type="real" dimensions="nanthro_pt" packages="mpas_anthro_pt_emis">
          <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
@@ -758,6 +870,15 @@
          <var name="e_ant_in_nox" name_in_code="e_ant_in_nox" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
               description="input anthropogenic nitrogen dioxide (NOx) emissions"
               packages="mpas_nox_in"/>
+         <var name="e_ant_in_voc" name_in_code="e_ant_in_voc" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
+              description="input anthropogenic VOC emissions"
+              packages="mpas_nox_in"/>
+         <var name="e_ant_in_bc" name_in_code="e_ant_in_bc" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic black carbon emissions"
+              packages="mpas_black_carbon_in"/>
+         <var name="e_ant_in_oc" name_in_code="e_ant_in_oc" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
+              description="input anthropogenic organic carbon emissions"
+              packages="mpas_organic_carbon_in"/>
       </var_array>
      <!-- Biogenic -->
       <var_array name="e_bio_in" type="real" dimensions="nkbiogenic nCells Time">
@@ -811,6 +932,15 @@
          <var name="e_bb_out_so2" name_in_code="e_bb_out_so2" array_group="bb_out_tracers" units="mol m^{-2} s^{-1}"
               description="output biomass burning ammonia (SO2) emissions"
               packages="mpas_sna_in;mpas_so2_in"/>
+         <var name="e_bb_out_voc" name_in_code="e_bb_out_voc" array_group="bb_out_tracers" units="mol m^{-2} s^{-1}"
+              description="output biomass burning VOC emissions"
+              packages="mpas_soa_simple_voc_in"/>
+         <var name="e_bb_out_bc" name_in_code="e_bb_out_bc" array_group="bb_out_aerosols" units="ug m^{-2} s^{-1}"
+              description="output biomass burning black carbon emissions"
+              packages="mpas_black_carbon_in"/>
+         <var name="e_bb_out_oc" name_in_code="e_bb_out_oc" array_group="bb_out_aerosols" units="ug m^{-2} s^{-1}"
+              description="output biomass burning organic carbon emissions"
+              packages="mpas_organic_carbon_in"/>
       </var_array>
    <!--Anthropogenic-->
       <var_array name="e_ant_out" type="real" dimensions="nVertLevels nCells Time" packages="mpas_anthro_in">
@@ -856,6 +986,15 @@
          <var name="e_ant_out_co" name_in_code="e_ant_out_co" array_group="ant_out_gases" units="mol m^{-2} s^{-1}"
               description="ouput anthropogenic carbon monoxide (CO) emissions"
               packages="mpas_co_in"/>
+         <var name="e_ant_out_voc" name_in_code="e_ant_out_voc" array_group="ant_out_gases" units="mol m^{-2} s^{-1}"
+              description="ouput anthropogenic VOC emissions"
+              packages="mpas_soa_simple_voc_in"/>
+         <var name="e_ant_out_bc" name_in_code="e_ant_out_bc" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
+              description="output anthropogenic black carbon emissions"
+              packages="mpas_black_carbon_in"/>
+         <var name="e_ant_out_oc" name_in_code="e_ant_out_oc" array_group="ant_out_aerosols" units="ug m^{-2} s^{-1}"
+              description="output anthropogenic organic carbon emissions"
+              packages="mpas_organic_carbon_in"/>
       </var_array>
    <!--Dust-->
       <var_array name="e_dust_out" type="real" dimensions="nVertLevels nCells Time" packages="mpas_dust_in">
@@ -1132,8 +1271,32 @@
                description="Tendency of SO2 mass per unit volume divided by d(zeta)/dz"
                packages="mpas_so2_in;mpas_sna_in"/>
           <var name="tend_nh3" name_in_code="nh3" array_group="chemistry" units="mol m^{-3} s^{-1}"
-               description="Tendency of methane mass per unit volume divided by d(zeta)/dz"
+               description="Tendency of ammonia mass per unit volume divided by d(zeta)/dz"
                packages="mpas_sna_in"/>
+          <var name="tend_soa" name_in_code="soa" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of soa mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_in"/>
+          <var name="tend_antsoa" name_in_code="antsoa" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of anthropogenic soa mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_voc_in"/>
+          <var name="tend_bbsoa" name_in_code="bbsoa" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of anthropogenic soa mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_voc_in"/>
+          <var name="tend_antvoc" name_in_code="antvoc" array_group="chemistry" units="mol m^{-3} s^{-1}"
+               description="Tendency of anthropogenic VOC mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_voc_in"/>
+          <var name="tend_bbvoc" name_in_code="bbvoc" array_group="chemistry" units="mol m^{-3} s^{-1}"
+               description="Tendency of biomass burning VOC mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_voc_in"/>
+          <var name="tend_bc" name_in_code="bc" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of black carbon mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_black_carbon_in"/>
+          <var name="tend_oc" name_in_code="oc" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of organic carbon mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_organic_carbon_in"/>
+          <var name="tend_brc" name_in_code="brc" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of brown carbon mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_brown_carbon_in"/>
       </var_array>
 #endif
         </var_struct>
@@ -1189,6 +1352,22 @@
               description="Lateral boundary tendency of NOx mixing ratio"/>
          <var name="lbc_so2" name_in_code="so2" array_group="chemistry"  packages="mpas_so2_in;mpas_sna_in" units="mol mol^{-1} s^{-1}"
               description="Lateral boundary tendency of SO2 mixing ratio"/>
+         <var name="lbc_soa" name_in_code="soa" array_group="chemistry"  packages="mpas_soa_simple_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of SOA mixing ratio"/>
+         <var name="lbc_antsoa" name_in_code="antsoa" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of anthropogenic SOA mixing ratio"/>
+         <var name="lbc_bbsoa" name_in_code="bbsoa" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of biomass burning SOA mixing ratio"/>
+         <var name="lbc_antvoc" name_in_code="antvoc" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="mol mol^{-1} s^{-1}"
+              description="Lateral boundary tendency of anthropogenic VOC mixing ratio"/>
+         <var name="lbc_bbvoc" name_in_code="bbvoc" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="mol mol^{-1} s^{-1}"
+              description="Lateral boundary tendency of biomass burning VOC mixing ratio"/>
+         <var name="lbc_bc" name_in_code="bc" array_group="chemistry"  packages="mpas_black_carbon_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of black carbon mixing ratio"/>
+         <var name="lbc_oc" name_in_code="oc" array_group="chemistry"  packages="mpas_organic_carbon_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of organic carbon mixing ratio"/>
+         <var name="lbc_brc" name_in_code="brc" array_group="chemistry"  packages="mpas_brown_carbon_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of brown carbon mixing ratio"/>
       </var_array>
    </var_struct>
 

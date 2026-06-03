@@ -1560,6 +1560,8 @@ endif
  integer,pointer :: index_co
  integer,pointer :: index_nox
  integer,pointer :: index_bact_fine
+ integer,pointer :: index_soa, index_antsoa, index_bbsoa, index_antvoc, index_bbvoc
+ integer,pointer :: index_bc, index_oc, index_brc 
 
  integer,pointer :: index_e_bb_in_smoke_ultrafine
  integer,pointer :: index_e_bb_in_smoke_fine
@@ -1569,6 +1571,8 @@ endif
  integer,pointer :: index_e_bb_in_nox
  integer,pointer :: index_e_bb_in_so2
  integer,pointer :: index_e_bb_in_nh3
+ integer,pointer :: index_e_bb_in_voc
+ integer,pointer :: index_e_bb_in_bc, index_e_bb_in_oc
 
  integer,pointer :: index_e_ant_in_smoke_ultrafine, index_e_ant_in_smoke_fine, index_e_ant_in_smoke_coarse
  integer,pointer :: index_e_ant_in_unspc_ultrafine, index_e_ant_in_unspc_fine, index_e_ant_in_unspc_coarse
@@ -1578,10 +1582,21 @@ endif
  integer,pointer :: index_e_ant_in_nox
  integer,pointer :: index_e_ant_in_ch4
  integer,pointer :: index_e_ant_in_co
+ integer,pointer :: index_e_ant_in_voc
+ integer,pointer :: index_e_ant_in_bc, index_e_ant_in_oc
 
  integer,pointer :: index_STKHT,index_STKDM,index_STKTK,index_STKVE, &
                     index_STKLT,index_STKLG
- integer,pointer :: index_e_ant_pt_in_unspc_fine
+ integer,pointer :: index_e_ant_pt_in_smoke_ultrafine, index_e_ant_pt_in_smoke_fine, index_e_ant_pt_in_smoke_coarse
+ integer,pointer :: index_e_ant_pt_in_unspc_ultrafine, index_e_ant_pt_in_unspc_fine, index_e_ant_pt_in_unspc_coarse
+ integer,pointer :: index_e_ant_pt_in_no3_a_fine, index_e_ant_pt_in_so4_a_fine
+ integer,pointer :: index_e_ant_pt_in_nh4_a_fine, index_e_ant_pt_in_so2
+ integer,pointer :: index_e_ant_pt_in_nh3
+ integer,pointer :: index_e_ant_pt_in_nox
+ integer,pointer :: index_e_ant_pt_in_ch4
+ integer,pointer :: index_e_ant_pt_in_co
+ integer,pointer :: index_e_ant_pt_in_voc
+ integer,pointer :: index_e_ant_pt_in_bc, index_e_ant_pt_in_oc
  integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
 ! integer,dimension(:),pointer :: ant_pt_global_cell_idx
  integer         :: myrank, ierr
@@ -1598,6 +1613,8 @@ endif
  integer,pointer :: index_e_bb_out_nox
  integer,pointer :: index_e_bb_out_so2
  integer,pointer :: index_e_bb_out_nh3
+ integer,pointer :: index_e_bb_out_voc
+ integer,pointer :: index_e_bb_out_bc, index_e_bb_out_oc
 
  integer,pointer :: index_e_dust_out_dust_ultrafine, index_e_dust_out_dust_fine, index_e_dust_out_dust_coarse
 
@@ -1609,6 +1626,8 @@ endif
  integer,pointer :: index_e_ant_out_nox
  integer,pointer :: index_e_ant_out_ch4
  integer,pointer :: index_e_ant_out_co
+ integer,pointer :: index_e_ant_out_voc
+ integer,pointer :: index_e_ant_out_bc, index_e_ant_out_oc
 
  integer,pointer :: index_e_bio_out_polp_tree, index_e_bio_out_polp_grass, index_e_bio_out_polp_weed
 
@@ -1632,7 +1651,9 @@ endif
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_extra_chemical_tracers
  character(len=StrKIND),pointer :: config_anthro_pt_scheme
- logical,pointer :: config_ultrafine, config_coarse
+ integer,pointer                :: config_soa_scheme
+ character(len=StrKIND),pointer :: config_carbon_aero_scheme
+ logical,pointer                :: config_ultrafine, config_coarse
  integer,pointer                :: hwp_method
  real(kind=RKIND),pointer       :: hwp_alpha
  integer,pointer                :: wetdep_ls_opt
@@ -1664,7 +1685,10 @@ endif
                                    do_mpas_dust,do_mpas_anthro,  &
                                    do_mpas_ssalt, do_mpas_volc,  &
                                    do_mpas_sna, do_mpas_methane, &
-                                   do_mpas_hab, do_mpas_rwc, do_mpas_anthro_pt
+                                   do_mpas_hab, do_mpas_rwc,     &
+                                   do_mpas_anthro_pt,            &
+                                   do_mpas_soa,                  &
+                                   do_mpas_carbon_aero
  integer                        :: i,j,k,nblocks, n
 ! --------------------------------------------------------------------------------------
 !  Local Variables for Spectral Interpolation
@@ -1702,6 +1726,8 @@ endif
  do_mpas_methane= .false.
  do_mpas_hab    = .false.
  do_mpas_rwc    = .false.
+ do_mpas_soa    = .false.
+ do_mpas_carbon_aero = .false.
  nblocks        = 1
 
 !copy MPAS arrays to local arrays:
@@ -1723,6 +1749,7 @@ endif
  call mpas_pool_get_config(configs,'config_coarse',config_coarse)
  call mpas_pool_get_config(configs,'config_extra_chemical_tracers',config_extra_chemical_tracers)
  call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
+ call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
 ! Namelist: smoke
  call mpas_pool_get_config(configs,'hwp_method',hwp_method)
  call mpas_pool_get_config(configs,'hwp_alpha',hwp_alpha)
@@ -1776,6 +1803,9 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_ch4',index_e_ant_in_ch4)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_nox',index_e_ant_in_nox)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_co',index_e_ant_in_co)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_in_voc',index_e_ant_in_voc)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_in_bc',index_e_ant_in_bc) 
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_in_oc',index_e_ant_in_oc)
 
  if ( config_anthro_pt_scheme .ne. 'off') then
  call mpas_pool_get_dimension(emission_input,'index_STKHT',index_STKHT)
@@ -1784,7 +1814,23 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_STKVE',index_STKVE)
  call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
  call mpas_pool_get_dimension(emission_input,'index_STKLG',index_STKLG)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_smoke_ultrafine', index_e_ant_pt_in_smoke_ultrafine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_smoke_fine', index_e_ant_pt_in_smoke_fine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_smoke_coarse',index_e_ant_pt_in_smoke_coarse)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_unspc_ultrafine',index_e_ant_pt_in_unspc_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_unspc_fine',index_e_ant_pt_in_unspc_fine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_unspc_coarse',index_e_ant_pt_in_unspc_coarse)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_no3_a_fine',index_e_ant_pt_in_no3_a_fine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_so4_a_fine',index_e_ant_pt_in_so4_a_fine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_nh4_a_fine',index_e_ant_pt_in_nh4_a_fine)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_nh3',index_e_ant_pt_in_nh3)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_so2',index_e_ant_pt_in_so2)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_ch4',index_e_ant_pt_in_ch4)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_nox',index_e_ant_pt_in_nox)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_co',index_e_ant_pt_in_co)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_voc',index_e_ant_pt_in_voc)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_bc',index_e_ant_pt_in_bc)
+ call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_oc',index_e_ant_pt_in_oc)
  call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
  call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
 ! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
@@ -1800,6 +1846,9 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_so2',index_e_bb_in_so2)
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_co',index_e_bb_in_co)
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_nh3',index_e_bb_in_nh3)
+ call mpas_pool_get_dimension(emission_input,'index_e_bb_in_voc',index_e_bb_in_voc)
+ call mpas_pool_get_dimension(emission_input,'index_e_bb_in_bc',index_e_bb_in_bc)
+ call mpas_pool_get_dimension(emission_input,'index_e_bb_in_oc',index_e_bb_in_oc)
 !
  call mpas_pool_get_dimension(emission_input,'index_e_bio_in_polp_tree',index_e_bio_in_polp_tree)
  call mpas_pool_get_dimension(emission_input,'index_e_bio_in_polp_grass',index_e_bio_in_polp_grass)
@@ -1822,6 +1871,9 @@ endif
  call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_nox',index_e_ant_out_nox)
  call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_co',index_e_ant_out_co)
  call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_ch4',index_e_ant_out_ch4)
+ call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_voc',index_e_ant_out_voc)
+ call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_bc',index_e_ant_out_bc)
+ call mpas_pool_get_dimension(diag_physics,'index_e_ant_out_oc',index_e_ant_out_oc)
 !
  call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_smoke_ultrafine',index_e_bb_out_smoke_ultrafine)
  call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_smoke_fine',index_e_bb_out_smoke_fine)
@@ -1831,6 +1883,9 @@ endif
  call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_nox',index_e_bb_out_nox)
  call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_so2',index_e_bb_out_so2)
  call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_co',index_e_bb_out_co)
+ call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_voc',index_e_bb_out_voc)
+ call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_bc',index_e_bb_out_bc)
+ call mpas_pool_get_dimension(diag_physics,'index_e_bb_out_oc',index_e_bb_out_oc)
 !
  call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_polp_tree',index_e_bio_out_polp_tree)
  call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_polp_grass',index_e_bio_out_polp_grass)
@@ -1891,6 +1946,15 @@ endif
  call mpas_pool_get_dimension(state,'index_ch4',index_ch4)
 !
  call mpas_pool_get_dimension(state,'index_bact_fine',index_bact_fine)
+!
+ call mpas_pool_get_dimension(state,'index_soa',index_soa)
+ call mpas_pool_get_dimension(state,'index_antsoa',index_antsoa)
+ call mpas_pool_get_dimension(state,'index_bbsoa',index_bbsoa)
+ call mpas_pool_get_dimension(state,'index_antvoc',index_antvoc)
+ call mpas_pool_get_dimension(state,'index_bbvoc',index_bbvoc)
+ call mpas_pool_get_dimension(state,'index_bc',index_bc)
+ call mpas_pool_get_dimension(state,'index_oc',index_oc)
+ call mpas_pool_get_dimension(state,'index_brc',index_brc)
 
  initflag = 1
  if(config_do_restart .or. itimestep > 1) initflag = 0
@@ -1940,12 +2004,23 @@ endif
  if (config_methane_scheme .ne. 'off' .and. index_ch4 .gt. 0 ) then
     do_mpas_methane = .true.
  endif
+!
  if (config_bact_scheme .ne. 'off' .and. index_bact_fine .gt. 0) then
     do_mpas_hab = .true.
  endif
+!
  if (config_anthro_pt_scheme .ne. 'off') then
     do_mpas_anthro_pt = .true.
  endif
+!
+ if (config_soa_scheme .gt. 0 ) then
+    do_mpas_soa = .true.
+ endif
+!
+ if (config_carbon_aero_scheme .ne. 'off' ) then
+    do_mpas_carbon_aero = .true.
+ endif
+ 
   call mpas_timer_start('mpas_smoke')
   call mpas_smoke_driver(                                              &
 !--- Configs
@@ -1972,7 +2047,6 @@ endif
             index_STKVE = index_STKVE,                                        &
             index_STKLT = index_STKLT,                                        &
             index_STKLG = index_STKLG,                                        &
-            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
             ant_pt_local_cell_idx = ant_pt_local_cell_idx,                    &
             ant_pt_rank = ant_pt_rank,                                        &
             myrank = myrank,                                                  &
@@ -2029,6 +2103,14 @@ endif
             index_nh3 = index_nh3,                                            &
             index_ch4 = index_ch4,                                            &
             index_bact_fine = index_bact_fine,                                &
+            index_soa = index_soa,                                            &
+            index_antsoa = index_antsoa,                                      &
+            index_bbsoa = index_bbsoa,                                        &
+            index_antvoc = index_antvoc,                                      &
+            index_bbvoc = index_bbvoc,                                        &
+            index_bc = index_bc,                                              &
+            index_oc = index_oc,                                              &
+            index_brc = index_brc,                                              &
 !--- Emission input indices
             index_e_bb_in_smoke_ultrafine = index_e_bb_in_smoke_ultrafine,    &
             index_e_bb_in_smoke_fine = index_e_bb_in_smoke_fine,              &
@@ -2038,6 +2120,10 @@ endif
             index_e_bb_in_so2 = index_e_bb_in_so2,                            &
             index_e_bb_in_nh3 = index_e_bb_in_nh3,                            &
             index_e_bb_in_co  = index_e_bb_in_co,                             &
+            index_e_bb_in_voc = index_e_bb_in_voc,                            &
+            index_e_bb_in_bc = index_e_bb_in_bc,                              &
+            index_e_bb_in_oc = index_e_bb_in_oc,                              &
+!
             index_e_ant_in_unspc_ultrafine = index_e_ant_in_unspc_ultrafine,  &
             index_e_ant_in_unspc_fine = index_e_ant_in_unspc_fine,            &
             index_e_ant_in_unspc_coarse = index_e_ant_in_unspc_coarse,        &
@@ -2052,6 +2138,28 @@ endif
             index_e_ant_in_ch4 = index_e_ant_in_ch4,                          &
             index_e_ant_in_nox = index_e_ant_in_nox,                          &
             index_e_ant_in_co  = index_e_ant_in_co,                           &
+            index_e_ant_in_voc = index_e_ant_in_voc,                          &
+            index_e_ant_in_bc = index_e_ant_in_bc,                            &
+            index_e_ant_in_oc = index_e_ant_in_oc,                            &
+!
+            index_e_ant_pt_in_unspc_ultrafine = index_e_ant_pt_in_unspc_ultrafine,  &
+            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,            &
+            index_e_ant_pt_in_unspc_coarse = index_e_ant_pt_in_unspc_coarse,        &
+            index_e_ant_pt_in_smoke_ultrafine = index_e_ant_pt_in_smoke_ultrafine,  &
+            index_e_ant_pt_in_smoke_fine = index_e_ant_pt_in_smoke_fine,            &
+            index_e_ant_pt_in_smoke_coarse = index_e_ant_pt_in_smoke_coarse,        &
+            index_e_ant_pt_in_no3_a_fine = index_e_ant_pt_in_no3_a_fine,            &
+            index_e_ant_pt_in_so4_a_fine = index_e_ant_pt_in_so4_a_fine,            &
+            index_e_ant_pt_in_nh4_a_fine = index_e_ant_pt_in_nh4_a_fine,            &
+            index_e_ant_pt_in_nh3 = index_e_ant_pt_in_nh3,                          &
+            index_e_ant_pt_in_so2 = index_e_ant_pt_in_so2,                          &
+            index_e_ant_pt_in_ch4 = index_e_ant_pt_in_ch4,                          &
+            index_e_ant_pt_in_nox = index_e_ant_pt_in_nox,                          &
+            index_e_ant_pt_in_co  = index_e_ant_pt_in_co,                           &
+            index_e_ant_pt_in_voc = index_e_ant_pt_in_voc,                          &
+            index_e_ant_pt_in_bc = index_e_ant_pt_in_bc,                            &
+            index_e_ant_pt_in_oc = index_e_ant_pt_in_oc,                            &
+!
             index_e_bio_in_polp_tree = index_e_bio_in_polp_tree,              &
             index_e_bio_in_polp_grass = index_e_bio_in_polp_grass,            &
             index_e_bio_in_polp_weed = index_e_bio_in_polp_weed,              &
@@ -2066,6 +2174,10 @@ endif
             index_e_bb_out_so2 = index_e_bb_out_so2,                          &
             index_e_bb_out_nh3 = index_e_bb_out_nh3,                          &
             index_e_bb_out_co  = index_e_bb_out_co,                           &
+            index_e_bb_out_voc = index_e_bb_out_voc,                          &
+            index_e_bb_out_bc = index_e_bb_out_bc,                            &
+            index_e_bb_out_oc = index_e_bb_out_oc,                            &
+!
             index_e_ant_out_unspc_ultrafine = index_e_ant_out_unspc_ultrafine,&
             index_e_ant_out_unspc_fine = index_e_ant_out_unspc_fine,          &
             index_e_ant_out_unspc_coarse = index_e_ant_out_unspc_coarse,      &
@@ -2080,6 +2192,10 @@ endif
             index_e_ant_out_ch4 = index_e_ant_out_ch4,                        &
             index_e_ant_out_nox = index_e_ant_out_nox,                        &
             index_e_ant_out_co  = index_e_ant_out_co,                         &
+            index_e_ant_out_voc = index_e_ant_out_voc,                        &
+            index_e_ant_out_bc = index_e_ant_out_bc,                          &
+            index_e_ant_out_oc = index_e_ant_out_oc,                          &
+!
             index_e_bio_out_polp_tree = index_e_bio_out_polp_tree,            &
             index_e_bio_out_polp_grass = index_e_bio_out_polp_grass,          &
             index_e_bio_out_polp_weed = index_e_bio_out_polp_weed,            &
@@ -2147,6 +2263,8 @@ endif
             do_mpas_methane = do_mpas_methane,                                &
             do_mpas_hab = do_mpas_hab,                                        &
             do_mpas_rwc = do_mpas_rwc,                                        &
+            do_mpas_soa = do_mpas_soa,                                        &
+            do_mpas_carbon_aero = do_mpas_carbon_aero,                        &
 !--- Namelist wildfire
             plume_wind_eff = plume_wind_eff,                                  &
             plume_alpha = plume_alpha,                                        &
@@ -2213,6 +2331,7 @@ endif
             blcldi_vis = qibl_p,                                              &
             coszen = coszr_p,                                                 &
             config_mie_aod_opt = config_mie_aod_opt,                          &
+            config_soa_scheme = config_soa_scheme,                            &
             aod3d_smoke = aod3d_smoke_p,                                      &
             aod3d = aod3d_p,                                                  &
             aod3d_simple = aod3d_simple_p,                                    &
