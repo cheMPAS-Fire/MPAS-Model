@@ -1457,9 +1457,6 @@ if (brute_search ) then
                       yC, zC, nEdgesOnCell(n), &
                       verticesOnCell(:,n), xVertex, yVertex, zVertex)
       endif
-      is_inside =  mpas_in_cell(xPoint, yPoint, zPoint, xC, &
-                    yC, zC, nEdgesOnCell(n), &
-                    verticesOnCell(:,n), xVertex, yVertex, zVertex)
       if (is_inside) then
 !         best_cell_global(s) = global_cell_list(n)
          best_cell_work(s) = n
