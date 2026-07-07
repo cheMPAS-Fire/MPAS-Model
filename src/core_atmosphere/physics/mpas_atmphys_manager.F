@@ -403,7 +403,8 @@
                                   config_dust_scheme,       &
                                   config_pollen_scheme,     &
                                   config_anthro_scheme,     &
-                                  config_rwc_scheme
+                                  config_rwc_scheme,        &
+                                  config_bact_scheme   
 
  character(len=StrKIND),pointer:: config_conv_interval,     &
                                   config_pbl_interval,      &
@@ -456,6 +457,7 @@
  call mpas_pool_get_config(configs,'config_frac_seaice'      ,config_frac_seaice      )
  call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
  call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
+ call mpas_pool_get_config(configs,'config_bact_scheme'      ,config_bact_scheme     )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
  call mpas_pool_get_config(configs,'config_pollen_scheme'    ,config_pollen_scheme    )
  call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme)
@@ -749,7 +751,7 @@ call mpas_pool_get_dimension(emission_input,'num_e_ant_stack_groups_in',n_e_ant_
 
  if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off' .or. &
     config_anthro_scheme .ne. 'off' .or. config_pollen_scheme .ne. 'off' .or. &
-    config_rwc_scheme .ne. 'off' ) then
+    config_rwc_scheme .ne. 'off' .or. config_bact_scheme .ne. 'off'  ) then
     do_chemistry = .true.
  else
     do_chemistry = .false.

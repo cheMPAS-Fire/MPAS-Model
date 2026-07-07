@@ -281,6 +281,7 @@
     RWC_annual_sum_smoke_coarse_p,&
     RWC_annual_sum_unspc_fine_p,&
     RWC_annual_sum_unspc_coarse_p
+ integer,dimension(:),allocatable:: ant_pt_local_cell_idx_p,ant_pt_rank_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
     bact_water_conc_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &

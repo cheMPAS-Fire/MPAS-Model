@@ -49,6 +49,7 @@
  character(len=StrKIND),pointer :: config_dust_scheme
  character(len=StrKIND),pointer :: config_pollen_scheme
  character(len=StrKIND),pointer :: config_anthro_scheme
+ character(len=StrKIND),pointer :: config_anthro_pt_scheme
  character(len=StrKIND),pointer :: config_ssalt_scheme
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
@@ -70,6 +71,7 @@
  call mpas_pool_get_config(configs,'config_dust_scheme', config_dust_scheme)
  call mpas_pool_get_config(configs,'config_pollen_scheme',config_pollen_scheme)
  call mpas_pool_get_config(configs,'config_anthro_scheme',config_anthro_scheme)
+ call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
@@ -133,6 +135,11 @@
  if(.not.allocated(aod550_simple_p)    ) allocate(aod550_simple_p(ims:ime,jms:jme)                )
  if(.not.allocated(aod3d_simple_p))   allocate(aod3d_simple_p(ims:ime,kms:kme,jms:jme))
 
+ if(.not.allocated(tauaer_sw_p))        allocate(tauaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+ if(.not.allocated(tauaer_lw_p))        allocate(tauaer_lw_p(ims:ime,kms:kme,jms:jme,1:16))
+ if(.not.allocated(ssaaer_sw_p))        allocate(ssaaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+ if(.not.allocated(asyaer_sw_p))        allocate(asyaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+
  if ( config_smoke_scheme .ne. 'off' ) then
     if(.not.allocated(frp_out_p)   )         allocate(frp_out_p(ims:ime,jms:jme))
     if(.not.allocated(fre_out_p)   )         allocate(fre_out_p(ims:ime,jms:jme))
@@ -146,10 +153,6 @@
        if(.not.allocated(efs_rsmold_p)    )  allocate(efs_rsmold_p(ims:ime,jms:jme)) !EFs for residual smoldering
        if(.not.allocated(fire_ef_out_p)   )  allocate(fire_ef_out_p(ims:ime,jms:jme))
     endif
-    if(.not.allocated(tauaer_sw_p))        allocate(tauaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
-    if(.not.allocated(tauaer_lw_p))        allocate(tauaer_lw_p(ims:ime,kms:kme,jms:jme,1:16))
-    if(.not.allocated(ssaaer_sw_p))        allocate(ssaaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
-    if(.not.allocated(asyaer_sw_p))        allocate(asyaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
     if (ebb_dcycle .eq. 2 ) then
 ! TODO -- is fmc_avg for ebb or calc emis?
        if(.not.allocated(fmc_avg_p)       )  allocate(fmc_avg_p(ims:ime,jms:jme))  !should be always 2d
@@ -195,8 +198,12 @@
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
  
- if ( num_e_ant_pt_in .gt. 0 ) then
-    if(.not.allocated(e_ant_pt_in_p))   allocate(e_ant_pt_in_p(25,1:num_anthro_pt,1:num_e_ant_pt_in))
+ if ( config_anthro_pt_scheme .ne. 'off' ) then
+    if(.not.allocated(ant_pt_local_cell_idx_p)) allocate(ant_pt_local_cell_idx_p(1:num_anthro_pt))
+    if(.not.allocated(ant_pt_rank_p)) allocate(ant_pt_rank_p(1:num_anthro_pt))
+    if ( num_e_ant_pt_in .gt. 0 ) then
+       if(.not.allocated(e_ant_pt_in_p))   allocate(e_ant_pt_in_p(25,1:num_anthro_pt,1:num_e_ant_pt_in))
+    endif
  endif
  if ( num_e_ant_stack_groups_in .gt. 0 ) then
     if(.not.allocated(e_ant_stack_groups_in_p)) allocate(e_ant_stack_groups_in_p(1:num_anthro_pt,1:num_e_ant_stack_groups_in))
@@ -333,6 +340,9 @@
  if(allocated(ssm_in_p)         )     deallocate(ssm_in_p         )
 
  if(allocated(bact_water_conc_p))     deallocate(bact_water_conc_p)
+ if(allocated(ant_pt_local_cell_idx_p)) deallocate(ant_pt_local_cell_idx_p)
+ if(allocated(ant_pt_rank_p))     deallocate(ant_pt_rank_p)
+
 
  if(allocated(ddvel_p)          )     deallocate(ddvel_p          )
  if(allocated(wetdep_resolved_p))     deallocate(wetdep_resolved_p)
@@ -448,6 +458,8 @@
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
       logical, pointer :: calc_bb_emis_online
+
+      integer,dimension(:),pointer :: ant_pt_local_cell_idx, ant_pt_rank
       
       real(kind=RKIND),dimension(:,:,:),pointer :: scalars
       real(kind=RKIND),dimension(:,:,:),pointer :: chem
@@ -521,6 +533,7 @@
       call mpas_pool_get_array(diag_physics,'rainncv',rainncv)
       call mpas_pool_get_array(diag_physics,'mavail',mavail)
       call mpas_pool_get_array(diag_physics,'cldfrac',cldfrac)
+      call mpas_pool_get_array(diag_physics,'t2m',t2m) 
      
       if ( wetdep_ls_opt .ne. 0 ) then
          call mpas_pool_get_array(diag_physics,'wetdep_resolved',wetdep_resolved)
@@ -548,6 +561,8 @@
 
 
       if (config_anthro_pt_scheme .ne. 'off' ) then
+         call mpas_pool_get_array(emission_input,'ant_pt_local_cell_idx',ant_pt_local_cell_idx)
+         call mpas_pool_get_array(emission_input,'ant_pt_rank',ant_pt_rank)
          if (num_e_ant_pt_in .gt. 0 ) then
             call mpas_pool_get_array(emission_input, 'e_ant_pt_in',e_ant_pt_in)
          endif
@@ -688,6 +703,10 @@
       endif   
  
       if ( num_e_ant_pt_in .gt. 0 .and. config_anthro_pt_scheme .ne. 'off') then
+       do i = 1,num_anthro_pt
+          ant_pt_local_cell_idx_p(i) = ant_pt_local_cell_idx(i)
+          ant_pt_rank_p(i) = ant_pt_rank(i)
+       enddo
  
        do n=1,num_e_ant_pt_in
        do i=1,num_anthro_pt
@@ -889,6 +908,7 @@
             raincv_p(i,j) = 0._RKIND
          endif
          rainncv_p(i,j) = rainncv(i)
+         t2m_p(i,j)     = t2m(i)
          dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
          mavail_p(i,j)  = mavail(i)
       enddo
@@ -1609,8 +1629,6 @@ endif
  integer,pointer :: index_STKHT,index_STKDM,index_STKTK,index_STKVE, &
                     index_STKLT,index_STKLG
  integer,pointer :: index_e_ant_pt_in_unspc_fine
- integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
-! integer,dimension(:),pointer :: ant_pt_global_cell_idx
  integer         :: myrank, ierr
  
  integer,pointer :: index_e_bio_in_polp_tree, index_e_bio_in_polp_grass, index_e_bio_in_polp_weed
@@ -1803,8 +1821,7 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_ch4',index_e_ant_in_ch4)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_nox',index_e_ant_in_nox)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_co',index_e_ant_in_co)
-
- if ( config_anthro_pt_scheme .ne. 'off') then
+!
  call mpas_pool_get_dimension(emission_input,'index_STKHT',index_STKHT)
  call mpas_pool_get_dimension(emission_input,'index_STKDM',index_STKDM)
  call mpas_pool_get_dimension(emission_input,'index_STKTK',index_STKTK)
@@ -1812,12 +1829,7 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_STKLT',index_STKLT)
  call mpas_pool_get_dimension(emission_input,'index_STKLG',index_STKLG)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_unspc_fine',index_e_ant_pt_in_unspc_fine)
- call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
- call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
-! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
  call mpas_pool_get_array(mesh,'indexToCellID',globalCells)
-endif
-
 !
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_ultrafine',index_e_bb_in_smoke_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_fine',index_e_bb_in_smoke_fine)
@@ -2000,8 +2012,8 @@ endif
             index_STKLT = index_STKLT,                                        &
             index_STKLG = index_STKLG,                                        &
             index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
-            ant_pt_local_cell_idx = ant_pt_local_cell_idx,                    &
-            ant_pt_rank = ant_pt_rank,                                        &
+            ant_pt_local_cell_idx = ant_pt_local_cell_idx_p,                  &
+            ant_pt_rank = ant_pt_rank_p,                                      &
             myrank = myrank,                                                  &
             e_ant_in  = e_ant_in_p,                                           &
             e_bb_in   = e_bb_in_p,                                            &
