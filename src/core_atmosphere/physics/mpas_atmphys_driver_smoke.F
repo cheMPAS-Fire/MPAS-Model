@@ -1750,6 +1750,7 @@ endif
  call mpas_pool_get_config(configs,'config_extra_chemical_tracers',config_extra_chemical_tracers)
  call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
  call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
+ call mpas_pool_get_config(configs,'config_carbon_aero_scheme',config_carbon_aero_scheme)
 ! Namelist: smoke
  call mpas_pool_get_config(configs,'hwp_method',hwp_method)
  call mpas_pool_get_config(configs,'hwp_alpha',hwp_alpha)
