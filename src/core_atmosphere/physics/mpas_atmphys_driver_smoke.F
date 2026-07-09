@@ -49,10 +49,12 @@
  character(len=StrKIND),pointer :: config_dust_scheme
  character(len=StrKIND),pointer :: config_pollen_scheme
  character(len=StrKIND),pointer :: config_anthro_scheme
+ character(len=StrKIND),pointer :: config_anthro_pt_scheme
  character(len=StrKIND),pointer :: config_ssalt_scheme
  character(len=StrKIND),pointer :: config_volc_scheme
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
+ character(len=StrKIND),pointer :: config_bact_scheme
  character(len=StrKIND),pointer :: config_lightning_option
  integer, pointer :: ebb_dcycle
  integer, pointer :: wetdep_ls_opt
@@ -70,10 +72,12 @@
  call mpas_pool_get_config(configs,'config_dust_scheme', config_dust_scheme)
  call mpas_pool_get_config(configs,'config_pollen_scheme',config_pollen_scheme)
  call mpas_pool_get_config(configs,'config_anthro_scheme',config_anthro_scheme)
+ call mpas_pool_get_config(configs,'config_anthro_pt_scheme',config_anthro_pt_scheme)
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
+ call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
  call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
 
@@ -90,6 +94,7 @@
  if(.not.allocated(dx_p)        ) allocate(dx_p(ims:ime,jms:jme)                 )
  if(.not.allocated(area_p)      ) allocate(area_p(ims:ime,jms:jme)               )
  if(.not.allocated(xland_p)     ) allocate(xland_p(ims:ime,jms:jme)              )
+ if(.not.allocated(xice_p)      ) allocate(xice_p(ims:ime,jms:jme)               )
  if(.not.allocated(ter_p)       ) allocate(ter_p(ims:ime,jms:jme)                )
  if(.not.allocated(u10_p)       ) allocate(u10_p(ims:ime,jms:jme)                )
  if(.not.allocated(v10_p)       ) allocate(v10_p(ims:ime,jms:jme)                )
@@ -134,6 +139,11 @@
  if(.not.allocated(aod550_simple_p)    ) allocate(aod550_simple_p(ims:ime,jms:jme)                )
  if(.not.allocated(aod3d_simple_p))   allocate(aod3d_simple_p(ims:ime,kms:kme,jms:jme))
 
+ if(.not.allocated(tauaer_sw_p))        allocate(tauaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+ if(.not.allocated(tauaer_lw_p))        allocate(tauaer_lw_p(ims:ime,kms:kme,jms:jme,1:16))
+ if(.not.allocated(ssaaer_sw_p))        allocate(ssaaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+ if(.not.allocated(asyaer_sw_p))        allocate(asyaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
+
  if ( config_smoke_scheme .ne. 'off' ) then
     if(.not.allocated(frp_out_p)   )         allocate(frp_out_p(ims:ime,jms:jme))
     if(.not.allocated(fre_out_p)   )         allocate(fre_out_p(ims:ime,jms:jme))
@@ -147,10 +157,6 @@
        if(.not.allocated(efs_rsmold_p)    )  allocate(efs_rsmold_p(ims:ime,jms:jme)) !EFs for residual smoldering
        if(.not.allocated(fire_ef_out_p)   )  allocate(fire_ef_out_p(ims:ime,jms:jme))
     endif
-    if(.not.allocated(tauaer_sw_p))        allocate(tauaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
-    if(.not.allocated(tauaer_lw_p))        allocate(tauaer_lw_p(ims:ime,kms:kme,jms:jme,1:16))
-    if(.not.allocated(ssaaer_sw_p))        allocate(ssaaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
-    if(.not.allocated(asyaer_sw_p))        allocate(asyaer_sw_p(ims:ime,kms:kme,jms:jme,1:14))
     if (ebb_dcycle .eq. 2 ) then
 ! TODO -- is fmc_avg for ebb or calc emis?
        if(.not.allocated(fmc_avg_p)       )  allocate(fmc_avg_p(ims:ime,jms:jme))  !should be always 2d
@@ -204,8 +210,12 @@
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
  
- if ( num_e_ant_pt_in .gt. 0 ) then
-    if(.not.allocated(e_ant_pt_in_p))   allocate(e_ant_pt_in_p(25,1:num_anthro_pt,1:num_e_ant_pt_in))
+ if ( config_anthro_pt_scheme .ne. 'off' ) then
+    if(.not.allocated(ant_pt_local_cell_idx_p)) allocate(ant_pt_local_cell_idx_p(1:num_anthro_pt))
+    if(.not.allocated(ant_pt_rank_p)) allocate(ant_pt_rank_p(1:num_anthro_pt))
+    if ( num_e_ant_pt_in .gt. 0 ) then
+       if(.not.allocated(e_ant_pt_in_p))   allocate(e_ant_pt_in_p(25,1:num_anthro_pt,1:num_e_ant_pt_in))
+    endif
  endif
  if ( num_e_ant_stack_groups_in .gt. 0 ) then
     if(.not.allocated(e_ant_stack_groups_in_p)) allocate(e_ant_stack_groups_in_p(1:num_anthro_pt,1:num_e_ant_stack_groups_in))
@@ -240,6 +250,9 @@
  if ( num_e_ss_out .gt. 0 ) then
     if(.not.allocated(e_ss_out_p))          allocate(e_ss_out_p  (ims:ime,kms:kme,jms:jme,1:num_e_ss_out)  )
  endif
+ if ( config_bact_scheme .ne. 'off' ) then
+    if(.not.allocated(bact_water_conc_p)) allocate(bact_water_conc_p(ims:ime,jms:jme))
+ endif
 
  if (config_sna_scheme .ne. 'off' ) then
     if(.not.allocated(nifa_p))    allocate(nifa_p(ims:ime,kms:kme,jms:jme))
@@ -270,6 +283,7 @@
  if(allocated(dx_p)           ) deallocate(dx_p           )
  if(allocated(area_p)         ) deallocate(area_p         )
  if(allocated(xland_p)        ) deallocate(xland_p        )
+ if(allocated(xice_p)         ) deallocate(xice_p         )
  if(allocated(ter_p)          ) deallocate(ter_p          )
  if(allocated(u10_p)          ) deallocate(u10_p          )
  if(allocated(v10_p)          ) deallocate(v10_p          )
@@ -339,6 +353,11 @@
  if(allocated(rdrag_p)          )     deallocate(rdrag_p    )
  if(allocated(ssm_in_p)         )     deallocate(ssm_in_p         )
 
+ if(allocated(bact_water_conc_p))     deallocate(bact_water_conc_p)
+ if(allocated(ant_pt_local_cell_idx_p)) deallocate(ant_pt_local_cell_idx_p)
+ if(allocated(ant_pt_rank_p))     deallocate(ant_pt_rank_p)
+
+
  if(allocated(ddvel_p)          )     deallocate(ddvel_p          )
  if(allocated(wetdep_resolved_p))     deallocate(wetdep_resolved_p)
  if(allocated(drydep_flux_p)    )     deallocate(drydep_flux_p    )
@@ -402,6 +421,8 @@
       integer,dimension(:),pointer               :: ktop_deep
       real(kind=RKIND),dimension(:,:),pointer    :: refl10cm
       real(kind=RKIND),dimension(:),pointer      :: meshDensity
+      real(kind=RKIND),dimension(:),pointer      :: xland
+      real(kind=RKIND),dimension(:),pointer      :: xice
       real(kind=RKIND),dimension(:),pointer      :: xland, ter
       real(kind=RKIND),pointer                   :: len_disp
       real(kind=RKIND),dimension(:),pointer      :: ust
@@ -429,9 +450,10 @@
       real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, &
                                                     ssm_in, rdrag
       real(kind=RKIND),dimension(:),pointer      :: RWC_denominator
-      real(kind=RKIND),dimension(:), pointer   :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
+      real(kind=RKIND),dimension(:), pointer     :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
                                                     RWC_annual_sum_unspc_coarse
+      real(kind=RKIND),dimension(:),pointer      :: bact_water_conc
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_in, e_bb_in, e_bio_in, e_vol_in
       real(kind=RKIND),dimension(:,:,:),pointer  :: e_ant_pt_in
       real(kind=RKIND),dimension(:,:),pointer    :: e_ant_stack_groups_in
@@ -453,12 +475,15 @@
       character(len=StrKIND),pointer :: config_sna_scheme
       character(len=StrKIND),pointer :: config_rwc_scheme
       character(len=StrKIND),pointer :: config_convection_scheme
+      character(len=StrKIND),pointer :: config_bact_scheme
       character(len=StrKIND),pointer :: config_lightning_option
       integer, pointer :: wetdep_ls_opt
       integer, pointer :: drydep_opt
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
       logical, pointer :: calc_bb_emis_online
+
+      integer,dimension(:),pointer :: ant_pt_local_cell_idx, ant_pt_rank
       
       real(kind=RKIND),dimension(:,:,:),pointer :: scalars
       real(kind=RKIND),dimension(:,:,:),pointer :: chem
@@ -481,6 +506,8 @@
       call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
       call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
       call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+      call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
+
       call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
       call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
       call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
@@ -502,6 +529,7 @@
       call mpas_pool_get_array(mesh,'lonCell',lonCell)
       call mpas_pool_get_array(mesh,'areaCell',areaCell)
       call mpas_pool_get_array(sfc_input,'xland',xland)
+      call mpas_pool_get_array(sfc_input,'xice',xice)
       call mpas_pool_get_array(sfc_input,'ter',ter)
       call mpas_pool_get_array(diag_physics,'ust',ust)
       call mpas_pool_get_array(diag_physics,'coszr',coszr)
@@ -539,6 +567,7 @@
       call mpas_pool_get_array(diag_physics,'rainncv',rainncv)
       call mpas_pool_get_array(diag_physics,'mavail',mavail)
       call mpas_pool_get_array(diag_physics,'cldfrac',cldfrac)
+      call mpas_pool_get_array(diag_physics,'t2m',t2m) 
      
       if ( wetdep_ls_opt .ne. 0 ) then
          call mpas_pool_get_array(diag_physics,'wetdep_resolved',wetdep_resolved)
@@ -566,6 +595,8 @@
 
 
       if (config_anthro_pt_scheme .ne. 'off' ) then
+         call mpas_pool_get_array(emission_input,'ant_pt_local_cell_idx',ant_pt_local_cell_idx)
+         call mpas_pool_get_array(emission_input,'ant_pt_rank',ant_pt_rank)
          if (num_e_ant_pt_in .gt. 0 ) then
             call mpas_pool_get_array(emission_input, 'e_ant_pt_in',e_ant_pt_in)
          endif
@@ -593,6 +624,10 @@
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum_unspc_fine',RWC_annual_sum_unspc_fine)
          call mpas_pool_get_array(diag_physics,'RWC_annual_sum_unspc_coarse',RWC_annual_sum_unspc_coarse)
          call mpas_pool_get_array(diag_physics,'max_rwc_plume',max_rwc_plume)
+      endif
+
+      if (config_bact_scheme .ne. 'off' ) then
+         call mpas_pool_get_array(diag_physics,'bact_water_conc',bact_water_conc)
       endif
 
       if (config_smoke_scheme .ne. 'off' ) then
@@ -703,6 +738,10 @@
       endif   
  
       if ( num_e_ant_pt_in .gt. 0 .and. config_anthro_pt_scheme .ne. 'off') then
+       do i = 1,num_anthro_pt
+          ant_pt_local_cell_idx_p(i) = ant_pt_local_cell_idx(i)
+          ant_pt_rank_p(i) = ant_pt_rank(i)
+       enddo
  
        do n=1,num_e_ant_pt_in
        do i=1,num_anthro_pt
@@ -813,6 +852,14 @@
       
       endif
       !
+      if (config_bact_scheme .ne. 'off' ) then
+        do j = jts, jte
+        do i = its, ite
+            bact_water_conc_p(i,j) = bact_water_conc(i)
+        enddo
+        enddo
+      endif
+      
 
       if ( config_smoke_scheme .ne. 'off' .and. ebb_dcycle .eq. 2 ) then
       do blk = 1, nblocks
@@ -866,6 +913,7 @@
          dx_p(i,j)      = len_disp / meshDensity(i)**0.25
          area_p(i,j)    = areaCell(i)
          xland_p(i,j)   = xland(i)
+         xice_p(i,j)    = xice(i)
          ter_p(i,j)     = ter(i)
          ust_p(i,j)     = ust(i)
          xlat_p(i,j)    = latCell(i) / degrad
@@ -896,6 +944,7 @@
             raincv_p(i,j) = 0._RKIND
          endif
          rainncv_p(i,j) = rainncv(i)
+         t2m_p(i,j)     = t2m(i)
          dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
          mavail_p(i,j)  = mavail(i)
       enddo
@@ -1665,6 +1714,7 @@ endif
  integer,pointer :: index_e_ant_pt_in_bc, index_e_ant_pt_in_oc
  integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
 ! integer,dimension(:),pointer :: ant_pt_global_cell_idx
+>>>>>>> origin/chem/develop
  integer         :: myrank, ierr
  
  integer,pointer :: index_e_bio_in_polp_tree, index_e_bio_in_polp_grass, index_e_bio_in_polp_weed
@@ -1899,6 +1949,7 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_ch4',index_e_ant_in_ch4)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_nox',index_e_ant_in_nox)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_co',index_e_ant_in_co)
+!
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_voc',index_e_ant_in_voc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_bc',index_e_ant_in_bc) 
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_oc',index_e_ant_in_oc)
@@ -1931,8 +1982,7 @@ endif
  call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
 ! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
  call mpas_pool_get_array(mesh,'indexToCellID',globalCells)
-endif
-
+ endif
 !
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_ultrafine',index_e_bb_in_smoke_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_fine',index_e_bb_in_smoke_fine)
@@ -2143,8 +2193,9 @@ endif
             index_STKVE = index_STKVE,                                        &
             index_STKLT = index_STKLT,                                        &
             index_STKLG = index_STKLG,                                        &
-            ant_pt_local_cell_idx = ant_pt_local_cell_idx,                    &
-            ant_pt_rank = ant_pt_rank,                                        &
+            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
+            ant_pt_local_cell_idx = ant_pt_local_cell_idx_p,                  &
+            ant_pt_rank = ant_pt_rank_p,                                      &
             myrank = myrank,                                                  &
             e_ant_in  = e_ant_in_p,                                           &
             e_bb_in   = e_bb_in_p,                                            &
@@ -2336,6 +2387,8 @@ endif
             RWC_annual_sum_smoke_coarse = RWC_annual_sum_smoke_coarse_p,      &
             RWC_annual_sum_unspc_fine = RWC_annual_sum_unspc_fine_p,          &
             RWC_annual_sum_unspc_coarse = RWC_annual_sum_unspc_coarse_p,      &
+!--- Harmful algal bloom 
+            bact_water_conc = bact_water_conc_p,                              &
 !--- Dust related arrays
             sandfrac_in = sandfrac_in_p,                                      &
             clayfrac_in = clayfrac_in_p,                                      &
@@ -2421,6 +2474,7 @@ endif
             dxcell = dx_p,                                                    &
             area = area_p,                                                    &
             xland = xland_p,                                                  &
+            xice = xice_p,                                                    &
             ter = ter_p,                                                      &
             u10 = u10_p,                                                      &
             v10 = v10_p,                                                      &

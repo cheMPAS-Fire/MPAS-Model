@@ -424,6 +424,7 @@
               filename_template="history.$Y-$M-$D_$h.$m.$s.nc"
               output_interval="6:00:00"
               runtime_format="separate_file">
+              <var name="bact_water_conc"/>
               <var name="aero_emis_for_enhmix"/>
 	      <var name="swdnb"/>
               <var name="swdnbc"/>
@@ -548,6 +549,17 @@
          <var name="RWC_annual_sum_unspc_fine"/>
          <var name="RWC_annual_sum_unspc_coarse"/>
        </stream>
+
+      <stream name="hab_input"
+         type="input"
+         filename_template="hab.init.$Y-$M-$D_$h.$m.$s.nc"
+         filename_interval="input_interval"
+         input_interval="1:00:00"
+         immutable="true"                       
+         in_defaults="false">
+
+         <var name="bact_water_conc"/>
+      </stream>
 
       <stream name="anthro_pt_input"
          type="input"
@@ -1202,6 +1214,9 @@
            description="asymmetry parameter, shortwave"/>
       <var name="tauaer_lw"        type="real" dimensions="nLWbds nVertLevels nCells Time" units="unitless"
            description="layer aerosol optical thickness, longwave"/>
+      <var name="bact_water_conc" type="real" dimensions="nCells" units="ug m^{-3}"
+	   description="Bacteria concenctration at water surface"
+	   packages="mpas_bact_in"/>
       <var name="RWC_annual_sum" type="real" dimensions="nCells Time" units="ug m^{-2}"
 	   description="Annual sum of residential wood burning emissions"
 	   packages="mpas_rwc_in"/>
@@ -1319,6 +1334,9 @@
           <var name="tend_nh3" name_in_code="nh3" array_group="chemistry" units="mol m^{-3} s^{-1}"
                description="Tendency of ammonia mass per unit volume divided by d(zeta)/dz"
                packages="mpas_sna_in"/>
+         <var name="tend_bact_fine" name_in_code="bact_fine" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of fine bacteria mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_bact_in"/>
           <var name="tend_soa" name_in_code="soa" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of soa mass per unit volume divided by d(zeta)/dz"
                packages="mpas_soa_simple_in"/>
@@ -1343,6 +1361,7 @@
           <var name="tend_brc" name_in_code="brc" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of brown carbon mass per unit volume divided by d(zeta)/dz"
                packages="mpas_brown_carbon_in"/>
+>>>>>>> origin/chem/develop
       </var_array>
 #endif
         </var_struct>
@@ -1398,6 +1417,8 @@
               description="Lateral boundary tendency of NOx mixing ratio"/>
          <var name="lbc_so2" name_in_code="so2" array_group="chemistry"  packages="mpas_so2_in;mpas_sna_in" units="mol mol^{-1} s^{-1}"
               description="Lateral boundary tendency of SO2 mixing ratio"/>
+         <var name="lbc_bact_fine" name_in_code="bact_fine" array_group="chemistry"  packages="mpas_bact_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of fine bacteria mixing ratio"/>
          <var name="lbc_soa" name_in_code="soa" array_group="chemistry"  packages="mpas_soa_simple_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of SOA mixing ratio"/>
          <var name="lbc_antsoa" name_in_code="antsoa" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="kg kg^{-1} s^{-1}"
@@ -1414,6 +1435,7 @@
               description="Lateral boundary tendency of organic carbon mixing ratio"/>
          <var name="lbc_brc" name_in_code="brc" array_group="chemistry"  packages="mpas_brown_carbon_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of brown carbon mixing ratio"/>
+>>>>>>> origin/chem/develop
       </var_array>
    </var_struct>
 
