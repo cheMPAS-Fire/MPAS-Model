@@ -384,7 +384,27 @@
     f_nh4_a_fine,     &
     f_nh3,            &
     f_so2,            &
-    f_ch4
+    f_ch4,            &
+    f_smoke_ultrafine,&
+    f_dust_ultrafine, &
+    f_mold_fine,      &
+    f_bact_fine,      &
+    f_dms,            &
+    f_plastic_fine,   &
+    f_unspc_ultrafine,&
+    f_vash_fine,      &
+    f_vash_coarse,    &
+    f_nox,            &
+    f_soa,            &
+    f_antsoa,         &
+    f_bbsoa,          &
+    f_antvoc,         &
+    f_bbvoc,          &
+    f_bc,             &
+    f_oc,             &
+    f_brc
+
+    
 
  real(kind=RKIND),dimension(:,:),allocatable:: &
     rainnc_p,         &!
