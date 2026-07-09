@@ -357,7 +357,6 @@
  if(allocated(ant_pt_local_cell_idx_p)) deallocate(ant_pt_local_cell_idx_p)
  if(allocated(ant_pt_rank_p))     deallocate(ant_pt_rank_p)
 
-
  if(allocated(ddvel_p)          )     deallocate(ddvel_p          )
  if(allocated(wetdep_resolved_p))     deallocate(wetdep_resolved_p)
  if(allocated(drydep_flux_p)    )     deallocate(drydep_flux_p    )
@@ -423,7 +422,7 @@
       real(kind=RKIND),dimension(:),pointer      :: meshDensity
       real(kind=RKIND),dimension(:),pointer      :: xland
       real(kind=RKIND),dimension(:),pointer      :: xice
-      real(kind=RKIND),dimension(:),pointer      :: xland, ter
+      real(kind=RKIND),dimension(:),pointer      :: ter
       real(kind=RKIND),pointer                   :: len_disp
       real(kind=RKIND),dimension(:),pointer      :: ust
       real(kind=RKIND),dimension(:),pointer      :: latCell,lonCell
@@ -1713,8 +1712,6 @@ endif
  integer,pointer :: index_e_ant_pt_in_voc
  integer,pointer :: index_e_ant_pt_in_bc, index_e_ant_pt_in_oc
  integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
-! integer,dimension(:),pointer :: ant_pt_global_cell_idx
->>>>>>> origin/chem/develop
  integer         :: myrank, ierr
  
  integer,pointer :: index_e_bio_in_polp_tree, index_e_bio_in_polp_grass, index_e_bio_in_polp_weed
@@ -1978,8 +1975,6 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_voc',index_e_ant_pt_in_voc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_bc',index_e_ant_pt_in_bc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_oc',index_e_ant_pt_in_oc)
- call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
- call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
 ! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
  call mpas_pool_get_array(mesh,'indexToCellID',globalCells)
  endif
@@ -2193,7 +2188,6 @@ endif
             index_STKVE = index_STKVE,                                        &
             index_STKLT = index_STKLT,                                        &
             index_STKLG = index_STKLG,                                        &
-            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
             ant_pt_local_cell_idx = ant_pt_local_cell_idx_p,                  &
             ant_pt_rank = ant_pt_rank_p,                                      &
             myrank = myrank,                                                  &

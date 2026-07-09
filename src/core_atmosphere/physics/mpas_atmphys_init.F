@@ -603,7 +603,7 @@ use mpas_stream_manager
                    index_pols_all,index_pols_tree,index_pols_grass,index_pols_weed, &
                    index_dust_fine,index_dust_coarse,index_unspc_fine,index_unspc_coarse,&
                    index_ssalt_fine,index_ssalt_coarse, &
-                   index_so4_a_fine,index_no3_a_fine,index_nh4_a_fine,index_nh3,index_so2,index_ch4
+                   index_so4_a_fine,index_no3_a_fine,index_nh4_a_fine,index_nh3,index_so2,index_ch4, &
                    index_smoke_ultrafine,index_dust_ultrafine, index_mold_fine,      &
                    index_bact_fine,index_dms,index_plastic_fine,index_unspc_ultrafine,&
                    index_vash_fine,index_vash_coarse,index_nox,index_soa,index_antsoa,index_bbsoa, &
