@@ -411,6 +411,9 @@
               <var name="hfx_bb"/>
               <var name="qfx_bb"/>
               <var name="PM2_5"/>
+              <var name="PM2_5_SMOKE_SOA"/>
+              <var name="PM2_5_ANT_SOA"/>
+              <var name="PM2_5_SOA"/>
               <var name="PM10"/>
               <var name="max_bb_plume"/>
               <var name="min_bb_plume"/>
