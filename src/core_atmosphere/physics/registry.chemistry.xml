@@ -1361,7 +1361,6 @@
           <var name="tend_brc" name_in_code="brc" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of brown carbon mass per unit volume divided by d(zeta)/dz"
                packages="mpas_brown_carbon_in"/>
->>>>>>> origin/chem/develop
       </var_array>
 #endif
         </var_struct>
@@ -1435,7 +1434,6 @@
               description="Lateral boundary tendency of organic carbon mixing ratio"/>
          <var name="lbc_brc" name_in_code="brc" array_group="chemistry"  packages="mpas_brown_carbon_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of brown carbon mixing ratio"/>
->>>>>>> origin/chem/develop
       </var_array>
    </var_struct>
 

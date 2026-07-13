@@ -357,7 +357,6 @@
  if(allocated(ant_pt_local_cell_idx_p)) deallocate(ant_pt_local_cell_idx_p)
  if(allocated(ant_pt_rank_p))     deallocate(ant_pt_rank_p)
 
-
  if(allocated(ddvel_p)          )     deallocate(ddvel_p          )
  if(allocated(wetdep_resolved_p))     deallocate(wetdep_resolved_p)
  if(allocated(drydep_flux_p)    )     deallocate(drydep_flux_p    )
@@ -423,7 +422,7 @@
       real(kind=RKIND),dimension(:),pointer      :: meshDensity
       real(kind=RKIND),dimension(:),pointer      :: xland
       real(kind=RKIND),dimension(:),pointer      :: xice
-      real(kind=RKIND),dimension(:),pointer      :: xland, ter
+      real(kind=RKIND),dimension(:),pointer      :: ter
       real(kind=RKIND),pointer                   :: len_disp
       real(kind=RKIND),dimension(:),pointer      :: ust
       real(kind=RKIND),dimension(:),pointer      :: latCell,lonCell
@@ -432,6 +431,7 @@
       real(kind=RKIND),dimension(:),pointer      :: rmol,snowh,z0,t2m,dpt2m
       real(kind=RKIND),dimension(:),pointer      :: dewpoint_surface
       real(kind=RKIND),dimension(:),pointer      :: u10,v10,znt,hpbl,skintemp,vegfra,coszr
+      real(kind=RKIND),dimension(:),pointer      :: swdnb
       real(kind=RKIND),dimension(:,:),pointer    :: cldfrac
       real(kind=RKIND),dimension(:,:),pointer    :: landusef
       real(kind=RKIND),dimension(:,:),pointer    :: smois,tslb
@@ -542,6 +542,7 @@
       call mpas_pool_get_array(diag_physics,'qc_bl'     ,qc_bl     )
       call mpas_pool_get_array(diag_physics,'qi_bl'     ,qi_bl     )
       call mpas_pool_get_array(diag_physics,'refl10cm', refl10cm)
+      call mpas_pool_get_array(diag_physics,'swdnb',swdnb)
       if ( config_convection_scheme .eq. 'cu_grell_freitas_li' ) then
          call mpas_pool_get_array(diag_physics,'ktop_deep',ktop_deep)
       endif
@@ -742,10 +743,15 @@
           ant_pt_local_cell_idx_p(i) = ant_pt_local_cell_idx(i)
           ant_pt_rank_p(i) = ant_pt_rank(i)
        enddo
+
+       do n=1,num_e_ant_stack_groups_in
+       do i=1,num_anthro_pt
+          e_ant_stack_groups_in_p(i,n) = e_ant_stack_groups_in(n,i)
+       enddo
+       enddo
  
        do n=1,num_e_ant_pt_in
        do i=1,num_anthro_pt
-          e_ant_stack_groups_in_p(i,n) = e_ant_stack_groups_in(n,i)
        do j=1,25
           e_ant_pt_in_p(j,i,n) = e_ant_pt_in(n,i,j)
        enddo
@@ -922,6 +928,7 @@
          ivgtyp_p(i,j)  = ivgtyp(i)
          vegfra_p(i,j)  = vegfra(i)
          coszr_p(i,j)   = coszr(i)
+         swdown_p(i,j)  = swdnb(i)
      ! Met
          kpbl_p(i,j)    = kpbl(i)
          vis_p(i,j)     = 0._RKIND
@@ -1713,8 +1720,6 @@ endif
  integer,pointer :: index_e_ant_pt_in_voc
  integer,pointer :: index_e_ant_pt_in_bc, index_e_ant_pt_in_oc
  integer, dimension(:), pointer :: ant_pt_local_cell_idx, ant_pt_rank
-! integer,dimension(:),pointer :: ant_pt_global_cell_idx
->>>>>>> origin/chem/develop
  integer         :: myrank, ierr
  
  integer,pointer :: index_e_bio_in_polp_tree, index_e_bio_in_polp_grass, index_e_bio_in_polp_weed
@@ -1954,7 +1959,6 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_bc',index_e_ant_in_bc) 
  call mpas_pool_get_dimension(emission_input,'index_e_ant_in_oc',index_e_ant_in_oc)
 
- if ( config_anthro_pt_scheme .ne. 'off') then
  call mpas_pool_get_dimension(emission_input,'index_STKHT',index_STKHT)
  call mpas_pool_get_dimension(emission_input,'index_STKDM',index_STKDM)
  call mpas_pool_get_dimension(emission_input,'index_STKTK',index_STKTK)
@@ -1978,11 +1982,7 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_voc',index_e_ant_pt_in_voc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_bc',index_e_ant_pt_in_bc)
  call mpas_pool_get_dimension(emission_input,'index_e_ant_pt_in_oc',index_e_ant_pt_in_oc)
- call mpas_pool_get_array(emission_input, 'ant_pt_local_cell_idx', ant_pt_local_cell_idx)
- call mpas_pool_get_array(emission_input, 'ant_pt_rank', ant_pt_rank)
-! call mpas_pool_get_array(emission_input, 'ant_pt_global_cell_idx', ant_pt_global_cell_idx)
  call mpas_pool_get_array(mesh,'indexToCellID',globalCells)
- endif
 !
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_ultrafine',index_e_bb_in_smoke_ultrafine)
  call mpas_pool_get_dimension(emission_input,'index_e_bb_in_smoke_fine',index_e_bb_in_smoke_fine)
@@ -2193,7 +2193,6 @@ endif
             index_STKVE = index_STKVE,                                        &
             index_STKLT = index_STKLT,                                        &
             index_STKLG = index_STKLG,                                        &
-            index_e_ant_pt_in_unspc_fine = index_e_ant_pt_in_unspc_fine,      &
             ant_pt_local_cell_idx = ant_pt_local_cell_idx_p,                  &
             ant_pt_rank = ant_pt_rank_p,                                      &
             myrank = myrank,                                                  &
