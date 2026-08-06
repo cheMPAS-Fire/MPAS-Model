@@ -124,6 +124,7 @@ set(ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES
     dep_dry_simple_mod.F90
     dust_data_mod.F90
     dust_fengsha_mod.F90
+    dust_gocart_simple_mod.F90
     module_add_emiss_burn.F90
     module_fire_emissions.F90
     module_plumerise.F90
