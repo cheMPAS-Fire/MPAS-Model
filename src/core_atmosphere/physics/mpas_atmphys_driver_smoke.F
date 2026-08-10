@@ -1833,6 +1833,7 @@ endif
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
  real(kind=RKIND),pointer       :: anthro_emis_scale_factor, anthro_pt_emis_scale_factor
  real(kind=RKIND),pointer       :: dust_alpha, dust_gamma
+ real(kind=RKIND),pointer       :: ch_dust
  real(kind=RKIND),pointer       :: dust_drylimit_factor, dust_moist_correction
  real(kind=RKIND),pointer       :: pollen_emis_scale_factor,  num_pols_per_polp
  real(kind=RKIND),pointer       :: tree_pollen_emis_scale_factor,  &
@@ -1936,6 +1937,8 @@ endif
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
  call mpas_pool_get_config(configs,'pm_settling',pm_settling)
 ! Namelist: dust
+ call mpas_pool_get_config(configs,'dust_opt',dust_opt)
+ call mpas_pool_get_config(configs,'ch_dust',ch_dust) !KMK
  call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
  call mpas_pool_get_config(configs,'dust_alpha', dust_alpha)
  call mpas_pool_get_config(configs,'dust_gamma', dust_gamma)
@@ -2203,6 +2206,8 @@ endif
             kfire   = kwildfire,                                              &
             kbio    = kbiogenic,                                              &
             kvol    = kvolcanic,                                              &
+!--- Dust emission related indices
+            num_soil_types = num_soil_types,                                  &
 !--- Emission arrays
             do_mpas_anthro_pt = do_mpas_anthro_pt,                            &
             e_ant_pt_in = e_ant_pt_in_p,                                      &
@@ -2417,6 +2422,7 @@ endif
             uthres_in = uthres_in_p,                                          &
             rdrag_in = rdrag_p,                                               &
             ssm_in = ssm_in_p,                                                &
+            erod_in = erod_in_p,                                              &
 !--- Dry/Wet deposition, settling
             wetdep_ls_opt = wetdep_ls_opt,                                    &
             drydep_flux = drydep_flux_p,                                      &
@@ -2476,6 +2482,9 @@ endif
             plumerise_opt = plumerise_opt,                                    &
             drydep_opt = drydep_opt,                                          &
             pm_settling = pm_settling,                                        &
+!--- Namelist dust
+            dust_opt = dust_opt,                                              &
+            ch_dust = ch_dust,                                                &
 !--- Namelist dust
             dust_alpha = dust_alpha,                                          &
             dust_gamma = dust_gamma,                                          &

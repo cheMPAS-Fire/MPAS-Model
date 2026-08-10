@@ -16,6 +16,8 @@
           description="Number of vertical levels in biogenic emission file"/>
       <dim name="nkvolcanic"             definition="namelist:kvolcanic"
           description="Number of vertical levels in volcanic emission file"/>
+      <dim name="nSoilTypes"          definition="3"
+          description="Clay Silt Sand"/>
       <dim name="TWENTYFOUR"          definition="24"
           description="A constant value of 24"/>
       <dim name="TSTEP"     
@@ -324,6 +326,14 @@
            units="-"
            description="Algorithm choice for particulate matter settling"
            possible_values="Positive integer values"/>
+      <nml_option name="dust_opt" type="integer" default_value="1"
+           units="-"
+           description="Dust emission model choice 1:FENGSHA, 2:GOCART simple"
+           possible_values="Positive integer values"/>
+      <nml_option name="ch_dust" type="real" default_value="0.8"
+           units="1e-8 m2 s-2"
+           description="Scaling (linear) factor for dust emissions (GOCART simple)"
+           possible_values="Positive real values"/>
        <nml_option name="dust_alpha" type="real" default_value="1.0"
            units="-"
            description="Scaling (linear) factor for dust emissions"
@@ -1201,6 +1211,9 @@
            packages="mpas_dust_in"/>
       <var name="rdrag_m_in" type="real" dimensions="nMonths nCells" units="-"
            description="drag partition"
+           packages="mpas_dust_in"/>
+      <var name="erod_in" type="real" dimensions="nSoilTypes nCells" units="-"
+           description="erodibility"
            packages="mpas_dust_in"/>
       <var name="ssm_in" type="real" dimensions="nCells" units="-"
            description="soil erosion potential"

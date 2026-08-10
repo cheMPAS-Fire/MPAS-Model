@@ -119,29 +119,39 @@ set(ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES
     MPAS/mpas_smoke_wrapper.F90
     mpas_smoke_init.F90
     mpas_smoke_config.F90
-    dep_data_mod.F90
-    dep_dry_mod_emerson.F90
     dep_dry_simple_mod.F90
-    dust_data_mod.F90
-    dust_fengsha_mod.F90
-    module_add_emiss_burn.F90
-    module_fire_emissions.F90
-    module_plumerise.F90
-    module_smoke_diagnostics.F90
-    module_smoke_plumerise.F90
+    dep_dry_mod_emerson.F90
+    dep_dry_mod_wesley.F90
+    dep_data_mod.F90
+    module_data_rrtmgaeropt.F90
+    module_peg_util.F90
+    mpas_mie_module.F90
+    rad_data_mod.F90
     module_wetdep_ls.F90
     module_zero_plumegen_coms.F90
-    rad_data_mod.F90
-    seas_data_mod.F90
-    seas_ngac_mod.F90
+    module_smoke_plumerise.F90
+    module_add_emiss_burn.F90
+    module_plumerise.F90
+    dust_data_mod.F90
+    dust_fengsha_mod.F90
+    dust_gocart_simple_mod.F90
     ssalt_mod.F90
-    module_hab_emissions.F90
+    seas_ngac_mod.F90
+    seas_data_mod.F90
+    module_smoke_diagnostics.F90
+    module_fire_emissions.F90
+    pollen_mod.F90
     module_anthro_emissions.F90
     module_anthro_pt_emissions.F90
     module_rwc_emissions.F90
     module_tactic_sna.F90
-    pollen_mod.F90
+    module_hab_emissions.F90
+    module_ltng_cpmpr92z.F90
+    module_ltng_crmpr92.F90
+    module_ltng_iccg.F90
+    module_ltng_lpi.F90
     module_lightning_driver.F90
+    module_simple_soa.F90
 )
 list(TRANSFORM ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES PREPEND physics/physics_noaa/SMOKE/)
 
