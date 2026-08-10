@@ -60,6 +60,7 @@
  integer, pointer :: wetdep_ls_opt
  ! Code has been added by Minsu Choi, CIRES/NOAA GSL
  ! Now we are adding simple Mie calculation for smoke_fine particle
+ integer, pointer :: config_soa_scheme
  integer, pointer :: drydep_opt
  integer, pointer :: config_mie_aod_opt
  integer, pointer :: plumerise_opt
@@ -76,6 +77,7 @@
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
@@ -209,6 +211,15 @@
  if(.not.allocated(chem_p))               allocate(chem_p(ims:ime,kms:kme,jms:jme,1:num_chem))
  if(.not.allocated(PM2_5_p))              allocate(PM2_5_p(ims:ime,kms:kme,jms:jme))
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
+
+ if (config_soa_scheme .ge. 1) then
+    if(.not.allocated(PM2_5_SOA_p))          allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
+ endif
+ if (config_soa_scheme .ge. 2) then
+    if(.not.allocated(PM2_5_ANT_SOA_p))      allocate(PM2_5_ANT_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_SMOKE_SOA_p))    allocate(PM2_5_SMOKE_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_SOA_p))          allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
+ endif         
  
  if ( config_anthro_pt_scheme .ne. 'off' ) then
     if(.not.allocated(ant_pt_local_cell_idx_p)) allocate(ant_pt_local_cell_idx_p(1:num_anthro_pt))
@@ -364,6 +375,9 @@
 
  if(allocated(chem_p)       )         deallocate(chem_p       )
  if(allocated(PM2_5_p)      )         deallocate(PM2_5_p      )
+ if(allocated(PM2_5_SOA_p)  )         deallocate(PM2_5_SOA_p  )
+ if(allocated(PM2_5_SMOKE_SOA_p))     deallocate(PM2_5_SMOKE_SOA_p)
+ if(allocated(PM2_5_ANT_SOA_p)  )     deallocate(PM2_5_ANT_SOA_p )
  if(allocated(PM10_p)       )         deallocate(PM10_p       )
  if(allocated(aod550_p)     )         deallocate(aod550_p     )
  if(allocated(aod550_simple_p))       deallocate(aod550_simple_p)
@@ -475,6 +489,7 @@
       character(len=StrKIND),pointer :: config_sna_scheme
       character(len=StrKIND),pointer :: config_rwc_scheme
       character(len=StrKIND),pointer :: config_convection_scheme
+      integer, pointer :: config_soa_scheme
       character(len=StrKIND),pointer :: config_bact_scheme
       character(len=StrKIND),pointer :: config_lightning_option
       integer, pointer :: wetdep_ls_opt
@@ -506,6 +521,7 @@
       call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
       call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
       call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+      call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
       call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
 
       call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
@@ -1103,7 +1119,8 @@
  real(kind=RKIND),dimension(:)    ,pointer:: vis
  real(kind=RKIND),dimension(:),    pointer:: frp_out, fre_out, hwp, coef_bb_dc, fire_ef_out
  real(kind=RKIND),dimension(:),    pointer:: hfx_bb, qfx_bb, frac_grid_burned
- real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10
+ real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10, PM2_5_SOA
+ real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5_SMOKE_SOA, PM2_5_ANT_SOA
  real(kind=RKIND),dimension(:,:)  ,pointer:: aod3d_smoke, aod3d, aod3d_simple
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_sw, asyaer_sw, ssaaer_sw
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_lw
@@ -1129,6 +1146,7 @@
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_lightning_option
+ integer, pointer :: config_soa_scheme
  integer, pointer :: wetdep_ls_opt
  integer, pointer :: drydep_opt
  integer, pointer :: plumerise_opt
@@ -1166,6 +1184,7 @@
  call mpas_pool_get_config(configs,'config_ssalt_scheme',config_ssalt_scheme)
  call mpas_pool_get_config(configs,'config_volc_scheme',config_volc_scheme)
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
+ call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
@@ -1182,6 +1201,14 @@
     call mpas_pool_get_dimension(state,'index_nifa',index_nifa)
     nifa => scalars(index_nifa,:,:)
     nwfa => scalars(index_nwfa,:,:)
+ endif
+
+ if ( config_soa_scheme .ge. 1 ) then
+   call mpas_pool_get_array(diag_physics,'PM2_5_SOA',PM2_5_SOA)
+   call mpas_pool_get_array(diag_physics,'PM2_5_SMOKE_SOA',PM2_5_SMOKE_SOA)
+ endif
+ if ( config_soa_scheme .ge. 2 ) then
+   call mpas_pool_get_array(diag_physics,'PM2_5_ANT_SOA',PM2_5_ANT_SOA)
  endif
 
  if (num_e_ant_out .gt. 0 ) then
@@ -1237,6 +1264,14 @@
       !
          PM2_5(k,i)     = PM2_5_p(i,k,j)
          PM10(k,i)      = PM10_p(i,k,j)
+         if ( config_soa_scheme .ge. 1 ) then
+           PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
+         endif
+         if ( config_soa_scheme .ge. 2 ) then
+           PM2_5_ANT_SOA(k,i) = PM2_5_ANT_SOA_p(i,k,j)
+           PM2_5_SMOKE_SOA(k,i) = PM2_5_SMOKE_SOA_p(i,k,j)
+           PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
+         endif
 
          aod3d(k,i) = aod3d_p(i,k,j)
          aod3d_simple(k,i) = aod3d_simple_p(i,k,j)
@@ -1666,7 +1701,7 @@ endif
  type(mpas_pool_type),intent(inout):: tend_physics
 
  integer:: ktau,initflag
- real(kind=RKIND):: curr_secs, dt
+ real(kind=RKIND):: curr_secs, dt, radt
 
  !local pointers:
  integer,pointer :: index_smoke_ultrafine, index_smoke_fine, index_smoke_coarse
@@ -1826,25 +1861,13 @@ endif
                                    do_mpas_carbon_aero
  integer                        :: i,j,k,nblocks, n
 ! --------------------------------------------------------------------------------------
-!  Local Variables for Spectral Interpolation
+!  Local Variables for WV dependent aerosol optical properties for radiation driver
 ! --------------------------------------------------------------------------------------
-! 1. Source Wavelengths (Smoke output: 300, 400, 600, 999 nm)
- real(kind=RKIND), dimension(4), parameter :: src_wav = &
-      (/ 0.300_RKIND, 0.400_RKIND, 0.600_RKIND, 0.999_RKIND /)
-! 2. Target Wavelengths (RRTMG Bands 1-14 midpoints)
- real(kind=RKIND), dimension(14), parameter :: dst_wav = &
-      (/ 3.4615_RKIND, 2.7885_RKIND, 2.3256_RKIND, 2.0460_RKIND, &
-         1.7840_RKIND, 1.4625_RKIND, 1.2705_RKIND, 1.0101_RKIND, &
-         0.7016_RKIND, 0.5332_RKIND, 0.3931_RKIND, 0.3040_RKIND, &
-         0.2315_RKIND, 8.0205_RKIND /)
-
- real(kind=RKIND), parameter :: thresh = 1.0e-9_RKIND
- real(kind=RKIND) :: ang, slope
  real(kind=RKIND), dimension(:,:,:), pointer :: tauaer_sw
  real(kind=RKIND), dimension(:,:,:), pointer :: tauaer_lw
  real(kind=RKIND), dimension(:,:,:), pointer :: ssaaer_sw
  real(kind=RKIND), dimension(:,:,:), pointer :: asyaer_sw
- integer :: idx_300, idx_400, idx_600, idx_999, k_end
+ integer :: k_end
 ! --------------------------------------------------------------------------------------
 
  myrank = dminfo % my_proc_id
@@ -2470,6 +2493,7 @@ endif
             nwfa = nwfa_p,                                                    &
             ktau = itimestep,                                                 &
             dt = dt_dyn,                                                      &
+            radt = radt,                                                &
             dxcell = dx_p,                                                    &
             area = area_p,                                                    &
             xland = xland_p,                                                  &
@@ -2550,34 +2574,74 @@ endif
  call mpas_timer_stop('mpas_smoke')
  
 ! Update PM2.5/PM10
+ do j = jts, jte
+ do k = kts, kte
+ do i = its, ite
+ 
+   PM2_5_p(i,k,j)           = 0.0_RKIND
+   PM2_5_SOA_p(i,k,j)       = 0.0_RKIND
+   PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
+   PM2_5_ANT_SOA_p(i,k,j)   = 0.0_RKIND
+   PM10_p(i,k,j)            = 0.0_RKIND
+ 
+   if (index_smoke_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_smoke_fine - chemistry_start + 1)
+   if (index_dust_fine  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_dust_fine  - chemistry_start + 1)
+   if (index_unspc_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_unspc_fine - chemistry_start + 1)
+   if (index_ssalt_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_ssalt_fine - chemistry_start + 1)
+   if (index_pols_all   .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_all   - chemistry_start + 1)
+   if (index_pols_tree  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_tree  - chemistry_start + 1)
+   if (index_pols_grass .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_grass - chemistry_start + 1)
+   if (index_pols_weed  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_weed  - chemistry_start + 1)
+   if (index_no3_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1)
+   if (index_so4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1)
+   if (index_nh4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1)
+ 
+   select case (config_soa_scheme)
+ 
+   case (1)
+ 
+      if (index_soa .gt. 0) then
+         PM2_5_SOA_p(i,k,j) = chem_p(i,k,j,index_soa - chemistry_start + 1)
+      endif
+ 
+   case (2)
+ 
+      if (index_bbsoa .gt. 0) then
+         PM2_5_SMOKE_SOA_p(i,k,j) = chem_p(i,k,j,index_bbsoa - chemistry_start + 1)
+      endif
+ 
+      if (index_antsoa .gt. 0) then
+         PM2_5_ANT_SOA_p(i,k,j) = chem_p(i,k,j,index_antsoa - chemistry_start + 1)
+      endif
+ 
+      PM2_5_SOA_p(i,k,j) = PM2_5_SMOKE_SOA_p(i,k,j) + PM2_5_ANT_SOA_p(i,k,j)
+ 
+   case default
+ 
+      PM2_5_SOA_p(i,k,j)       = 0.0_RKIND
+      PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
+      PM2_5_ANT_SOA_p(i,k,j)   = 0.0_RKIND
+ 
+   end select
+ 
+   PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + PM2_5_SOA_p(i,k,j)
+ 
+   PM2_5_p(i,k,j)           = PM2_5_p(i,k,j)           * rho_p(i,k,j)
+   PM2_5_SOA_p(i,k,j)       = PM2_5_SOA_p(i,k,j)       * rho_p(i,k,j)
+   PM2_5_SMOKE_SOA_p(i,k,j) = PM2_5_SMOKE_SOA_p(i,k,j) * rho_p(i,k,j)
+   PM2_5_ANT_SOA_p(i,k,j)   = PM2_5_ANT_SOA_p(i,k,j)   * rho_p(i,k,j)
+ 
+   if (index_smoke_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_smoke_coarse - chemistry_start + 1)
+   if (index_dust_coarse .gt.  0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_dust_coarse  - chemistry_start + 1)
+   if (index_unspc_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_unspc_coarse - chemistry_start + 1) 
+   if (index_ssalt_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_ssalt_coarse - chemistry_start + 1)
+   if (index_polp_all .gt.     0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_all    - chemistry_start + 1) 
+   if (index_polp_tree .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_tree    - chemistry_start + 1) 
+   if (index_polp_grass .gt.   0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_grass   - chemistry_start + 1)
+   if (index_polp_weed .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_weed   - chemistry_start + 1)
 
- do j = jts,jte
- do k = kts,kte
- do i = its,ite
-    PM2_5_p(i,k,j) = 0.0_RKIND
-       if (index_smoke_fine .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_smoke_fine - chemistry_start + 1)
-       if (index_dust_fine  .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_dust_fine  - chemistry_start + 1)
-       if (index_unspc_fine .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_unspc_fine - chemistry_start + 1)
-       if (index_ssalt_fine .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_ssalt_fine - chemistry_start + 1)
-       if (index_pols_all   .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_all - chemistry_start + 1)
-       if (index_pols_tree  .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_tree - chemistry_start + 1)
-       if (index_pols_grass .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_grass - chemistry_start + 1) 
-       if (index_pols_weed  .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_weed - chemistry_start + 1) 
-       if (index_no3_a_fine .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1)
-       if (index_so4_a_fine .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1) 
-       if (index_nh4_a_fine .gt. 0)  PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1)
-    PM2_5_p(i,k,j) = PM2_5_p(i,k,j) * rho_p(i,k,j)
+   PM10_p(i,k,j) = PM10_p(i,k,j) *  rho_p(i,k,j)
 
-    PM10_p(i,k,j) =  0.0_RKIND
-      if (index_smoke_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_smoke_coarse - chemistry_start + 1)
-      if (index_dust_coarse .gt.  0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_dust_coarse  - chemistry_start + 1)
-      if (index_unspc_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_unspc_coarse - chemistry_start + 1) 
-      if (index_ssalt_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_ssalt_coarse - chemistry_start + 1)
-      if (index_polp_all .gt.     0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_all    - chemistry_start + 1) 
-      if (index_polp_tree .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_tree    - chemistry_start + 1) 
-      if (index_polp_grass .gt.   0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_grass   - chemistry_start + 1)
-      if (index_polp_weed .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_weed   - chemistry_start + 1)
-    PM10_p(i,k,j) = PM10_p(i,k,j) *  rho_p(i,k,j)
  enddo
  enddo
  enddo
@@ -2600,53 +2664,35 @@ endif
  enddo
 
 ! --------------------------------------------------------------------------------------
- idx_300 = 1
- idx_400 = 2
- idx_600 = 3
- idx_999 = 4
- k_end = min(kte, ubound(tauaer_sw, 2))
+k_end = MIN(kte, UBOUND(tauaer_sw, 2))
 
- if ( aero_dir_rad_fdb .eq. 2 .or. aero_dir_rad_fdb .eq. 4 ) then
- do j = jts,jte
-   do i = its,ite
-     do k = kts,k_end !k_end declared here only in this subroutine
-       do n = 1, 16
-         tauaer_lw(n,k,i) = 0.0_RKIND 
-       enddo
+IF ( aero_dir_rad_fdb .EQ. 2 .OR. &
+     aero_dir_rad_fdb .EQ. 4 ) THEN
 
-       do n = 1, 14
-         tauaer_sw(n,k,i) = 0.0_RKIND
-         ssaaer_sw(n,k,i) = 1.0_RKIND
-         asyaer_sw(n,k,i) = 0.0_RKIND
-       enddo
-       
-       if (tauaer_sw_p(i,k,j,idx_300) > thresh .and. tauaer_sw_p(i,k,j,idx_999) > thresh) then
-          ang = log(tauaer_sw_p(i,k,j,idx_300) / tauaer_sw_p(i,k,j,idx_999)) / &
-                log(src_wav(idx_999) / src_wav(idx_300))
-       else
-          ang = 1.0_RKIND
-       endif
-       
-       do n = 1, 14
-         tauaer_sw(n,k,i) = tauaer_sw_p(i,k,j,idx_400) * &
-                            (src_wav(idx_400) / dst_wav(n))**ang
-         slope = (ssaaer_sw_p(i,k,j,idx_600) - ssaaer_sw_p(i,k,j,idx_400)) / &
-                 (src_wav(idx_600) - src_wav(idx_400))
-         ssaaer_sw(n,k,i) = slope * (dst_wav(n) - src_wav(idx_600)) + ssaaer_sw_p(i,k,j,idx_600)
-         ssaaer_sw(n,k,i) = max(0.4_RKIND, min(1.0_RKIND, ssaaer_sw(n,k,i)))
-       
-         slope = (asyaer_sw_p(i,k,j,idx_600) - asyaer_sw_p(i,k,j,idx_400)) / &
-                 (src_wav(idx_600) - src_wav(idx_400))
-         asyaer_sw(n,k,i) = slope * (dst_wav(n) - src_wav(idx_600)) + asyaer_sw_p(i,k,j,idx_600)
-         asyaer_sw(n,k,i) = max(0.0_RKIND, min(1.0_RKIND, asyaer_sw(n,k,i)))
-       enddo
-       do n = 1, 16
-         tauaer_lw(n,k,i) = tauaer_lw_p(i,k,j,n)
-       enddo
-     enddo
-   enddo
- enddo
- endif
+  DO j = jts, jte
+    DO i = its, ite
+      DO k = kts, k_end
+        DO n = 1, 14
+          tauaer_sw(n,k,i) = MAX(0.0_RKIND, &
+                                 tauaer_sw_p(i,k,j,n))
+
+          ssaaer_sw(n,k,i) = MAX(0.0_RKIND, &
+                                 MIN(1.0_RKIND, ssaaer_sw_p(i,k,j,n)))
+
+          asyaer_sw(n,k,i) = MAX(0.0_RKIND, &
+                                 MIN(1.0_RKIND, asyaer_sw_p(i,k,j,n)))
+        ENDDO
+
+        DO n = 1, 16
+          tauaer_lw(n,k,i) = MAX(0.0_RKIND, &
+                                 tauaer_lw_p(i,k,j,n))
+        ENDDO
+
+      ENDDO
+    ENDDO
+  ENDDO
+
+ENDIF
 ! --------------------------------------------------------------------------------------
 
 !copy local arrays to MPAS grid:
