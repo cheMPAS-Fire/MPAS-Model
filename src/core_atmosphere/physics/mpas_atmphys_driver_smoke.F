@@ -1829,6 +1829,7 @@ endif
  integer,pointer                :: config_mie_aod_opt
  integer,pointer                :: aero_dir_rad_fdb
  integer,pointer                :: plumerisefire_frq
+ integer,pointer                :: mie_frq
  logical,pointer                :: do_pollen_rh_rupture, do_pollen_lightning_rupture
  real(kind=RKIND),pointer       :: rwc_emis_scale_factor
  real(kind=RKIND),pointer       :: anthro_emis_scale_factor, anthro_pt_emis_scale_factor
@@ -1923,6 +1924,7 @@ endif
  call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
  call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
  call mpas_pool_get_config(configs,'plumerisefire_frq',plumerisefire_frq)
+ call mpas_pool_get_config(configs,'mie_frq',mie_frq)
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
  call mpas_pool_get_config(configs,'bb_beta',bb_beta)
  call mpas_pool_get_config(configs,'bb_qv_scale_factor',bb_qv_scale_factor)
@@ -2534,6 +2536,7 @@ endif
             blcldi_vis = qibl_p,                                              &
             coszen = coszr_p,                                                 &
             config_mie_aod_opt = config_mie_aod_opt,                          &
+            mie_frq = mie_frq,                                                &
             config_soa_scheme = config_soa_scheme,                            &
             aod3d_smoke = aod3d_smoke_p,                                      &
             aod3d = aod3d_p,                                                  &

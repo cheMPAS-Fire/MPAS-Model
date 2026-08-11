@@ -354,6 +354,10 @@
             units="minutes"
             description="frequency of call to fire plumerise"
             possible_values="Positive integer values"/>
+       <nml_option name="mie_frq" type="integer" default_value="30" in_defaults="false"
+            units="minutes"
+            description="frequency of calls to the aerosol Mie optical-property calculation"
+            possible_values="Positive integer values"/>	       
        <nml_option name="aero_dir_rad_fdb" type="integer" default_value="0"
             units="-"
             description="Integer to control the direct aerosol effect"
@@ -813,52 +817,52 @@
               packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_unspc_ultrafine" name_in_code="e_ant_pt_in_unspc_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt ultrafine unspeciated emissions"
-              packages="mpas_unspc_ultrafine"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_unspc_coarse" name_in_code="e_ant_pt_in_unspc_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt coarse unspeciated emissions"
-              packages="mpas_unspc_coarse"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_smoke_ultrafine" name_in_code="e_ant_pt_in_smoke_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt ultrafine smoke emissions"
-              packages="mpas_smoke_ultrafine"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_smoke_fine" name_in_code="e_ant_pt_in_smoke_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt fine smoke emissions"
-              packages="mpas_smoke_fine"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_smoke_coarse" name_in_code="e_ant_pt_in_smoke_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt coarse smoke emissions"
-              packages="mpas_smoke_coarse"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_so4_a_fine" name_in_code="e_ant_pt_in_so4_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt fine sulfate emissions"
-              packages="mpas_sna_in"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_no3_a_fine" name_in_code="e_ant_pt_in_no3_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt fine nitrate emissions"
-	      packages="mpas_sna_in"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_nh4_a_fine" name_in_code="e_ant_pt_in_nh4_a_fine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt fine ammonium emissions"
-              packages="mpas_sna_in"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_so2" name_in_code="e_ant_pt_in_so2" array_group="ant_in_gases" units="mol m^{-2} hr^{-1}"
               description="input anthropogenic sulfur dioxide (SO2) emissions"
-              packages="mpas_sna_in;mpas_so2_in"/>
+              packages="mpas_anthro_pt_gas_in"/>
          <var name="e_ant_pt_in_nh3" name_in_code="e_ant_pt_in_nh3" array_group="ant_in_gases" units="mol m^{-2} hr^{-1}"
               description="input anthropogenic pt ammonia (NH3) emissions"
-              packages="mpas_sna_in"/>
+              packages="mpas_anthro_pt_gas_in"/>
          <var name="e_ant_pt_in_ch4" name_in_code="e_ant_pt_in_ch4" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
               description="input anthropogenic pt methane (CH4) emissions"
-              packages="mpas_methane_in"/>
+              packages="mpas_anthro_pt_gas_in"/>
          <var name="e_ant_pt_in_co" name_in_code="e_ant_pt_in_co" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
               description="input anthropogenic pt carbon monoxide (CO) emissions"
-              packages="mpas_co_in"/>
+              packages="mpas_anthro_pt_gas_in"/>
          <var name="e_ant_pt_in_nox" name_in_code="e_ant_pt_in_nox" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
               description="input anthropogenic pt nitrogen dioxide (NOx) emissions"
-              packages="mpas_nox_in"/>
+              packages="mpas_anthro_pt_gas_in"/>
          <var name="e_ant_pt_in_voc" name_in_code="e_ant_pt_in_voc" array_group="ant_in_gases" units="mol m^{-2} s^{-1}"
               description="input anthropogenic pt VOC emissions"
-              packages="mpas_nox_in"/>
+              packages="mpas_anthro_pt_gas_in"/>
          <var name="e_ant_pt_in_bc" name_in_code="e_ant_pt_in_bc" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt black carbon emissions"
-              packages="mpas_black_carbon_in"/>
+              packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_oc" name_in_code="e_ant_pt_in_oc" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt organic carbon emissions"
-              packages="mpas_organic_carbon_in"/>
+              packages="mpas_anthro_pt_aero_in"/>
       </var_array>
       <var_array name="e_ant_stack_groups_in" type="real" dimensions="nanthro_pt" packages="mpas_anthro_pt_emis">
          <var name="STKLT" name_in_code="STKLT" array_group="ant_pt_in_aerosols" units="degrees"
