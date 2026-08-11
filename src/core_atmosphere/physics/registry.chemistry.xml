@@ -330,10 +330,6 @@
            units="-"
            description="Dust emission model choice 1:FENGSHA, 2:GOCART simple"
            possible_values="Positive integer values"/>
-      <nml_option name="ch_dust" type="real" default_value="0.8"
-           units="1e-8 m2 s-2"
-           description="Scaling (linear) factor for dust emissions (GOCART simple)"
-           possible_values="Positive real values"/>
        <nml_option name="dust_alpha" type="real" default_value="1.0"
            units="-"
            description="Scaling (linear) factor for dust emissions"
