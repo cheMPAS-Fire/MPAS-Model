@@ -160,6 +160,7 @@
 
  integer,public:: num_chem             !Temporary workaround for defining dimensions holding chem data
  integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic!Number of vertical levels in input emission data
+ integer,public:: num_soil_types ! For GOCART Simple
  logical:: do_chemistry                !controls call to smoke, dust and other chemical processes
 
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
@@ -299,6 +300,9 @@
     uthres_in_p,         &!
     rdrag_p,             &!
     ssm_in_p              !
+! Input dust 3D files
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    erod_in_p
 ! Input biomass burning emissions - JLS
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_in_p, e_bb_in_p, e_bio_in_p, e_vol_in_p
