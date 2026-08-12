@@ -58,6 +58,7 @@
  character(len=StrKIND),pointer :: config_lightning_option
  integer, pointer :: ebb_dcycle
  integer, pointer :: wetdep_ls_opt
+ integer, pointer :: dust_opt
  ! Code has been added by Minsu Choi, CIRES/NOAA GSL
  ! Now we are adding simple Mie calculation for smoke_fine particle
  integer, pointer :: config_soa_scheme
@@ -91,6 +92,7 @@
  nblocks = 24 / bb_input_prevh
 
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
+ call mpas_pool_get_config(configs,'dust_opt',dust_opt)
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
 
  if(.not.allocated(dx_p)        ) allocate(dx_p(ims:ime,jms:jme)                 )
@@ -184,11 +186,15 @@
     endif
  endif
  if ( config_dust_scheme .ne. 'off' ) then
-    if(.not.allocated(clayfrac_in_p))        allocate(clayfrac_in_p(ims:ime,jms:jme))
-    if(.not.allocated(sandfrac_in_p))        allocate(sandfrac_in_p(ims:ime,jms:jme))
-    if(.not.allocated(uthres_in_p))          allocate(uthres_in_p(ims:ime,jms:jme))
-    if(.not.allocated(rdrag_p))              allocate(rdrag_p(ims:ime,jms:jme))
-    if(.not.allocated(ssm_in_p))             allocate(ssm_in_p(ims:ime,jms:jme))
+    if (dust_opt .eq. 1) then
+       if(.not.allocated(clayfrac_in_p))        allocate(clayfrac_in_p(ims:ime,jms:jme))
+       if(.not.allocated(sandfrac_in_p))        allocate(sandfrac_in_p(ims:ime,jms:jme))
+       if(.not.allocated(uthres_in_p))          allocate(uthres_in_p(ims:ime,jms:jme))
+       if(.not.allocated(rdrag_p))              allocate(rdrag_p(ims:ime,jms:jme))
+       if(.not.allocated(ssm_in_p))             allocate(ssm_in_p(ims:ime,jms:jme))
+    else if (dust_opt .eq. 2) then
+       if(.not.allocated(erod_in_p))            allocate(erod_in_p(ims:ime,1:num_soil_types,jms:jme))
+    endif
  endif
 
  if ( wetdep_ls_opt .ne. 0 ) then
@@ -363,6 +369,7 @@
  if(allocated(uthres_in_p)      )     deallocate(uthres_in_p      )
  if(allocated(rdrag_p)          )     deallocate(rdrag_p    )
  if(allocated(ssm_in_p)         )     deallocate(ssm_in_p         )
+ if(allocated(erod_in_p)        )     deallocate(erod_in_p        )
 
  if(allocated(bact_water_conc_p))     deallocate(bact_water_conc_p)
  if(allocated(ant_pt_local_cell_idx_p)) deallocate(ant_pt_local_cell_idx_p)
@@ -463,6 +470,7 @@
       integer,dimension(:),pointer               :: min_bb_plume, max_bb_plume, max_rwc_plume
       real(kind=RKIND),dimension(:),pointer      :: sandfrac_in, clayfrac_in, uthres_in, &
                                                     ssm_in, rdrag
+      real(kind=RKIND),dimension(:,:),pointer    :: erod_in
       real(kind=RKIND),dimension(:),pointer      :: RWC_denominator
       real(kind=RKIND),dimension(:), pointer     :: RWC_annual_sum, RWC_annual_sum_smoke_fine, &
                                                     RWC_annual_sum_smoke_coarse,RWC_annual_sum_unspc_fine, &
@@ -479,6 +487,7 @@
       integer,pointer                            :: chemistry_start,chemistry_end
 
       integer,pointer                            :: ebb_dcycle
+      integer,pointer                            :: dust_opt
       character(len=StrKIND),pointer :: config_smoke_scheme
       character(len=StrKIND),pointer :: config_dust_scheme
       character(len=StrKIND),pointer :: config_pollen_scheme
@@ -534,6 +543,7 @@
       call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
       call mpas_pool_get_config(configs,'add_fire_moist_flux',add_fire_moist_flux)
       call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
+      call mpas_pool_get_config(configs,'dust_opt', dust_opt)
       call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
       if (ebb_dcycle .eq. 2) then
         nblocks = 24 / bb_input_prevh
@@ -603,11 +613,15 @@
       endif
 
       if ( config_dust_scheme .ne. 'off' ) then
-         call mpas_pool_get_array(diag_physics, 'clayfrac_in',clayfrac_in)
-         call mpas_pool_get_array(diag_physics, 'sandfrac_in',sandfrac_in)
-         call mpas_pool_get_array(diag_physics, 'uthres_in',uthres_in)
-         call mpas_pool_get_array(diag_physics, 'rdrag',rdrag) ! these have been updated to select
-         call mpas_pool_get_array(diag_physics, 'ssm_in',ssm_in)
+         if ( dust_opt .eq. 1) then
+            call mpas_pool_get_array(diag_physics, 'clayfrac_in',clayfrac_in)
+            call mpas_pool_get_array(diag_physics, 'sandfrac_in',sandfrac_in)
+            call mpas_pool_get_array(diag_physics, 'uthres_in',uthres_in)
+            call mpas_pool_get_array(diag_physics, 'rdrag',rdrag) ! these have been updated to select
+            call mpas_pool_get_array(diag_physics, 'ssm_in',ssm_in)
+         else if( dust_opt .eq. 2) then
+            call mpas_pool_get_array(diag_physics, 'erod_in',erod_in)
+         endif
       endif
 
 
@@ -978,11 +992,18 @@
       if ( config_dust_scheme .ne. 'off' ) then
          do j = jts,jte
          do i = its,ite
-            sandfrac_in_p(i,j)    = sandfrac_in(i)
-            clayfrac_in_p(i,j)    = clayfrac_in(i)
-            uthres_in_p(i,j)      = uthres_in(i)
-            rdrag_p(i,j)          = rdrag(i)
-            ssm_in_p(i,j)         = ssm_in(i)
+            if ( dust_opt .eq. 1) then
+               sandfrac_in_p(i,j)    = sandfrac_in(i)
+               clayfrac_in_p(i,j)    = clayfrac_in(i)
+               uthres_in_p(i,j)      = uthres_in(i)
+               rdrag_p(i,j)          = rdrag(i)
+               ssm_in_p(i,j)         = ssm_in(i)
+            ! GOCART Simple
+            else if ( dust_opt .eq. 2) then
+               do n = 1,num_soil_types
+                  erod_in_p(i,n,j)        = erod_in(n,i)
+               end do
+            endif
         enddo
         enddo
       endif
@@ -1821,6 +1842,7 @@ endif
  integer,pointer                :: bb_input_prevh
  integer,pointer                :: bb_beta
  integer,pointer                :: ebb_dcycle
+ integer,pointer                :: dust_opt
  integer,pointer                :: drydep_opt
  integer,pointer                :: pm_settling
  logical,pointer                :: calc_bb_emis_online
@@ -1940,7 +1962,6 @@ endif
  call mpas_pool_get_config(configs,'pm_settling',pm_settling)
 ! Namelist: dust
  call mpas_pool_get_config(configs,'dust_opt',dust_opt)
- call mpas_pool_get_config(configs,'ch_dust',ch_dust) !KMK
  call mpas_pool_get_config(configs,'aero_dir_rad_fdb',aero_dir_rad_fdb)
  call mpas_pool_get_config(configs,'dust_alpha', dust_alpha)
  call mpas_pool_get_config(configs,'dust_gamma', dust_gamma)
@@ -2486,7 +2507,6 @@ endif
             pm_settling = pm_settling,                                        &
 !--- Namelist dust
             dust_opt = dust_opt,                                              &
-            ch_dust = ch_dust,                                                &
 !--- Namelist dust
             dust_alpha = dust_alpha,                                          &
             dust_gamma = dust_gamma,                                          &
