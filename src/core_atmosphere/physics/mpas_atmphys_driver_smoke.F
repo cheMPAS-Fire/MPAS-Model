@@ -171,8 +171,8 @@
        if(.not.allocated(frp_in_p)    )         allocate(frp_in_p(ims:ime,jms:jme))
        if(.not.allocated(fre_in_p)            )  allocate(fre_in_p(ims:ime,jms:jme))
     endif
+    if(.not.allocated(hfx_bb_p)           )  allocate(hfx_bb_p(ims:ime,jms:jme))  
     if (add_fire_heat_flux) then 
-       if(.not.allocated(hfx_bb_p)           )  allocate(hfx_bb_p(ims:ime,jms:jme))
        if(.not.allocated(frac_grid_burned_p) )  allocate(frac_grid_burned_p(ims:ime,jms:jme))
     endif
     if (add_fire_moist_flux) then
@@ -672,8 +672,8 @@
             call mpas_pool_get_array(diag_physics,'min_bb_plume',min_bb_plume)
             call mpas_pool_get_array(diag_physics,'max_bb_plume',max_bb_plume)
          endif
+         call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
          if ( add_fire_heat_flux ) then
-            call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
             call mpas_pool_get_array(diag_physics,'frac_grid_burned',frac_grid_burned)
          endif
          if ( add_fire_moist_flux ) then
@@ -846,8 +846,8 @@
              min_bb_plume_p(i,j) = 0
              max_bb_plume_p(i,j) = 0
           endif
+          hfx_bb_p(i,j)       = 0._RKIND
           if ( add_fire_heat_flux ) then
-             hfx_bb_p(i,j)       = 0._RKIND
              frac_grid_burned_p(i,j) = frac_grid_burned(i)
           endif
           if ( add_fire_moist_flux ) then
@@ -1241,8 +1241,8 @@
        call mpas_pool_get_array(diag_physics,'min_bb_plume',min_bb_plume)
        call mpas_pool_get_array(diag_physics,'max_bb_plume',max_bb_plume)
     endif
+    call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
     if (add_fire_heat_flux) then
-       call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
        call mpas_pool_get_array(diag_physics,'frac_grid_burned',frac_grid_burned)
     endif
     if (add_fire_moist_flux) then
@@ -1398,8 +1398,8 @@
                min_bb_plume(i)     = min_bb_plume_p(i,j)
                max_bb_plume(i)     = max_bb_plume_p(i,j)
             endif
+            hfx_bb(i)           = hfx_bb_p(i,j)
             if ( add_fire_heat_flux ) then
-               hfx_bb(i)           = hfx_bb_p(i,j)
                frac_grid_burned(i) = frac_grid_burned_p(i,j)
             endif
             if ( add_fire_moist_flux ) then
