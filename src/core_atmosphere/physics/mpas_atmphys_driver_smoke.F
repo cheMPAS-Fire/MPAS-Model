@@ -219,13 +219,12 @@
  if(.not.allocated(PM10_p))               allocate(PM10_p(ims:ime,kms:kme,jms:jme))
 
  if (config_soa_scheme .ge. 1) then
-    if(.not.allocated(PM2_5_SOA_p))          allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_SOA_p))       allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
  endif
  if (config_soa_scheme .ge. 2) then
-    if(.not.allocated(PM2_5_ANT_SOA_p))      allocate(PM2_5_ANT_SOA_p(ims:ime,kms:kme,jms:jme))
-    if(.not.allocated(PM2_5_SMOKE_SOA_p))    allocate(PM2_5_SMOKE_SOA_p(ims:ime,kms:kme,jms:jme))
-    if(.not.allocated(PM2_5_SOA_p))          allocate(PM2_5_SOA_p(ims:ime,kms:kme,jms:jme))
- endif         
+    if(.not.allocated(PM2_5_SMOKE_SOA_p)) allocate(PM2_5_SMOKE_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_ANT_SOA_p))   allocate(PM2_5_ANT_SOA_p(ims:ime,kms:kme,jms:jme))
+ endif
  
  if ( config_anthro_pt_scheme .ne. 'off' ) then
     if(.not.allocated(ant_pt_local_cell_idx_p)) allocate(ant_pt_local_cell_idx_p(1:num_anthro_pt))
@@ -1224,11 +1223,11 @@
     nwfa => scalars(index_nwfa,:,:)
  endif
 
- if ( config_soa_scheme .ge. 1 ) then
+ if (config_soa_scheme .ge. 1) then
    call mpas_pool_get_array(diag_physics,'PM2_5_SOA',PM2_5_SOA)
-   call mpas_pool_get_array(diag_physics,'PM2_5_SMOKE_SOA',PM2_5_SMOKE_SOA)
  endif
- if ( config_soa_scheme .ge. 2 ) then
+ if (config_soa_scheme .ge. 2) then
+   call mpas_pool_get_array(diag_physics,'PM2_5_SMOKE_SOA',PM2_5_SMOKE_SOA)
    call mpas_pool_get_array(diag_physics,'PM2_5_ANT_SOA',PM2_5_ANT_SOA)
  endif
 
@@ -1293,7 +1292,6 @@
            PM2_5_SMOKE_SOA(k,i) = PM2_5_SMOKE_SOA_p(i,k,j)
            PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
          endif
-
          aod3d(k,i) = aod3d_p(i,k,j)
          aod3d_simple(k,i) = aod3d_simple_p(i,k,j)
       !
@@ -1326,7 +1324,7 @@
 
       do n = 1,num_chem
       do j = jts,jte
-      do i = its, kte
+      do i = its,ite
         if (drydep_opt .ne. 0 ) then
            ddvel(n,i) = ddvel_p(i,j,n)
            drydep_flux(n,i) = drydep_flux_p(i,j,n)
@@ -2208,7 +2206,7 @@ endif
     do_mpas_anthro_pt = .true.
  endif
 !
- if (config_soa_scheme .gt. 0 ) then
+ if (config_soa_scheme .ge. 1) then
     do_mpas_soa = .true.
  endif
 !
@@ -2609,13 +2607,10 @@ endif
  do j = jts, jte
  do k = kts, kte
  do i = its, ite
- 
+
    PM2_5_p(i,k,j)           = 0.0_RKIND
-   PM2_5_SOA_p(i,k,j)       = 0.0_RKIND
-   PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
-   PM2_5_ANT_SOA_p(i,k,j)   = 0.0_RKIND
    PM10_p(i,k,j)            = 0.0_RKIND
- 
+
    if (index_smoke_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_smoke_fine - chemistry_start + 1)
    if (index_dust_fine  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_dust_fine  - chemistry_start + 1)
    if (index_unspc_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_unspc_fine - chemistry_start + 1)
@@ -2627,56 +2622,84 @@ endif
    if (index_no3_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1)
    if (index_so4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1)
    if (index_nh4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1)
- 
-   select case (config_soa_scheme)
- 
-   case (1)
- 
-      if (index_soa .gt. 0) then
-         PM2_5_SOA_p(i,k,j) = chem_p(i,k,j,index_soa - chemistry_start + 1)
-      endif
- 
-   case (2)
- 
-      if (index_bbsoa .gt. 0) then
-         PM2_5_SMOKE_SOA_p(i,k,j) = chem_p(i,k,j,index_bbsoa - chemistry_start + 1)
-      endif
- 
-      if (index_antsoa .gt. 0) then
-         PM2_5_ANT_SOA_p(i,k,j) = chem_p(i,k,j,index_antsoa - chemistry_start + 1)
-      endif
- 
-      PM2_5_SOA_p(i,k,j) = PM2_5_SMOKE_SOA_p(i,k,j) + PM2_5_ANT_SOA_p(i,k,j)
- 
-   case default
- 
-      PM2_5_SOA_p(i,k,j)       = 0.0_RKIND
-      PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
-      PM2_5_ANT_SOA_p(i,k,j)   = 0.0_RKIND
- 
-   end select
- 
-   PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + PM2_5_SOA_p(i,k,j)
- 
-   PM2_5_p(i,k,j)           = PM2_5_p(i,k,j)           * rho_p(i,k,j)
-   PM2_5_SOA_p(i,k,j)       = PM2_5_SOA_p(i,k,j)       * rho_p(i,k,j)
-   PM2_5_SMOKE_SOA_p(i,k,j) = PM2_5_SMOKE_SOA_p(i,k,j) * rho_p(i,k,j)
-   PM2_5_ANT_SOA_p(i,k,j)   = PM2_5_ANT_SOA_p(i,k,j)   * rho_p(i,k,j)
- 
+
    if (index_smoke_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_smoke_coarse - chemistry_start + 1)
    if (index_dust_coarse .gt.  0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_dust_coarse  - chemistry_start + 1)
-   if (index_unspc_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_unspc_coarse - chemistry_start + 1) 
+   if (index_unspc_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_unspc_coarse - chemistry_start + 1)
    if (index_ssalt_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_ssalt_coarse - chemistry_start + 1)
-   if (index_polp_all .gt.     0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_all    - chemistry_start + 1) 
-   if (index_polp_tree .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_tree    - chemistry_start + 1) 
-   if (index_polp_grass .gt.   0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_grass   - chemistry_start + 1)
-   if (index_polp_weed .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_weed   - chemistry_start + 1)
+   if (index_polp_all .gt.     0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_all - chemistry_start + 1)
+   if (index_polp_tree .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_tree - chemistry_start + 1)
+   if (index_polp_grass .gt.   0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_grass - chemistry_start + 1)
+   if (index_polp_weed .gt.    0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_polp_weed - chemistry_start + 1)
 
-   PM10_p(i,k,j) = PM10_p(i,k,j) *  rho_p(i,k,j)
+   PM10_p(i,k,j) = PM10_p(i,k,j) * rho_p(i,k,j)
+
+   select case (config_soa_scheme)
+
+   case (1)
+
+      if (index_soa .gt. 0) then
+         PM2_5_SOA_p(i,k,j) = &
+              chem_p(i,k,j,index_soa - chemistry_start + 1)
+      else
+         PM2_5_SOA_p(i,k,j) = 0.0_RKIND
+      endif
+
+   case (2)
+
+      if (index_bbsoa .gt. 0) then
+         PM2_5_SMOKE_SOA_p(i,k,j) = &
+              chem_p(i,k,j,index_bbsoa - chemistry_start + 1)
+      else
+         PM2_5_SMOKE_SOA_p(i,k,j) = 0.0_RKIND
+      endif
+
+      if (index_antsoa .gt. 0) then
+         PM2_5_ANT_SOA_p(i,k,j) = &
+              chem_p(i,k,j,index_antsoa - chemistry_start + 1)
+      else
+         PM2_5_ANT_SOA_p(i,k,j) = 0.0_RKIND
+      endif
+
+      PM2_5_SOA_p(i,k,j) = &
+           PM2_5_SMOKE_SOA_p(i,k,j) + PM2_5_ANT_SOA_p(i,k,j)
+
+   case default
+
+   end select
+
+   if (config_soa_scheme .eq. 1 .or. &
+       config_soa_scheme .eq. 2) then
+
+      PM2_5_p(i,k,j) = &
+           PM2_5_p(i,k,j) + PM2_5_SOA_p(i,k,j)
+
+   endif
+
+   PM2_5_p(i,k,j) = PM2_5_p(i,k,j) * rho_p(i,k,j)
+
+   if (config_soa_scheme .eq. 1 .or. &
+       config_soa_scheme .eq. 2) then
+
+      PM2_5_SOA_p(i,k,j) = &
+           PM2_5_SOA_p(i,k,j) * rho_p(i,k,j)
+
+   endif
+
+   if (config_soa_scheme .eq. 2) then
+
+      PM2_5_SMOKE_SOA_p(i,k,j) = &
+           PM2_5_SMOKE_SOA_p(i,k,j) * rho_p(i,k,j)
+
+      PM2_5_ANT_SOA_p(i,k,j) = &
+           PM2_5_ANT_SOA_p(i,k,j) * rho_p(i,k,j)
+
+   endif
 
  enddo
  enddo
  enddo
+
 
  do j = jts,jte
  do i = its,ite
@@ -2688,7 +2711,6 @@ endif
  do j = jts,jte
  do k = kts,kte
  do i = its,ite
-!    aod550_p(i,j) = aod550_p(i,j) + aod3d_p(i,k,j) * dz_p(i,k,j) / 1000._RKIND
     aod550_p(i,j) = aod550_p(i,j) + aod3d_p(i,k,j)
     aod550_simple_p(i,j) = aod550_simple_p(i,j) + aod3d_simple_p(i,k,j)
  enddo
