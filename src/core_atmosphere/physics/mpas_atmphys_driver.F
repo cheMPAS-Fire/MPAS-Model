@@ -331,7 +331,7 @@
 !$OMP PARALLEL DO
        do thread=1,nThreads
           call driver_smoke(itimestep,time_lev,emission_input,state,block%configs,mesh,      &
-                            sfc_input,diag_physics,tend_physics,                         &
+                            sfc_input,diag,diag_physics,tend_physics,                         &
                             cellSolveThreadStart(thread),cellSolveThreadEnd(thread),domain%dminfo)
        end do
 !$OMP END PARALLEL DO
