@@ -978,8 +978,9 @@
          ! Compute dew point
          qv2  = max(qmin,(q2(i)/(1._RKIND-q2(i))))
          tem2 = max(psfc(i) * qv2/( eps - (eps-1._RKIND) *qv2), qmin)
-         dpt2m_p(i,j)   = 243.5_RKIND/( ( 17.67_RKIND /log(tem2/611.2_RKIND))- 1._RKIND) + 273.14_RKIND
-         dpt2m_p(i,j)   = min(dpt2m_p(i,j),t2m(i))
+         dpt2m_p(i,j)   = (243.5_RKIND * log(tem2/611.2_RKIND)) / &
+                          (17.67_RKIND - log(tem2/611.2_RKIND)) + 273.14_RKIND
+         dpt2m_p(i,j)   = min(dpt2m_p(i,j),t2m_p(i,j))
          !dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
          mavail_p(i,j)  = mavail(i)
       enddo
