@@ -173,8 +173,8 @@
        if(.not.allocated(frp_in_p)    )         allocate(frp_in_p(ims:ime,jms:jme))
        if(.not.allocated(fre_in_p)            )  allocate(fre_in_p(ims:ime,jms:jme))
     endif
+    if(.not.allocated(hfx_bb_p)           )  allocate(hfx_bb_p(ims:ime,jms:jme))  
     if (add_fire_heat_flux) then 
-       if(.not.allocated(hfx_bb_p)           )  allocate(hfx_bb_p(ims:ime,jms:jme))
        if(.not.allocated(frac_grid_burned_p) )  allocate(frac_grid_burned_p(ims:ime,jms:jme))
     endif
     if (add_fire_moist_flux) then
@@ -420,12 +420,13 @@
 
 !=================================================================================================================
  subroutine smoke_from_MPAS(dt_dyn, time_lev, emission_input, state, configs,  &
-                            mesh,sfc_input, diag_physics, tend_physics, its, ite       )
+                            mesh,sfc_input, diag, diag_physics, tend_physics, its, ite       )
 !=================================================================================================================
 
      !input arguments:
       type(mpas_pool_type),intent(in):: configs
       type(mpas_pool_type),intent(in):: mesh
+      type(mpas_pool_type),intent(in):: diag
       type(mpas_pool_type),intent(in):: diag_physics
       type(mpas_pool_type),intent(in):: sfc_input
       type(mpas_pool_type),intent(in):: tend_physics
@@ -516,7 +517,12 @@
       integer:: nblocks, blk !JR
       integer ::t_start, t_end, n_active, last_obs, t_size !JR
       real(kind=RKIND) :: sum_fre, sum_frp, sum_hwp, sum_prcp, sum_cldfrac !JR
-      
+      !SRB 
+      real(kind=RKIND),dimension(:),pointer      :: q2, psfc
+      real(kind=RKIND), parameter :: eps=0.62199_RKIND
+      real(kind=RKIND), parameter :: qmin=1.0e-8
+      real(kind=RKIND) :: qv2, tem2
+
       call mpas_pool_get_array(state,'scalars',scalars,time_lev)
       call mpas_pool_get_dimension(state,'chemistry_start', chemistry_start) 
       call mpas_pool_get_dimension(state,'chemistry_end', chemistry_end)
@@ -594,7 +600,10 @@
       call mpas_pool_get_array(diag_physics,'mavail',mavail)
       call mpas_pool_get_array(diag_physics,'cldfrac',cldfrac)
       call mpas_pool_get_array(diag_physics,'t2m',t2m) 
-     
+
+      call mpas_pool_get_array(diag,'surface_pressure',psfc)
+      call mpas_pool_get_array(diag_physics,'q2',q2)
+
       if ( wetdep_ls_opt .ne. 0 ) then
          call mpas_pool_get_array(diag_physics,'wetdep_resolved',wetdep_resolved)
       endif
@@ -687,8 +696,8 @@
             call mpas_pool_get_array(diag_physics,'min_bb_plume',min_bb_plume)
             call mpas_pool_get_array(diag_physics,'max_bb_plume',max_bb_plume)
          endif
+         call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
          if ( add_fire_heat_flux ) then
-            call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
             call mpas_pool_get_array(diag_physics,'frac_grid_burned',frac_grid_burned)
          endif
          if ( add_fire_moist_flux ) then
@@ -861,8 +870,8 @@
              min_bb_plume_p(i,j) = 0
              max_bb_plume_p(i,j) = 0
           endif
+          hfx_bb_p(i,j)       = 0._RKIND
           if ( add_fire_heat_flux ) then
-             hfx_bb_p(i,j)       = 0._RKIND
              frac_grid_burned_p(i,j) = frac_grid_burned(i)
           endif
           if ( add_fire_moist_flux ) then
@@ -981,7 +990,13 @@
          endif
          rainncv_p(i,j) = rainncv(i)
          t2m_p(i,j)     = t2m(i)
-         dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
+         ! Compute dew point
+         qv2  = max(qmin,(q2(i)/(1._RKIND-q2(i))))
+         tem2 = max(psfc(i) * qv2/( eps - (eps-1._RKIND) *qv2), qmin)
+         dpt2m_p(i,j)   = (243.5_RKIND * log(tem2/611.2_RKIND)) / &
+                          (17.67_RKIND - log(tem2/611.2_RKIND)) + 273.14_RKIND
+         dpt2m_p(i,j)   = min(dpt2m_p(i,j),t2m_p(i,j))
+         !dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
          mavail_p(i,j)  = mavail(i)
       enddo
       enddo
@@ -1267,8 +1282,8 @@
        call mpas_pool_get_array(diag_physics,'min_bb_plume',min_bb_plume)
        call mpas_pool_get_array(diag_physics,'max_bb_plume',max_bb_plume)
     endif
+    call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
     if (add_fire_heat_flux) then
-       call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
        call mpas_pool_get_array(diag_physics,'frac_grid_burned',frac_grid_burned)
     endif
     if (add_fire_moist_flux) then
@@ -1431,8 +1446,8 @@
                min_bb_plume(i)     = min_bb_plume_p(i,j)
                max_bb_plume(i)     = max_bb_plume_p(i,j)
             endif
+            hfx_bb(i)           = hfx_bb_p(i,j)
             if ( add_fire_heat_flux ) then
-               hfx_bb(i)           = hfx_bb_p(i,j)
                frac_grid_burned(i) = frac_grid_burned_p(i,j)
             endif
             if ( add_fire_moist_flux ) then
@@ -1700,12 +1715,13 @@ endif
 
 !=================================================================================================================
  subroutine driver_smoke(itimestep,time_lev,emission_input,state,configs,   &
-                         mesh,sfc_input,diag_physics,tend_physics,its,ite,dminfo)
+                         mesh,sfc_input,diag,diag_physics,tend_physics,its,ite,dminfo)
 !=================================================================================================================
 
 !input arguments:
  type(mpas_pool_type),intent(in)   :: configs
  type(mpas_pool_type),intent(in)   :: mesh
+ type(mpas_pool_type),intent(in)   :: diag
  type(mpas_pool_type),intent(inout):: state
  type(mpas_pool_type),intent(in)   :: emission_input
  type (dm_info), intent(in) :: dminfo !< Input: Domain information
