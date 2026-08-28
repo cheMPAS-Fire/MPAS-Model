@@ -8214,7 +8214,8 @@
              fac00, fac01, fac10, fac11, &
              selffac, selffrac, indself, forfac, forfrac, indfor, &
              pbbfd, pbbfu, pbbcd, pbbcu, puvfd, puvcd, pnifd, pnicd, &
-             pbbfddir, pbbcddir, puvfddir, puvcddir, pnifddir, pnicddir)
+             pbbfddir, pbbcddir, puvfddir, puvcddir, pnifddir, pnicddir, &
+             pband11cu, pband12cu)
 ! ---------------------------------------------------------------------------
 !
 ! Purpose: Contains spectral loop to compute the shortwave radiative fluxes, 
@@ -8361,6 +8362,9 @@
       real(kind=rb), intent(out) :: pnifd(:)
       real(kind=rb), intent(out) :: pnicddir(:)
       real(kind=rb), intent(out) :: pnifddir(:)
+! This is for UV aerosol Index, Minsu Choi, CIRES/NOAA GSL
+      real(kind=rb), intent(out) :: pband11cu(:)
+      real(kind=rb), intent(out) :: pband12cu(:)      
 
 ! Output - inactive                                            !   All Dimensions: (nlayers+1)
 !      real(kind=rb), intent(out) :: puvcu(:)
@@ -8450,6 +8454,9 @@
          pnifd(jk)=0._rb
          pnicddir(jk)=0._rb
          pnifddir(jk)=0._rb
+! This is for UV aerosol Index, Minsu Choi, CIRES/NOAA GSL
+         pband11cu(jk) = 0._rb
+         pband12cu(jk) = 0._rb
       enddo
 
 
@@ -8775,6 +8782,24 @@
                   pnifddir(ikl) = pnifddir(ikl) + zincflx(iw)*ztdbt_nodel(jk)
             enddo
                endif
+            ! Accumulate clear-sky upward fluxes for RRTMG bands 11 and 12
+            ! This is for UV aerosol Index, Minsu Choi, CIRES/NOAA GSL
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (ibm == 11) then
+               do jk = 1, klev+1
+                  ikl = klev+2-jk
+                  pband11cu(ikl) = pband11cu(ikl) + &
+                                   zincflx(iw)*zcu(jk,iw)
+               enddo
+
+            else if (ibm == 12) then
+               do jk = 1, klev+1
+                  ikl = klev+2-jk
+                  pband12cu(ikl) = pband12cu(ikl) + &
+                                   zincflx(iw)*zcu(jk,iw)
+               enddo
+            endif
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ! End loop on jg, g-point interval
          enddo             
@@ -8881,6 +8906,9 @@
 ! ----------------------  End,  Zhenxin 2011-06-20    --------------------------------!
              swdkdir,swdkdif,                               & ! jararias, 2013/08/10
              swdkdirc,                                      & ! PAJ
+             ! this is for UV aerosol index, Minsu Choi, CIRES/NOAA GSL
+             band11toa, band12toa,                          &
+             band11toacln, band12toacln,                    &
              config_calc_clean_atm_diag                            &
                                                                 )
 
@@ -9276,6 +9304,13 @@
       real(kind=rb) :: difdnuv(nlay+2)        ! Diffuse downward shortwave flux, UV/vis
       real(kind=rb) :: dirdnir(nlay+2)        ! Direct downward shortwave flux, near-IR
       real(kind=rb) :: difdnir(nlay+2)        ! Diffuse downward shortwave flux, near-IR
+! This is for UV aerosol index, Minsu Choi, CIRES/NOAA GSL
+      real(kind=rb), intent(out) :: band11toa(:)
+      real(kind=rb), intent(out) :: band12toa(:)
+      real(kind=rb), intent(out) :: band11toacln(:)
+      real(kind=rb), intent(out) :: band12toacln(:)
+      real(kind=rb) :: zband11cu(nlay+2)
+      real(kind=rb) :: zband12cu(nlay+2)
 
 ! Output - inactive
 !      real(kind=rb) :: zuvfu(nlay+2)         ! temporary upward UV shortwave flux (w/m2)
@@ -9514,7 +9549,8 @@
               fac00, fac01, fac10, fac11, &
               selffac, selffrac, indself, forfac, forfrac, indfor, &
               zbbfd, zbbfu, zbbcd, zbbcu, zuvfd, zuvcd, znifd, znicd, &
-              zbbfddir, zbbcddir, zuvfddir, zuvcddir, znifddir, znicddir)
+              zbbfddir, zbbcddir, zuvfddir, zuvcddir, znifddir,znicddir, &
+              zband11cu, zband12cu )
 
 ! Transfer up and down, clear and total sky fluxes to output arrays.
 ! Vertical indexing goes from bottom to top; reverse here for GCM if necessary.
@@ -9549,6 +9585,9 @@
             sibnirdif(iplon,i) = difdnir(i)
 !  --------    End of Zhenxin addition 2011-05  ---------!
          enddo
+! This is for UV Aerosol Index, Minsu Choi, CIRES/NOAA GSL
+         band11toa(iplon) = zband11cu(nlayers+1)
+         band12toa(iplon) = zband12cu(nlayers+1)
 
 !  Total and clear sky net fluxes
          do i = 1, nlayers+1
@@ -9568,6 +9607,7 @@
          !  Repeat call to 2-stream radiation model using "clean sky"
          !  variables and aerosol tau set to 0
          if(config_calc_clean_atm_diag)then
+!            ztauacln(:,:) = 0._rb
             do i=1,nlayers+1
                 zbbcu(i) = 0._rb
                 zbbcd(i) = 0._rb
@@ -9595,7 +9635,11 @@
                   fac00, fac01, fac10, fac11, &
                   selffac, selffrac, indself, forfac, forfrac, indfor, &
                   zbbclnd, zbbclnu, zbbcd, zbbcu, zuvclnd, zuvcd, zniclnd, znicd, &
-                  zbbclnddir, zbbcddir, zuvclnddir, zuvcddir, zniclnddir, znicddir)
+                  zbbclnddir, zbbcddir, zuvclnddir, zuvcddir,zniclnddir, znicddir,&
+                  zband11cu, zband12cu)
+
+            band11toacln(iplon) = zband11cu(nlayers+1)
+            band12toacln(iplon) = zband12cu(nlayers+1)
 
             do i = 1, nlayers+1
                swuflxcln(iplon,i) = zbbclnu(i)
@@ -9606,6 +9650,9 @@
                swuflxcln(iplon,i) = 0.0
                swdflxcln(iplon,i) = 0.0
             enddo
+
+            band11toacln(iplon) = 0._rb
+            band12toacln(iplon) = 0._rb
          end if
 ! End longitude loop
       enddo
@@ -10028,7 +10075,7 @@ CONTAINS
                        swupt,swuptc,swuptcln,swdnt,swdntc,swdntcln,    &
                        swupb,swupbc,swupbcln,swdnb,swdnbc,swdnbcln,    &
                        swupflx, swupflxc,swupflxcln, swdnflx,          &
-                       swdnflxc,swdnflxcln,                            &
+                       swdnflxc,swdnflxcln,uvai_rrtmg,                 &
                        swddir,swddni,swddif,config_calc_clean_atm_diag,&
                        julian,                                         &
                        ids,ide, jds,jde, kds,kde,                      & 
@@ -10082,7 +10129,7 @@ CONTAINS
 
 !--- output arguments:
   real,intent(out),dimension(ims:ime,jms:jme),optional:: &
-     swddir,swddni,swddif
+     swddir,swddni,swddif, uvai_rrtmg
   real,intent(out),dimension(ims:ime,kms:kme+2,jms:jme ),optional:: &
      swupflx,swupflxc,swdnflx,swdnflxc ,swupflxcln, swdnflxcln
 
@@ -10106,6 +10153,12 @@ CONTAINS
  real:: dzsum,lat
  real,dimension(1):: tsfc,landfrac,landm,snowh,icefrac
  real,dimension(1):: asdir,asdif,aldir,aldif,coszen
+! UV aerosol index calculation, Minsu Choi, CIRES/NOAA GSL              
+ real, dimension(1) :: band11toa
+ real, dimension(1) :: band12toa
+ real, dimension(1) :: band11toacln
+ real, dimension(1) :: band12toacln
+ real, parameter :: uv_flux_min = 1.0e-12              
  real,dimension(1,1:kte-kts+1):: pdel,cicewp,cliqwp,csnowp,reliq,reice,resnow
  real,dimension(kts:kte):: &
     tten1d,cldfra1d,dz1d,p1d,t1d,qv1d,qc1d,qr1d,qi1d,qs1d,qg1d,o31d
@@ -10198,9 +10251,9 @@ CONTAINS
        !    eot is based on the second equation at https://gml.noaa.gov/grad/solcalc/solareqns.PDF
        !    do not call rrtmg_sw is night-time:
        dorrsw = .true.
-       da=6.2831853071795862*(julian-0.5)/365.
+       da=6.2831853071795862*(julian-1.)/365.
        eot=(0.000075+0.001868*cos(da)-0.032077*sin(da) &
-            -0.014615*cos(2*da)-0.040849*sin(2*da))*(229.18)
+            -0.014615*cos(2*da)-0.04089*sin(2*da))*(229.18)
        xt24 = mod(xtime+radt*0.5,1440.)+eot
        tloctm = gmt + xt24/60. + xlong(i,j)/15.
        hrang = 15. * (tloctm-12.) * degrad
@@ -10602,7 +10655,8 @@ CONTAINS
                       tauaer    , ssaaer    , asmaer    , ecaer     , swuflx    , swdflx    , &
                       swhr      , swuflxc   , swdflxc   , swhrc     , swuflxcln , swdflxcln , &
                       aer_opt   , sibvisdir , sibvisdif , sibnirdir , sibnirdif , swdkdir   , &
-                      swdkdif   , swdkdirc  , config_calc_clean_atm_diag)
+                      swdkdif   , swdkdirc  , band11toa , band12toa , &
+                      band11toacln, band12toacln, config_calc_clean_atm_diag)
 
           !--- OUTPUTS:
           gsw(i,j)  = swdflx(1,1) - swuflx(1,1)
@@ -10627,6 +10681,22 @@ CONTAINS
                swupbcln(i,j)  = swuflxcln(1,1)
                swdnbcln(i,j)  = swdflxcln(1,1)
             end if
+          endif
+
+          if (present(uvai_rrtmg)) then
+            uvai_rrtmg(i,j) = 0.0
+
+            if (config_calc_clean_atm_diag .and. &
+               band11toa(1)    > uv_flux_min .and. &
+               band12toa(1)    > uv_flux_min .and. &
+               band11toacln(1) > uv_flux_min .and. &
+               band12toacln(1) > uv_flux_min) then
+
+              uvai_rrtmg(i,j) = -100.0 * &
+                 (log10(band12toa(1)/band11toa(1)) - &
+                  log10(band12toacln(1)/band11toacln(1)))
+
+            endif
           endif
 
           if(present(swddir) .and. present(swddni) .and. present(swddif)) then
@@ -10663,6 +10733,10 @@ CONTAINS
           enddo
 
        else
+               
+          if (present(uvai_rrtmg)) then
+             uvai_rrtmg(i,j) = 0.0
+          endif
 
           if(present(swupt)) then 
              !output up and down toa fluxes for total and clear sky:
