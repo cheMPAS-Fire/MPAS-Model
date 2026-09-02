@@ -422,6 +422,10 @@
             units="-"
             description="Flag that controls black/organic/brown option"
             possbile_values="`off',`black',`organic',`brown'"/>
+       <nml_option name="config_mp_aero_emission" type="logical" default_value="false" in_defaults="false"
+            units="-"
+            description="Flag that controls aerosol emissions for TEMPO microphysics"
+            possible_values=".true. or .false."/>
    </nml_record>
 
 <!-- **************************************************************************************** -->
@@ -1199,7 +1203,7 @@
            description="drag partition (alternate)"
            packages="mpas_dust_in"/>
       <var name="rdrag"           type="real" dimensions="nCells Time" units="-"
-           description="drag partition"
+           description="drag partition for dust emission calculation only"
            packages="mpas_dust_in"/>
       <var name="uthres_in" type="real" dimensions="nCells" units="-"
            description="threshold friction velocity"
