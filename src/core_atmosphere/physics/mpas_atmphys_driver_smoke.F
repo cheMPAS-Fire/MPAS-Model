@@ -56,6 +56,9 @@
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_bact_scheme
  character(len=StrKIND),pointer :: config_lightning_option
+ character(len=StrKIND),pointer :: config_microp_scheme
+ logical, pointer :: config_tempo_aerosolaware
+
  integer, pointer :: ebb_dcycle
  integer, pointer :: wetdep_ls_opt
  integer, pointer :: dust_opt
@@ -83,6 +86,8 @@
  call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
  call mpas_pool_get_config(configs,'calc_bb_emis_online',calc_bb_emis_online)
  call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
+ call mpas_pool_get_config(configs,'config_microp_scheme',config_microp_scheme)
+ call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
 
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
@@ -287,6 +292,11 @@
  endif
 
 
+ if ((config_microp_scheme .eq. 'mp_tempo') .and. config_tempo_aerosolaware ) then
+    if(.not.allocated(nwfa2d_p))            allocate(nwfa2d_p(ims:ime,jms:jme))
+    if(.not.allocated(nifa2d_p))            allocate(nifa2d_p(ims:ime,jms:jme))
+ endif
+
  end subroutine allocate_smoke
 
 !=================================================================================================================
@@ -413,6 +423,8 @@
  if(allocated(cg_flashcount_p))       deallocate(cg_flashcount_p)
  if(allocated(cg_flashrate_p))        deallocate(cg_flashrate_p)
  if(allocated(lpi_p))                 deallocate(lpi_p)
+ if(allocated(nwfa2d_p)     )         deallocate(nwfa2d_p     )
+ if(allocated(nifa2d_p)     )         deallocate(nifa2d_p     )
  
 !-----------------------------------------------------------------------------------------------------------------
 
@@ -501,6 +513,8 @@
       integer, pointer :: config_soa_scheme
       character(len=StrKIND),pointer :: config_bact_scheme
       character(len=StrKIND),pointer :: config_lightning_option
+      character(len=StrKIND),pointer :: config_microp_scheme
+      logical,pointer:: config_tempo_aerosolaware
       integer, pointer :: wetdep_ls_opt
       integer, pointer :: drydep_opt
       integer, pointer :: plumerise_opt
@@ -512,6 +526,7 @@
       real(kind=RKIND),dimension(:,:,:),pointer :: scalars
       real(kind=RKIND),dimension(:,:,:),pointer :: chem
       integer, pointer :: bb_input_prevh !JR
+      real(kind=RKIND),dimension(:),pointer :: nwfa2d, nifa2d
      
       integer:: i,j,k,n,h,t
       integer:: nblocks, blk !JR
@@ -542,6 +557,8 @@
       call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
       call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
       call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
+      call mpas_pool_get_config(configs,'config_microp_scheme',config_microp_scheme)
+      call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
 
       call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
       call mpas_pool_get_config(configs,'plumerise_opt',plumerise_opt)
@@ -722,6 +739,11 @@
       if ( num_e_vol_out .gt. 0 ) then
          call mpas_pool_get_array(diag_physics, 'e_vol_out',e_vol_out)
       endif
+
+      if ((config_microp_scheme .eq. 'mp_tempo') .and. config_tempo_aerosolaware ) then
+         call mpas_pool_get_array(diag_physics,'nifa2d',nifa2d)
+         call mpas_pool_get_array(diag_physics,'nwfa2d',nwfa2d)
+      endif
      
       chem => scalars(chemistry_start:chemistry_end,:,:)
      
@@ -764,6 +786,20 @@
        enddo
       endif
 
+     
+!
+     if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off' ) then 
+      do j = jts, jte
+      do k = 1, kwildfire
+      do i = its, ite
+      do n = 1, num_e_bb_in
+         e_bb_in_p(i,k,j,n) = max(e_bb_in(n,k,i),0._RKIND)
+      enddo
+      enddo
+      enddo
+      enddo
+     endif
+!
       if ( num_e_ant_in .gt. 0 .and. config_anthro_scheme .ne. 'off') then
        do n = 1, num_e_ant_in
        do j = jts, jte
@@ -796,20 +832,6 @@
        enddo
        enddo
       endif
- 
-!
-     if ( num_e_bb_in .gt. 0 .and. config_smoke_scheme .ne. 'off') then 
-      do n = 1, num_e_bb_in
-      do j = jts, jte
-      do k = 1, kwildfire
-      do i = its, ite
-         e_bb_in_p(i,k,j,n) = e_bb_in(n,k,i)
-      enddo
-      enddo
-      enddo
-      enddo
-     endif
-!
 !
       if ( num_e_bio_in .gt. 0 ) then
        do n = 1, num_e_bio_in
@@ -998,6 +1020,10 @@
          dpt2m_p(i,j)   = min(dpt2m_p(i,j),t2m_p(i,j))
          !dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
          mavail_p(i,j)  = mavail(i)
+         if ((config_microp_scheme .eq. 'mp_tempo') .and. config_tempo_aerosolaware ) then
+          nifa2d_p(i,j) = nifa2d(i)
+          nwfa2d_p(i,j) = nwfa2d(i)
+         endif
       enddo
       enddo
       !
@@ -1167,6 +1193,7 @@
  real(kind=RKIND),dimension(:),pointer :: aero_emis_for_enhmix
  integer,dimension(:),pointer:: min_bb_plume, max_bb_plume, max_rwc_plume
  real(kind=RKIND),dimension(:),    pointer:: ic_flashcount,ic_flashrate,cg_flashcount,cg_flashrate,lpi
+ real(kind=RKIND),dimension(:),  pointer:: nwfa2d, nifa2d
  
  integer,pointer :: chemistry_start,chemistry_end
  integer,pointer                :: index_nifa, index_nwfa
@@ -1182,6 +1209,8 @@
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_lightning_option
  integer, pointer :: config_soa_scheme
+ character(len=StrKIND),pointer :: config_microp_scheme
+ logical,pointer:: config_tempo_aerosolaware
  integer, pointer :: wetdep_ls_opt
  integer, pointer :: drydep_opt
  integer, pointer :: plumerise_opt
@@ -1222,6 +1251,8 @@
  call mpas_pool_get_config(configs,'config_soa_scheme',config_soa_scheme)
  call mpas_pool_get_config(configs,'config_rwc_scheme',config_rwc_scheme)
  call mpas_pool_get_config(configs,'config_lightning_option',config_lightning_option)
+ call mpas_pool_get_config(configs,'config_microp_scheme',config_microp_scheme)
+ call mpas_pool_get_config(configs,'config_tempo_aerosolaware',config_tempo_aerosolaware)
  call mpas_pool_get_config(configs,'ebb_dcycle', ebb_dcycle)
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'drydep_opt',drydep_opt)
@@ -1289,6 +1320,11 @@
     if (add_fire_moist_flux) then
        call mpas_pool_get_array(diag_physics,'qfx_bb',qfx_bb)
     endif
+ endif
+
+ if ((config_microp_scheme .eq. 'mp_tempo') .and. config_tempo_aerosolaware ) then
+    call mpas_pool_get_array(diag_physics,'nifa2d',nifa2d)
+    call mpas_pool_get_array(diag_physics,'nwfa2d',nwfa2d)
  endif
 
  chem => scalars(chemistry_start:chemistry_end,:,:)
@@ -1453,6 +1489,10 @@
             if ( add_fire_moist_flux ) then
                qfx_bb(i)           = qfx_bb_p(i,j)
             endif
+         endif
+         if ((config_microp_scheme .eq. 'mp_tempo') .and. config_tempo_aerosolaware ) then
+             nifa2d(i) = nifa2d_p(i,j)
+             nwfa2d(i) = nwfa2d_p(i,j)
          endif
      enddo
      enddo
@@ -1864,6 +1904,7 @@ endif
  logical,pointer                :: add_fire_moist_flux
  integer,pointer                :: config_mie_aod_opt
  integer,pointer                :: aero_dir_rad_fdb
+ logical,pointer                :: config_mp_aero_emission
  integer,pointer                :: plumerisefire_frq
  integer,pointer                :: mie_frq
  logical,pointer                :: do_pollen_rh_rupture, do_pollen_lightning_rupture
@@ -1928,7 +1969,7 @@ endif
 
 !copy MPAS arrays to local arrays:
  call smoke_from_MPAS(dt_dyn, time_lev, emission_input, state, configs, mesh, &
-                      sfc_input, diag_physics, tend_physics,its,ite)
+                      sfc_input, diag, diag_physics, tend_physics,its,ite)
  
  call mpas_pool_get_config(configs,'config_do_restart'       ,config_do_restart)
 ! Namelist: schemes
@@ -1969,6 +2010,8 @@ endif
 ! Namelist: anthro
  call mpas_pool_get_config(configs,'anthro_emis_scale_factor',anthro_emis_scale_factor)
  call mpas_pool_get_config(configs,'anthro_pt_emis_scale_factor',anthro_pt_emis_scale_factor)
+! Namelist: aerosol emission for tempo mp
+ call mpas_pool_get_config(configs,'config_mp_aero_emission',config_mp_aero_emission)
 ! Namelist: Wet/dry deposition
  call mpas_pool_get_config(configs,'wetdep_ls_opt',wetdep_ls_opt)
  call mpas_pool_get_config(configs,'wetdep_ls_alpha',wetdep_ls_alpha) 
@@ -2608,6 +2651,8 @@ endif
             cp = cp,                                                          &
             rd = R_d,                                                         &
             gmt = gmt,                                                        &
+            config_mp_aero_emission = config_mp_aero_emission,                &
+            nwfa2d  = nwfa2d_p    , nifa2d   = nifa2d_p   ,                   &
             ids = ids, ide = ide,                                             &
             jds = jds, jde = jde,                                             &
             kds = kds, kde = kde,                                             &
