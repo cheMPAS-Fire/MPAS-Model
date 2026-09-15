@@ -317,6 +317,9 @@
 ! Lightning
  real(kind=RKIND),dimension(:,:),allocatable:: &
    ic_flashcount_p,ic_flashrate_p,cg_flashcount_p,cg_flashrate_p, lpi_p
+! Pollen number
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+   diam_polp_tree_dynamic_p
       
 !... arrays located at w (vertical velocity) points, or at interface between layers:
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
@@ -414,7 +417,8 @@
     f_bbvoc,          &
     f_bc,             &
     f_oc,             &
-    f_brc
+    f_brc,            &
+    f_polp_tree_numb
 
     
 
