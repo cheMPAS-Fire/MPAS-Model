@@ -525,7 +525,7 @@
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
       logical, pointer :: calc_bb_emis_online
-      real(kind=RKIND),dimension(:) :: diam_polp_tree_dynamic
+      real(kind=RKIND),dimension(:),pointer :: diam_polp_tree_dynamic
 
       integer,dimension(:),pointer :: ant_pt_local_cell_idx, ant_pt_rank
       
