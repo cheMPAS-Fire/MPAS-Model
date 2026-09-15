@@ -190,6 +190,9 @@
        if(.not.allocated(max_bb_plume_p))        allocate(max_bb_plume_p(ims:ime,jms:jme))
     endif
  endif
+ if ( config_pollen_scheme .ne. 'off' ) then
+    if ( .not.allocated(diam_polp_tree_dynamic_p)) allocate(diam_polp_tree_dynamic_p(ims:ime,jms:jme))
+ endif
  if ( config_dust_scheme .ne. 'off' ) then
     if (dust_opt .eq. 1) then
        if(.not.allocated(clayfrac_in_p))        allocate(clayfrac_in_p(ims:ime,jms:jme))
@@ -367,6 +370,8 @@
  if(allocated(fire_ef_out_p)  ) deallocate(fire_ef_out_p)
  if(allocated(totprcp_prev24_p) )     deallocate(totprcp_prev24_p )
 
+ if(allocated(diam_polp_tree_dynamic_p)) deallocate(diam_polp_tree_dynamic_p)
+
  if(allocated(RWC_denominator_p))   deallocate(RWC_denominator_p)
  if(allocated(RWC_annual_sum_p))    deallocate(RWC_annual_sum_p)
  if(allocated(RWC_annual_sum_smoke_fine_p))    deallocate(RWC_annual_sum_smoke_fine_p)
@@ -520,6 +525,7 @@
       integer, pointer :: plumerise_opt
       logical, pointer :: add_fire_heat_flux, add_fire_moist_flux
       logical, pointer :: calc_bb_emis_online
+      real(kind=RKIND),dimension(:) :: diam_polp_tree_dynamic
 
       integer,dimension(:),pointer :: ant_pt_local_cell_idx, ant_pt_rank
       
@@ -668,6 +674,7 @@
       endif
       if (config_pollen_scheme .ne. 'off' .and. num_e_bio_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_bio_in', e_bio_in)
+         call mpas_pool_get_array(emission_input,'diam_polp_tree_dynamic',diam_polp_tree_dynamic)
       endif
       if (config_volc_scheme .ne. 'off' .and. num_e_vol_in .gt. 0 ) then
          call mpas_pool_get_array(emission_input, 'e_vol_in', e_vol_in)
@@ -843,6 +850,13 @@
        enddo
        enddo
        enddo
+      endif
+      if ( config_pollen_scheme .ne. 'off' ) then
+         do j = jts,jte
+         do i = its,ite
+            diam_polp_tree_dynamic_p(i,j) = diam_polp_tree_dynamic(i)
+         enddo
+         enddo
       endif
 
       if ( num_e_vol_in .gt. 0 ) then
@@ -1782,7 +1796,8 @@ endif
  integer,pointer :: index_smoke_ultrafine, index_smoke_fine, index_smoke_coarse
  integer,pointer :: index_dust_ultrafine, index_dust_fine, index_dust_coarse
  integer,pointer :: index_polp_tree, index_polp_grass, index_polp_weed, index_polp_all,&
-                    index_pols_tree, index_pols_grass, index_pols_weed, index_pols_all
+                    index_pols_tree, index_pols_grass, index_pols_weed, index_pols_all,&
+                    index_polp_tree_numb
  integer,pointer :: index_unspc_ultrafine, index_unspc_fine, index_unspc_coarse
  integer,pointer :: index_ssalt_fine, index_ssalt_coarse
  integer,pointer :: index_no3_a_fine, index_so4_a_fine, index_nh4_a_fine
@@ -2179,6 +2194,7 @@ endif
  call mpas_pool_get_dimension(state,'index_pols_tree'  ,index_pols_tree )
  call mpas_pool_get_dimension(state,'index_pols_grass'  ,index_pols_grass )
  call mpas_pool_get_dimension(state,'index_pols_weed'  ,index_pols_weed )
+ call mpas_pool_get_dimension(state,'index_polp_tree_numb' ,index_polp_tree_numb )
 !
  call mpas_pool_get_dimension(state,'index_ssalt_fine'  ,index_ssalt_fine )
  call mpas_pool_get_dimension(state,'index_ssalt_coarse'  ,index_ssalt_coarse )
@@ -2234,7 +2250,7 @@ endif
     (index_polp_tree .gt. 0 .or. index_polp_grass .gt. 0 .or. index_polp_weed .gt. 0 .or. index_polp_all .gt. 0)) then
     do_mpas_pollen= .true.
  endif
-!        
+!
  if (config_anthro_scheme .ne. 'off' .and. &
     (index_unspc_ultrafine .gt. 0 .or. index_unspc_fine .gt. 0 .or. index_unspc_coarse .gt. 0 .or. &
      index_smoke_ultrafine .gt. 0 .or. index_smoke_fine .gt. 0 .or. index_smoke_coarse            )) then
@@ -2364,7 +2380,8 @@ endif
             index_bbvoc = index_bbvoc,                                        &
             index_bc = index_bc,                                              &
             index_oc = index_oc,                                              &
-            index_brc = index_brc,                                              &
+            index_brc = index_brc,                                            &
+            index_polp_tree_numb = index_polp_tree_numb,                      &
 !--- Emission input indices
             index_e_bb_in_smoke_ultrafine = index_e_bb_in_smoke_ultrafine,    &
             index_e_bb_in_smoke_fine = index_e_bb_in_smoke_fine,              &
@@ -2496,6 +2513,8 @@ endif
             RWC_annual_sum_unspc_coarse = RWC_annual_sum_unspc_coarse_p,      &
 !--- Harmful algal bloom 
             bact_water_conc = bact_water_conc_p,                              &
+!--- Pollen diameter
+            diam_polp_tree_dynamic = diam_polp_tree_dynamic_p,                &
 !--- Dust related arrays
             sandfrac_in = sandfrac_in_p,                                      &
             clayfrac_in = clayfrac_in_p,                                      &

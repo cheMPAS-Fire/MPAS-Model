@@ -28,7 +28,7 @@
                              f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                              f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                              f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                             f_antvoc,f_bbvoc,f_bc,f_oc,f_brc
+                             f_antvoc,f_bbvoc,f_bc,f_oc,f_brc,f_polp_tree_numb
 
  use mpas_atmphys_landuse
  use mpas_atmphys_o3climatology
@@ -321,7 +321,7 @@ use mpas_stream_manager
                          f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                          f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                          f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                         f_antvoc,f_bbvoc,f_bc,f_oc,f_brc )
+                         f_antvoc,f_bbvoc,f_bc,f_oc,f_brc,f_polp_tree_numb )
 
 
  if (config_mie_aod_opt > 0) then
@@ -594,7 +594,7 @@ use mpas_stream_manager
                                f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                                f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                                f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                               f_antvoc,f_bbvoc,f_bc,f_oc,f_brc)
+                               f_antvoc,f_bbvoc,f_bc,f_oc,f_brc,f_polp_tree_numb)
 !=================================================================================================================
 
 !input arguments:
@@ -611,7 +611,7 @@ use mpas_stream_manager
                        f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                        f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                        f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                       f_antvoc,f_bbvoc,f_bc,f_oc,f_brc
+                       f_antvoc,f_bbvoc,f_bc,f_oc,f_brc,f_polp_tree_numb
 
 !local pointers:
  integer,pointer:: index_qc,index_qr,index_qi,index_qs,index_qg
@@ -625,7 +625,7 @@ use mpas_stream_manager
                    index_smoke_ultrafine,index_dust_ultrafine, index_mold_fine,      &
                    index_bact_fine,index_dms,index_plastic_fine,index_unspc_ultrafine,&
                    index_vash_fine,index_vash_coarse,index_nox,index_soa,index_antsoa,index_bbsoa, &
-                   index_antvoc,index_bbvoc,index_bc,index_oc,index_brc
+                   index_antvoc,index_bbvoc,index_bc,index_oc,index_brc,index_polp_tree_numb
 
 
 !-----------------------------------------------------------------------------------------------------------------
@@ -677,6 +677,7 @@ use mpas_stream_manager
  f_bc= .false.
  f_oc= .false.
  f_brc= .false.
+ f_polp_tree_numb= .false.
 
  call mpas_pool_get_dimension(state,'index_qc',index_qc)
  call mpas_pool_get_dimension(state,'index_qr',index_qr)
@@ -723,6 +724,7 @@ use mpas_stream_manager
  call mpas_pool_get_dimension(state,'index_bc', index_bc)
  call mpas_pool_get_dimension(state,'index_oc', index_oc)
  call mpas_pool_get_dimension(state,'index_brc', index_brc)
+ call mpas_pool_get_dimension(state,'index_polp_tree_numb', index_polp_tree_numb)
 
  if(index_qc .gt. -1) f_qc = .true.
  if(index_qr .gt. -1) f_qr = .true.
@@ -769,6 +771,7 @@ use mpas_stream_manager
  if(index_bc                .gt. -1) f_bc = .true.
  if(index_oc                .gt. -1) f_oc = .true.
  if(index_brc               .gt. -1) f_brc = .true.
+ if(index_polp_tree_numb    .gt. -1) f_polp_tree_numb = .true.
 
 
 !initializes the logical assigned to number concentrations:

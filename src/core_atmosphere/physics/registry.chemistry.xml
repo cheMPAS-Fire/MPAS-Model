@@ -88,6 +88,9 @@
 	 <package name="speciated_pollen_rupture" 
       		 active_when="config_pollen_scheme .eq. 'speciated_rupture'"
 		 description="parameterization of speciated rupture for pollen"/>
+	 <package name="tree_pollen_number" 
+      		 active_when="( (INDEX(config_pollen_number,',tree,') .ne. 0))'"
+		 description="parameterization of speciated rupture for pollen"/>
 	 <package name="speciated_pollen_primary"
 		 active_when="( ANY( [ CHARACTER(len=20) :: 'speciated_primary', 'speciated_rupture' ] == TRIM(config_pollen_scheme) ))"
 		 description="parameterization of speciated primary pollen"/>
@@ -178,6 +181,10 @@
            units="-"
            description="configuration for mpas pollen model"
            possible_values="`simple',`speciated_rupture',`speciated_primary'"/>
+      <nml_option name="config_pollen_number" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for pollen number concentrations"
+           possible_values="`tree',`grass',`weed'"/>
       <nml_option name="config_ssalt_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas sea salt model"
@@ -551,6 +558,7 @@
          in_defaults="false">
 
          <var_array name="e_bio_in"/>
+         <var name="diam_polp_tree_dynamic"/>
       </stream>
 
       <stream name="rwc_input"
@@ -661,6 +669,10 @@
          <var name="pols_weed" array_group="chemistry" units="ug kg^{-1}"
               description="fine weed pollen mixing ratio"
               packages="speciated_pollen_rupture"/>
+
+         <var name="polp_tree_numb" array_group="chemistry" units="# kg^{-1}"
+              description="coarse tree pollen number concentration"
+              packages="tree_pollen_number"/>
 
          <var name="mold_fine" array_group="chemistry" units="ug kg^{-1}"
               description="fine mold mixing ratio"
@@ -951,6 +963,9 @@
               packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
          <var name="e_bio_in_polp_weed" name_in_code="e_bio_in_polp_weed" array_group="bio_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input biogenic coarse weed pollen emissions"
+              packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
+         <var name="diam_polp_tree_dynamic" name_in_code="diam_polp_tree_dynamic" array_group="bio_in_aerosols" units="um"
+              description="input tree pollen diameters"
               packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
       </var_array>
      <!-- Volcanic -->
@@ -1331,6 +1346,9 @@
           <var name="tend_pols_weed" name_in_code="pols_weed" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of fine weed pollen mass per unit volume divided by d(zeta)/dz"
                packages="speciated_pollen_rupture"/>
+         <var name="tend_polp_tree_numb" name_in_code="polp_tree_numb" array_group="chemistry" units="# kg^{-1} s^{-1}"
+               description="Tendency of coarse tree pollen mass per unit volume divided by d(zeta)/dz"
+               packages="speciated_pollen_primary"/>
           <var name="tend_ssalt_fine" name_in_code="ssalt_fine" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of fine sea salt mass per unit volume divided by d(zeta)/dz"
                packages="mpas_ssalt_in"/>
@@ -1425,6 +1443,8 @@
               description="Lateral boundary tendency of fine grass pollen mixing ratio"/>
          <var name="lbc_pols_weed" name_in_code="pols_weed" array_group="chemistry"  packages="speciated_pollen_rupture" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of fine weed pollen mixing ratio"/>
+         <var name="lbc_polp_tree_numb" name_in_code="polp_tree_numb" array_group="chemistry"  packages="tree_pollen_number" units="# kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of coarse tree pollen number concentrations"/>
          <var name="lbc_ssalt_fine" name_in_code="ssalt_fine" array_group="chemistry"  packages="mpas_ssalt_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of fine sea salt mixing ratio"/>
          <var name="lbc_ssalt_coarse" name_in_code="ssalt_coarse" array_group="chemistry"  packages="mpas_ssalt_in" units="kg kg^{-1} s^{-1}"
