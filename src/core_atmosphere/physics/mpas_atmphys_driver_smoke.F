@@ -110,7 +110,6 @@
  if(.not.allocated(ust_p)       ) allocate(ust_p(ims:ime,jms:jme)                )
  if(.not.allocated(xlat_p)      ) allocate(xlat_p(ims:ime,jms:jme)               )
  if(.not.allocated(xlon_p)      ) allocate(xlon_p(ims:ime,jms:jme)               )
- if(.not.allocated(vegfra_p)    ) allocate(vegfra_p(ims:ime,jms:jme)             )
  if(.not.allocated(ivgtyp_p)    ) allocate(ivgtyp_p(ims:ime,jms:jme)             )
  if(.not.allocated(landusef_p)  ) allocate(landusef_p(ims:ime,1:num_landcat,jms:jme))
  if(.not.allocated(coszr_p)     ) allocate(coszr_p(ims:ime,jms:jme)              )
@@ -230,6 +229,12 @@
     if(.not.allocated(PM2_5_SMOKE_SOA_p)) allocate(PM2_5_SMOKE_SOA_p(ims:ime,kms:kme,jms:jme))
     if(.not.allocated(PM2_5_ANT_SOA_p))   allocate(PM2_5_ANT_SOA_p(ims:ime,kms:kme,jms:jme))
  endif
+
+ if (config_sna_scheme .ne. 'off') then
+    if(.not.allocated(PNO3_p))       allocate(PNO3_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PSO4_p))       allocate(PSO4_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PNH4_p))       allocate(PNH4_p(ims:ime,kms:kme,jms:jme))
+ endif
  
  if ( config_anthro_pt_scheme .ne. 'off' ) then
     if(.not.allocated(ant_pt_local_cell_idx_p)) allocate(ant_pt_local_cell_idx_p(1:num_anthro_pt))
@@ -316,7 +321,6 @@
  if(allocated(ust_p)          ) deallocate(ust_p          )
  if(allocated(xlat_p)         ) deallocate(xlat_p         )
  if(allocated(xlon_p)         ) deallocate(xlon_p         )
- if(allocated(vegfra_p)       ) deallocate(vegfra_p       )
  if(allocated(ivgtyp_p)       ) deallocate(ivgtyp_p       )
  if(allocated(landusef_p)     ) deallocate(landusef_p     )
  if(allocated(coszr_p)        ) deallocate(coszr_p        )
@@ -394,6 +398,9 @@
  if(allocated(PM2_5_SOA_p)  )         deallocate(PM2_5_SOA_p  )
  if(allocated(PM2_5_SMOKE_SOA_p))     deallocate(PM2_5_SMOKE_SOA_p)
  if(allocated(PM2_5_ANT_SOA_p)  )     deallocate(PM2_5_ANT_SOA_p )
+ if(allocated(PNO3_p)       )         deallocate(PNO3_p      )
+ if(allocated(PNH4_p)       )         deallocate(PNH4_p      )
+ if(allocated(PSO4_p)       )         deallocate(PSO4_p      )
  if(allocated(PM10_p)       )         deallocate(PM10_p       )
  if(allocated(aod550_p)     )         deallocate(aod550_p     )
  if(allocated(aod550_simple_p))       deallocate(aod550_simple_p)
@@ -463,7 +470,7 @@
       real(kind=RKIND),dimension(:),pointer      :: raincv,rainncv,mavail
       real(kind=RKIND),dimension(:),pointer      :: rmol,snowh,z0,t2m,dpt2m
       real(kind=RKIND),dimension(:),pointer      :: dewpoint_surface
-      real(kind=RKIND),dimension(:),pointer      :: u10,v10,znt,hpbl,skintemp,vegfra,coszr
+      real(kind=RKIND),dimension(:),pointer      :: u10,v10,znt,hpbl,skintemp,coszr
       real(kind=RKIND),dimension(:),pointer      :: swdnb
       real(kind=RKIND),dimension(:,:),pointer    :: cldfrac
       real(kind=RKIND),dimension(:,:),pointer    :: landusef
@@ -607,7 +614,6 @@
       call mpas_pool_get_array(sfc_input,'tslb',tslb)
       call mpas_pool_get_array(sfc_input,'isltyp',isltyp)
       call mpas_pool_get_array(sfc_input,'ivgtyp',ivgtyp)
-      call mpas_pool_get_array(sfc_input,'vegfra',vegfra)
       call mpas_pool_get_array(sfc_input,'landusef',landusef)
       call mpas_pool_get_array(diag_physics, 'z0',z0)
       call mpas_pool_get_array(sfc_input,'snowh',snowh)
@@ -986,7 +992,6 @@
          xlon_p(i,j)    = lonCell(i) / degrad
          isltyp_p(i,j)  = isltyp(i)
          ivgtyp_p(i,j)  = ivgtyp(i)
-         vegfra_p(i,j)  = vegfra(i)
          coszr_p(i,j)   = coszr(i)
          swdown_p(i,j)  = swdnb(i)
      ! Met
@@ -1181,6 +1186,7 @@
  real(kind=RKIND),dimension(:),    pointer:: frp_out, fre_out, hwp, coef_bb_dc, fire_ef_out
  real(kind=RKIND),dimension(:),    pointer:: hfx_bb, qfx_bb, frac_grid_burned
  real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10, PM2_5_SOA
+ real(kind=RKIND),dimension(:,:)  ,pointer:: PNO3,PSO4,PNH4
  real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5_SMOKE_SOA, PM2_5_ANT_SOA
  real(kind=RKIND),dimension(:,:)  ,pointer:: aod3d_smoke, aod3d, aod3d_simple
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_sw, asyaer_sw, ssaaer_sw
@@ -1263,6 +1269,9 @@
 
  if ( config_sna_scheme .ne. 'off' ) then
     call mpas_pool_get_array(diag_physics,'hno3_bkgd',hno3_bkgd)
+    call mpas_pool_get_array(diag_physics,'PNO3',PNO3)
+    call mpas_pool_get_array(diag_physics,'PNH4',PNH4)
+    call mpas_pool_get_array(diag_physics,'PSO4',PSO4)
     call mpas_pool_get_dimension(state,'index_nwfa',index_nwfa)
     call mpas_pool_get_dimension(state,'index_nifa',index_nifa)
     nifa => scalars(index_nifa,:,:)
@@ -1342,6 +1351,11 @@
            PM2_5_ANT_SOA(k,i) = PM2_5_ANT_SOA_p(i,k,j)
            PM2_5_SMOKE_SOA(k,i) = PM2_5_SMOKE_SOA_p(i,k,j)
            PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
+         endif
+         if ( config_sna_scheme .ne. 'off' ) then
+           PNO3(k,i) = PNO3_p(i,k,j)
+           PNH4(k,i) = PNH4_p(i,k,j)
+           PSO4(k,i) = PSO4_p(i,k,j)
          endif
          aod3d(k,i) = aod3d_p(i,k,j)
          aod3d_simple(k,i) = aod3d_simple_p(i,k,j)
@@ -2248,8 +2262,7 @@ endif
  if (config_volc_scheme   .ne. 'off') do_mpas_volc  = .true.
 !
  if (config_sna_scheme .ne. 'off' .and. &
-    (index_no3_a_fine .gt. 0 .and. index_so4_a_fine .gt. 0 .and. index_nh4_a_fine .gt. 0 .and. &
-     index_so2 .gt. 0 .and. index_nh3 .gt. 0)) then
+    (index_nh3 .gt. 0 .and. index_unspc_fine .gt. 0 )) then
     do_mpas_sna = .true.
  endif
 !
@@ -2579,6 +2592,7 @@ endif
 !--- Met variables
             nifa = nifa_p,                                                    &
             nwfa = nwfa_p,                                                    &
+            hno3_bkgd = hno3_bkgd_p,                                          &
             ktau = itimestep,                                                 &
             dt = dt_dyn,                                                      &
             radt = radt,                                                &
@@ -2643,7 +2657,6 @@ endif
             znt = znt_p,                                                      &
             mavail = mavail_p,                                                &
             g = gravity,                                                      &
-            vegfra = vegfra_p,                                                &
             landusef = landusef_p,                                            &
             cldfrac = cldfrac_p,                                              &
             ktop_deep = ktop_deep_p,                                          &
@@ -2680,9 +2693,36 @@ endif
    if (index_pols_tree  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_tree  - chemistry_start + 1)
    if (index_pols_grass .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_grass - chemistry_start + 1)
    if (index_pols_weed  .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_pols_weed  - chemistry_start + 1)
-   if (index_no3_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1)
-   if (index_so4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1)
-   if (index_nh4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1)
+!   if (index_no3_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1)
+!   if (index_so4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1)
+!   if (index_nh4_a_fine .gt. 0) PM2_5_p(i,k,j) = PM2_5_p(i,k,j) + chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1)
+
+   if (config_sna_scheme .ne. 'off') then
+
+   PNO3_p(i,k,j) = 0.0_RKIND
+   PSO4_p(i,k,j) = 0.0_RKIND
+   PNH4_p(i,k,j) = 0.0_RKIND
+
+   if (index_no3_a_fine > 0) then
+      PNO3_p(i,k,j) = max(0.0_RKIND,                         &
+           chem_p(i,k,j,index_no3_a_fine - chemistry_start + 1))
+   endif
+
+   if (index_so4_a_fine > 0) then
+      PSO4_p(i,k,j) = max(0.0_RKIND,                         &
+           chem_p(i,k,j,index_so4_a_fine - chemistry_start + 1))
+   endif
+
+   if (index_nh4_a_fine > 0) then
+      PNH4_p(i,k,j) = max(0.0_RKIND,                         &
+           chem_p(i,k,j,index_nh4_a_fine - chemistry_start + 1))
+   endif
+
+   PM2_5_p(i,k,j) = PM2_5_p(i,k,j) +                        &
+                     PNO3_p(i,k,j) + PSO4_p(i,k,j) +         &
+                     PNH4_p(i,k,j)
+
+   endif
 
    if (index_smoke_coarse .gt. 0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_smoke_coarse - chemistry_start + 1)
    if (index_dust_coarse .gt.  0) PM10_p(i,k,j) = PM10_p(i,k,j) + chem_p(i,k,j,index_dust_coarse  - chemistry_start + 1)
