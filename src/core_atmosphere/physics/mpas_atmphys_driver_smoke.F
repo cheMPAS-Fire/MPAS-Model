@@ -129,6 +129,8 @@
  if(.not.allocated(dpt2m_p)     ) allocate(dpt2m_p(ims:ime,jms:jme)              )
  if(.not.allocated(mavail_p)    ) allocate(mavail_p(ims:ime,jms:jme)             )
 
+ if(.not.allocated(lai_p)       ) allocate(lai_p(ims:ime,jms:jme)                )
+
  if(.not.allocated(qcbl_p)      ) allocate(qcbl_p(ims:ime,kms:kme,jms:jme)       )
  if(.not.allocated(qibl_p)      ) allocate(qibl_p(ims:ime,kms:kme,jms:jme)       )
 
@@ -342,6 +344,8 @@
  if(allocated(dpt2m_p)        ) deallocate(dpt2m_p        )
  if(allocated(mavail_p)       ) deallocate(mavail_p       )
 
+ if(allocated(lai_p)          ) deallocate(lai_p          )
+
  if(allocated(cldfrac_p)      ) deallocate(cldfrac_p      )
  if(allocated(ktop_deep_p)    ) deallocate(ktop_deep_p    )
  if(allocated(refl10cm_p)     ) deallocate(refl10cm_p     )
@@ -472,6 +476,7 @@
       real(kind=RKIND),dimension(:),pointer      :: dewpoint_surface
       real(kind=RKIND),dimension(:),pointer      :: u10,v10,znt,hpbl,skintemp,coszr
       real(kind=RKIND),dimension(:),pointer      :: swdnb
+      real(kind=RKIND),dimension(:),pointer      :: lai
       real(kind=RKIND),dimension(:,:),pointer    :: cldfrac
       real(kind=RKIND),dimension(:,:),pointer    :: landusef
       real(kind=RKIND),dimension(:,:),pointer    :: smois,tslb
@@ -622,7 +627,8 @@
       call mpas_pool_get_array(diag_physics,'rainncv',rainncv)
       call mpas_pool_get_array(diag_physics,'mavail',mavail)
       call mpas_pool_get_array(diag_physics,'cldfrac',cldfrac)
-      call mpas_pool_get_array(diag_physics,'t2m',t2m) 
+      call mpas_pool_get_array(diag_physics,'t2m',t2m)
+      call mpas_pool_get_array(diag_physics,'lai',lai) 
 
       call mpas_pool_get_array(diag,'surface_pressure',psfc)
       call mpas_pool_get_array(diag_physics,'q2',q2)
@@ -1025,6 +1031,7 @@
          dpt2m_p(i,j)   = min(dpt2m_p(i,j),t2m_p(i,j))
          !dpt2m_p(i,j)   = 280. !dewpoint_surface(i)
          mavail_p(i,j)  = mavail(i)
+         lai_p(i,j)     = lai(i)
          if ((config_microp_scheme .eq. 'mp_tempo') .and. config_tempo_aerosolaware ) then
           nifa2d_p(i,j) = nifa2d(i)
           nwfa2d_p(i,j) = nwfa2d(i)
@@ -2661,6 +2668,7 @@ endif
             dpt2m = dpt2m_p,                                                  &
             znt = znt_p,                                                      &
             mavail = mavail_p,                                                &
+            lai = lai_p,                                                      &
             g = gravity,                                                      &
             landusef = landusef_p,                                            &
             cldfrac = cldfrac_p,                                              &
