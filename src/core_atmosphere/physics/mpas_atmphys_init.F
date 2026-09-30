@@ -144,6 +144,7 @@ use mpas_stream_manager
                    config_rwc_scheme,        &
                    config_anthro_pt_scheme
 
+ integer,pointer:: config_ebb_dcycle
  integer,pointer:: nCellsSolve,nLags
  integer,pointer:: config_mie_aod_opt
  integer,dimension(:),pointer:: i_rainc,i_rainnc
@@ -215,6 +216,7 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
  call mpas_pool_get_config(configs,'config_mie_aod_opt',config_mie_aod_opt)
  call mpas_pool_get_config(configs,'config_microphysics_top' ,config_microphysics_top )
+ call mpas_pool_get_config(configs,'config_ebb_dcycle',config_ebb_dcycle)
 
  call mpas_pool_get_dimension(mesh,'nCellsSolve',nCellsSolve)
  call mpas_pool_get_dimension(mesh,'nLags'      ,nLags      )
@@ -570,12 +572,24 @@ use mpas_stream_manager
     config_dust_scheme .ne. 'off'  .or. config_anthro_scheme .ne. 'off' .or. &
     config_ssalt_scheme .ne. 'off' .or. config_sna_scheme .ne. 'off'    .or. &
     config_rwc_scheme .ne. 'off'   ) then
-    if ( config_anthro_pt_scheme .ne. 'off') then
+    if ( config_anthro_pt_scheme .ne. 'off' .or. config_smoke_scheme .ne. 'off') then
     ! Really only needed for the pt source locations, but leave for now
+       if ( config_anthro_pt_scheme .ne. 'off' ) then
        call MPAS_stream_mgr_read(stream_manager,streamID='anthro_pt_stack_group_input', whence=MPAS_STREAM_NEAREST, ierr=ierr)
        call MPAS_stream_mgr_reset_alarms(stream_manager,streamID='anthro_pt_stack_group_input', direction=MPAS_STREAM_INPUT, ierr=ierr)
+       endif
+       if ( config_smoke_scheme .ne. 'off') then
+          if ( config_ebb_dcycle .eq. 1 .or. config_ebb_dcycle .eq. -1 ) then
+          call MPAS_stream_mgr_read(stream_manager,streamID='smoke_retro_input', whence=MPAS_STREAM_NEAREST, ierr=ierr)
+          call MPAS_stream_mgr_reset_alarms(stream_manager,streamID='smoke_retro_input', direction=MPAS_STREAM_INPUT, ierr=ierr)
+          else
+          call MPAS_stream_mgr_read(stream_manager,streamID='smoke_forecast_input', whence=MPAS_STREAM_NEAREST, ierr=ierr)
+          call MPAS_stream_mgr_reset_alarms(stream_manager,streamID='smoke_forecast_input', direction=MPAS_STREAM_INPUT, ierr=ierr)
+          endif
+       endif
        call init_smoke(mesh,configs,emission_input,dminfo)
     endif
+
  endif
 
 ! call mpas_log_write('')

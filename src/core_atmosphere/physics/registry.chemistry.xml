@@ -23,7 +23,9 @@
       <dim name="TSTEP"     
           description="CMAP IOAPI Time"/>
       <dim name="nanthro_pt"
-          description="Number of vertical levels in anthropogenic emission file"/>
+          description="Number of point source anthropogenic emissions"/>
+      <dim name="nbb_pt"
+          description="Number of point source wildfire emissions"/>
    </dims>
 
 <!-- **************************************************************************************** -->
@@ -34,9 +36,15 @@
          <package name="mpas_anthro_pt_emis"
                  active_when="config_anthro_scheme .ne. 'off' .and. config_anthro_pt_scheme .ne. 'off'"
                  description="package for point source anthropogenic emissions"/>
-         <package name="mpas_smoke_forecast"
-                 active_when="config_smoke_scheme .eq. 'forecast'"
+         <package name="mpas_smoke_retro"
+                 active_when="config_ebb_dcycle .le. 1"
                  description="package for forcasting emissions"/>
+         <package name="mpas_smoke_forecast"
+                 active_when="config_ebb_dcycle .gt. 1"
+                 description="package for forcasting emissions"/>
+         <package name="mpas_smoke_online_emissions"
+                 active_when="config_calc_bb_emis_online"
+                 description="package for online bb emission calculation"/>
 	 <package name="mpas_smoke_fine"          
 		 active_when="config_smoke_scheme .ne. 'off' .or. config_rwc_scheme .ne. 'off'"
 		 description="parameterization of fine smoke"/>
@@ -286,7 +294,7 @@
            units="-"
            description="Scaling factor for water vapor wildfire emissions"
            possible_values="Positive integer values"/>
-      <nml_option name="ebb_dcycle" type="integer" default_value="0"
+      <nml_option name="config_ebb_dcycle" type="integer" default_value="0"
            units="-"
            description="Algorithm choice wildfire emission forecast"
            possible_values="Positive integer values"/>
@@ -298,7 +306,7 @@
            units="-"
            description="Logical flag to turn on/off fire heat moisture to the atmosphere"
            possible_values=".true. or .false."/>
-      <nml_option name="calc_bb_emis_online" type="logical" default_value="false"
+      <nml_option name="config_calc_bb_emis_online" type="logical" default_value="false"
            units="-"
            description="Flag to calculate emissions online"
            possible_values="true or false"/>
@@ -488,38 +496,43 @@
          <var_array name="e_bb_in"/>
          <var name="frp_in"/>
          <var name="fre_in"/>
+         <var name="BBLT"/>
+         <var name="BBLG"/>
       </stream>
 
-      <stream name="smoke_input"
+      <stream name="smoke_forecast_input"
          type="input"
-         filename_template="x1.40962.bb.init.nc"
+         filename_template="smoke.init.nc"
          input_interval="initial_only"
          immutable="true"                        
          in_defaults="false">
 
-	 <var name="hwp_prev24"/>
-         <var name="totprcp_prev24"/>
+         <var_array name="e_bb_in"/>
          <var name="frp_prev24"/>
          <var name="fre_prev24"/>
+         <var name="hwp_prev24"/>
          <var name="fmc_prev24"/>
+         <var name="totprcp_prev24"/>
+         <var name="BBLT"/>
+         <var name="BBLG"/>
       </stream>
 
-      <stream name="smoke_emission_input"
+      <stream name="smoke_emission_factor_input"
          type="input"
-         filename_template="x1.40962.bb_emis.init.nc"
+         filename_template="smoke.init.nc"
          input_interval="initial_only"
          immutable="true"
          in_defaults="false">
-          
-         <var name="efs_smold"/>
-         <var name="efs_flam"/>
-         <var name="efs_rsmold"/>
+         
+         <var name="efs_smold"/> 
+         <var name="efs_rsmold"/> 
+         <var name="efs_flam"/> 
          <var name="ecoregion_ID"/>
       </stream>
 
       <stream name="dust_input"
          type="input"
-         filename_template="x1.40962.dust.init.nc"
+         filename_template="dust.init.nc"
          input_interval="initial_only"
          immutable="true"
          in_defaults="false">
@@ -535,8 +548,7 @@
       <stream name="anthro_input"
          type="input"
          filename_template="anthro.init.$Y-$M-$D_$h.$m.$s.nc"
-         filename_interval="input_interval"
-         input_interval="1:00:00"
+         input_interval="initial_only"
 	 immutable="true"
          in_defaults="false">
      
@@ -545,7 +557,7 @@
 
       <stream name="bio_input"
          type="input"
-         filename_template="x1.40962.pollen.init.nc"
+         filename_template="bio.init.nc"
          input_interval="initial_only"
          immutable="true"                        
          in_defaults="false">
@@ -775,7 +787,7 @@
 <!-- INPUT EMISSIONS -->
    <var_struct name="emission_input" time_levs="1">
      <!-- BIOMASS BURNING -->
-      <var_array name="e_bb_in" type="real" dimensions="nkwildfire nCells Time" packages="mpas_smoke_in">
+      <var_array name="e_bb_in" type="real" dimensions="nkwildfire nbb_pt Time" packages="mpas_smoke_in">
          <var name="e_bb_in_smoke_ultrafine" name_in_code="e_bb_in_smoke_ultrafine" array_group="bb_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input biomass burning ultrafine smoke emissions"
               packages="mpas_smoke_ultrafine"/>
@@ -799,7 +811,7 @@
               packages="mpas_so2_in;mpas_sna_in"/>
          <var name="e_bb_in_nh3" name_in_code="e_bb_in_nh3" array_group="bb_in_tracers" units="mol m^{-2} s^{-1}"
               description="input biomass burning NH3 emissions"
-              packages="mpas_sna_in"/>
+              packages="mpas_so2_in;mpas_sna_in"/>
          <var name="e_bb_in_voc" name_in_code="e_bb_in_voc" array_group="bb_in_tracers" units="mol m^{-2} s^{-1}"
               description="input biomass burning VOC emissions"
               packages="mpas_soa_simple_voc_in"/>
@@ -810,13 +822,61 @@
               description="input biomass burning organic carbon emissions"
               packages="mpas_organic_carbon_in"/>
       </var_array>
+      <var name="frp_in" type="real" dimensions="nbb_pt" units="W"
+           description="Input fire radiative power"
+           packages="mpas_smoke_retro"/>
+      <var name="fre_in" type="real" dimensions="nbb_pt" units="Js"
+           description="Input fire radiative energy"
+           packages="mpas_smoke_retro"/>
+      <var name="frp_prev24" type="real" dimensions="nbb_pt TWENTYFOUR" units="W"
+           description="Fire Radiative Power over the last 24 hours"
+           packages="mpas_smoke_forecast"/>
+      <var name="fre_prev24" type="real" dimensions="nbb_pt TWENTYFOUR" units="Js"
+           description="Fire Radiative Energy over the last 24 hours"
+           packages="mpas_smoke_forecast"/>
+      <var name="hwp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="-"
+           description="Hourly Wildfire Potential over the last 24 hours"
+           packages="mpas_smoke_forecast"/>
+      <var name="fmc_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
+           description="Fuel Moisture Content over the last 24 hours"
+           packages="mpas_smoke_forecast"/>
+      <var name="totprcp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="m" 
+           description="Total precipitation over the last 24 hours"
+           packages="mpas_smoke_forecast"/>
+      <var name="efs_smold" type="real" dimensions="nCells" units="g/kg"
+           description="emission factors for smoldering"
+           packages="mpas_smoke_online_emissions"/>
+      <var name="efs_rsmold" type="real" dimensions="nCells" units="g/kg"
+           description="emission factors for residual smoldering"
+           packages="mpas_smoke_online_emissions"/>
+      <var name="efs_flam" type="real" dimensions="nCells" units="g/kg"
+           description="emission factors for flaming"
+           packages="mpas_smoke_online_emissions"/>
+      <var name="bb_pt_local_cell_idx" type="integer" dimensions="nbb_pt" units="index" 
+           description="Local MPAS cell index for the wildfire"
+           packages="mpas_smoke_in" />
+      <var name="bb_pt_global_cell_idx" type="integer" dimensions="nbb_pt" units="index" 
+           description="Global MPAS cell index for the wildfire"
+           packages="mpas_smoke_in" />
+      <var name="bb_pt_rank" type="integer" dimensions="nbb_pt" units="index" 
+           description="MPAS rank for the wildfire"
+           packages="mpas_smoke_in" />
+      <var name="BBLT" type="real" dimensions="nbb_pt"  array_group="bb_in_aerosols" units="degrees"
+           description="Latitude of the point source"
+           packages="mpas_smoke_in"/>
+      <var name="BBLG" type="real" dimensions="nbb_pt" array_group="bb_in_aerosols" units="degrees"
+           description="Longitude of the point source"
+           packages="mpas_smoke_in"/>
+      <var name="ecoregion_ID" type="integer" dimensions="nCells" units="-"
+           description="ecoregion ID"
+           packages="mpas_smoke_online_emissions"/>
+      <var name="fire_type_in" type="integer" dimensions="nbb_pt" units="-"
+           description="type of fire"
+           packages="mpas_smoke_in"/>
      <!-- Anthropogenic -->
      <!-- pt src, for now only EGU - deciding on implementation -->
       <var_array name="e_ant_pt_in" type="real" dimensions="nanthro_pt TSTEP Time" packages="mpas_anthro_pt_emis">
          <var name="e_ant_pt_in_unspc_fine" name_in_code="e_ant_pt_in_unspc_fine" array_group="ant_pt_in_aerosols" units="ug m^{-2} s^{-1}"
-              description="input point source anthropogenic pt fine unspeciated emissions"
-              packages="mpas_anthro_pt_aero_in"/>
-         <var name="e_ant_pt_in_unspc_ultrafine" name_in_code="e_ant_pt_in_unspc_ultrafine" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input anthropogenic pt ultrafine unspeciated emissions"
               packages="mpas_anthro_pt_aero_in"/>
          <var name="e_ant_pt_in_unspc_coarse" name_in_code="e_ant_pt_in_unspc_coarse" array_group="ant_in_aerosols" units="ug m^{-2} s^{-1}"
@@ -1102,6 +1162,7 @@
 
       <var name="vis" type="real" dimensions="nCells Time" units="m"
            description="Visibility"/>
+<!-- JLS Should all of these be converted to nbb_pt arrays? -->
       <var name="frac_grid_burned" type="real" dimensions="nCells Time" units="-"
            description="fraction of grid cell area burned"
            packages="mpas_smoke_in"/>
@@ -1129,20 +1190,17 @@
       <var name="fire_peak_hr" type="real" dimensions="nCells Time" units="hr"
            description="peak hour of wildfire"
            packages="mpas_smoke_in"/>
+      <var name="fire_ef_out" type="real" dimensions="nCells Time" units="g/kg"
+           description="output wildfire emission factors"
+           package="mpas_smoke_online_emissions"/>
       <var name="fire_hist" type="real" dimensions="nCells Time" units="-"
            description="coefficient to scale the fire activity depending on the fire duration"
            packages="mpas_smoke_in"/>
       <var name="coef_bb_dc" type="real" dimensions="nCells Time" units="-"
            description="coefficient of diurnal cycle of biomass burning emissions"
            packages="mpas_smoke_in"/>
-      <var name="frp_in" type="real" dimensions="nCells Time" units="W"
-           description="Input fire radiative power"
-           packages="mpas_smoke_in"/>
       <var name="frp_out" type="real" dimensions="nCells Time" units="W"
            description="Output fire radiative power"
-           packages="mpas_smoke_in"/>
-      <var name="fre_in" type="real" dimensions="nCells Time" units="Js"
-           description="Input fire radiative energy"
            packages="mpas_smoke_in"/>
       <var name="fre_out" type="real" dimensions="nCells Time" units="Js"
            description="Output fire radiative energy"
@@ -1151,34 +1209,6 @@
            description="total output aerosol emissions for use in enhancxed mixing"/>
       <var name="hwp" type="real" dimensions="nCells Time" units="-"
            description="Hourly Wildfire Potential"
-           packages="mpas_smoke_in"/>
-<!-- TODO Some of these should only be activated if ebb_dcycle = 2, create new package for it -->
-      <var name="hwp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="-"
-           description="Hourly Wildfire Potential over the last 24 hours"
-           packages="mpas_smoke_forecast"/>
-      <var name="frp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="W"
-           description="Fire Radiative Power over the last 24 hours"
-           packages="mpas_smoke_forecast"/>
-      <var name="fre_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
-           description="Fire Radiative Energy over the last 24 hours"
-           packages="mpas_smoke_forecast"/>
-      <var name="fmc_prev24" type="real" dimensions="nCells TWENTYFOUR" units="Js"
-           description="Fuel Moisture Content over the last 24 hours"
-           packages="mpas_smoke_forecast"/>
-      <var name="totprcp_prev24" type="real" dimensions="nCells TWENTYFOUR" units="m" 
-           description="Total precipitation over the last 24 hours"
-           packages="mpas_smoke_forecast"/>
-      <var name="ecoregion_ID" type="integer" dimensions="nCells Time" units="-"
-           description="ecoregion ID"
-           packages="mpas_smoke_in"/>
-      <var name="efs_smold" type="real" dimensions="nCells Time" units="g/kg"
-           description="emission factors for smoldering"
-           packages="mpas_smoke_in"/>
-      <var name="efs_rsmold" type="real" dimensions="nCells Time" units="g/kg"
-           description="emission factors for residual smoldering"
-           packages="mpas_smoke_in"/>
-      <var name="efs_flam" type="real" dimensions="nCells Time" units="g/kg"
-           description="emission factors for flaming"
            packages="mpas_smoke_in"/>
       <var name="fire_end_hr" type="real" dimensions="nCells Time" units="hr"
            description="Hours since fire was last detected"
