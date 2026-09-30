@@ -166,6 +166,7 @@
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
  integer,public:: num_e_ant_out,num_e_bb_out,num_e_bio_out,num_e_dust_out,num_e_ss_out,num_e_vol_out
  integer,public:: num_anthro_pt,num_e_ant_pt_in,num_e_ant_stack_groups_in ! Number of EGUs (dynamic by file), Number of EGU emissions
+ integer,public:: num_bb_pt
 
  real(kind=RKIND),public:: dt_dyn     !time-step for dynamics
  real(kind=RKIND),public:: dt_microp  !time-step for cloud microphysics parameterization.
@@ -256,11 +257,37 @@
     aod550_p, aod550_simple_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
     aero_emis_for_enhmix_p
+! Input smoke 1D fields (num_bb_pt)
+ real(kind=RKIND),dimension(:),allocatable:: &
+    frp_in_p,          &!
+    fre_in_p
+ integer,dimension(:),allocatable:: &
+    bb_pt_local_cell_idx_p,&!
+    bb_pt_rank_p
+  real(kind=RKIND),dimension(:,:,:), allocatable:: &
+    e_bb_in_p
+! Calculated smoke 1D x nblocks fields
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+    frp_avg_p,         &!
+    fre_avg_p
+! Calculated smoke 2D x nblokcks fields
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    hwp_avg_p
+! Calculated smoke 2D fields
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+    fmc_avg_p,         &!
+    totprcp_prev24_p
+! Input smoke 1D x 24 fields (n_bb_pt x 24)
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+    frp_prev24_p,  &!
+    fre_prev24_p
+! Input smoke 2D x 24 fields (i, j, 24)
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    hwp_prev24_p,  &!
+    fmc_prev24_p
 ! Input/output smoke 2D fields - JLS
  real(kind=RKIND),dimension(:,:),allocatable::  &
-    frp_in_p,          &!
     frp_out_p,         &!
-    fre_in_p,          &!
     fre_out_p,         &!
     hwp_p,             &!
     coef_bb_dc_p,      &!
@@ -268,13 +295,11 @@
     qfx_bb_p,          &!
     frac_grid_burned_p,&!
     fire_end_hr_p,     &!
-    totprcp_prev24_p,    &!
     EFs_map_p,         &!JR:Estimated on module emiss
     efs_smold_p,       &!JR
     efs_flam_p,        &!JR
     efs_rsmold_p,      &
     fire_ef_out_p,     &
-    fmc_avg_p,         &
     emis_ant_no_p
  integer,dimension(:,:),allocatable:: &
     ecoregion_ID_p !JR
@@ -289,10 +314,6 @@
  integer,dimension(:),allocatable:: ant_pt_local_cell_idx_p,ant_pt_rank_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
     bact_water_conc_p
- real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    fre_avg_p,         &
-    frp_avg_p,         &
-    hwp_avg_p
  integer,dimension(:,:),allocatable:: &
     min_bb_plume_p, &!
     max_bb_plume_p, &!
@@ -307,9 +328,10 @@
 ! Input dust 3D files
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     erod_in_p
-! Input biomass burning emissions - JLS
+! Input 4D emissions - ( i, k,j,num_e )
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
-    e_ant_in_p, e_bb_in_p, e_bio_in_p, e_vol_in_p
+    e_ant_in_p, e_bio_in_p, e_vol_in_p
+! Input point source emissions 24 x n_ant_pt x num_e_ant_pt
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     e_ant_pt_in_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
