@@ -160,6 +160,7 @@
 
  integer,public:: num_chem             !Temporary workaround for defining dimensions holding chem data
  integer,public:: kanthro,kbiogenic,kwildfire,kvolcanic!Number of vertical levels in input emission data
+ integer,public:: num_soil_types ! For GOCART Simple
  logical:: do_chemistry                !controls call to smoke, dust and other chemical processes
 
  integer,public:: num_e_ant_in,num_e_bb_in,num_e_bio_in,num_e_vol_in
@@ -244,7 +245,11 @@
  real(kind=RKIND),dimension(:,:),allocatable:: &
     vis_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    PM1_p, PM2_5_p, PM10_p
+    PM1_p, PM2_5_p, PM10_p, PM2_5_SOA_p, PM2_5_SMOKE_SOA_p,PM2_5_ANT_SOA_p
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    PNO3_p, PNH4_p, PSO4_p
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    soa_p, bbsoa_p, antsoa_p, bbvoc_p, antvoc_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     aod3d_smoke_p, aod3d_p, aod3d_simple_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
@@ -281,6 +286,9 @@
     RWC_annual_sum_smoke_coarse_p,&
     RWC_annual_sum_unspc_fine_p,&
     RWC_annual_sum_unspc_coarse_p
+ integer,dimension(:),allocatable:: ant_pt_local_cell_idx_p,ant_pt_rank_p
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+    bact_water_conc_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     fre_avg_p,         &
     frp_avg_p,         &
@@ -296,6 +304,9 @@
     uthres_in_p,         &!
     rdrag_p,             &!
     ssm_in_p              !
+! Input dust 3D files
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    erod_in_p
 ! Input biomass burning emissions - JLS
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_in_p, e_bb_in_p, e_bio_in_p, e_vol_in_p
@@ -305,6 +316,9 @@
     e_ant_stack_groups_in_p
  real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
     e_ant_out_p, e_bb_out_p, e_bio_out_p, e_dust_out_p, e_ss_out_p, e_vol_out_p
+! Lightning
+ real(kind=RKIND),dimension(:,:),allocatable:: &
+   ic_flashcount_p,ic_flashrate_p,cg_flashcount_p,cg_flashrate_p, lpi_p
       
 !... arrays located at w (vertical velocity) points, or at interface between layers:
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
@@ -384,7 +398,27 @@
     f_nh4_a_fine,     &
     f_nh3,            &
     f_so2,            &
-    f_ch4
+    f_ch4,            &
+    f_smoke_ultrafine,&
+    f_dust_ultrafine, &
+    f_mold_fine,      &
+    f_bact_fine,      &
+    f_dms,            &
+    f_plastic_fine,   &
+    f_unspc_ultrafine,&
+    f_vash_fine,      &
+    f_vash_coarse,    &
+    f_nox,            &
+    f_soa,            &
+    f_antsoa,         &
+    f_bbsoa,          &
+    f_antvoc,         &
+    f_bbvoc,          &
+    f_bc,             &
+    f_oc,             &
+    f_brc
+
+    
 
  real(kind=RKIND),dimension(:,:),allocatable:: &
     rainnc_p,         &!
@@ -908,7 +942,8 @@
  real(kind=RKIND),dimension(:,:),allocatable:: &
     swddir_p,         &!
     swddni_p,         &!
-    swddif_p           !
+    swddif_p,         &!
+    uvai_rrtmg_p
 
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     swdnflx_p,        &!
@@ -1147,7 +1182,8 @@
     tsk_p,            &!surface-skin temperature                                                               [K]
     sst_p,            &!sea-surface temperature                                                                [K]
     xice_p,           &!ice mask                                                                               [-]
-    xland_p            !land mask    (1 for land; 2 for water)                                                 [-]
+    xland_p,          &!land mask    (1 for land; 2 for water)                                                 [-]
+    ter_p              !terrain height
 
 !=================================================================================================================
 !.. variables needed for the surface layer scheme and land surface scheme when config_frac_seaice

@@ -119,31 +119,79 @@ set(ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES
     MPAS/mpas_smoke_wrapper.F90
     mpas_smoke_init.F90
     mpas_smoke_config.F90
-    dep_data_mod.F90
-    dep_dry_mod_emerson.F90
     dep_dry_simple_mod.F90
-    dust_data_mod.F90
-    dust_fengsha_mod.F90
-    module_add_emiss_burn.F90
-    module_fire_emissions.F90
-    module_plumerise.F90
-    module_smoke_diagnostics.F90
-    module_smoke_plumerise.F90
+    dep_dry_mod_emerson.F90
+    dep_dry_mod_wesley.F90
+    dep_data_mod.F90
+    module_data_rrtmgaeropt.F90
+    module_peg_util.F90
+    mpas_mie_module.F90
+    rad_data_mod.F90
     module_wetdep_ls.F90
     module_zero_plumegen_coms.F90
-    rad_data_mod.F90
-    seas_data_mod.F90
-    seas_ngac_mod.F90
+    module_smoke_plumerise.F90
+    module_add_emiss_burn.F90
+    module_plumerise.F90
+    dust_data_mod.F90
+    dust_fengsha_mod.F90
+    dust_gocart_simple_mod.F90
     ssalt_mod.F90
+    seas_ngac_mod.F90
+    seas_data_mod.F90
+    module_smoke_diagnostics.F90
+    module_fire_emissions.F90
+    pollen_mod.F90
     module_anthro_emissions.F90
     module_anthro_pt_emissions.F90
     module_rwc_emissions.F90
     module_tactic_sna.F90
-    pollen_mod.F90
+    module_hab_emissions.F90
+    module_ltng_cpmpr92z.F90
+    module_ltng_crmpr92.F90
+    module_ltng_iccg.F90
+    module_ltng_lpi.F90
+    module_lightning_driver.F90
+    module_simple_soa.F90
+    module_mp_aero_emissions.F90
 )
 list(TRANSFORM ATMOSPHERE_CORE_PHYSICS_SMOKE_SOURCES PREPEND physics/physics_noaa/SMOKE/)
 
 set(ATMOSPHERE_CORE_PHYSICS_MMM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/physics/physics_mmm)
+
+# build stochastic_physics as a library (optional)
+if (${STOCHASTIC_PHYSICS})
+set(ATMOSPHERE_CORE_STOCHASTIC_PHYSICS_SOURCES
+    kinddef.F90
+    mpi_wrapper.F90
+    plumes.F90
+    mersenne_twister.F90
+    random_numbers.F90
+    stochy_namelist_def.F90
+    compns_stochy.F90
+    stochy_internal_state_mod.F90
+    spectral_transforms.F90
+    stochastic_physics_m.F90
+    stochy_patterngenerator.F90
+    stochy_data_mod.F90
+    stochy_nml_rec.F90
+    get_stochy_pattern.F90
+    lndp_apply_perts.F90
+    mpas_stochastic_physics.F90
+)
+list(TRANSFORM ATMOSPHERE_CORE_STOCHASTIC_PHYSICS_SOURCES PREPEND stochastic_physics/)
+add_library(stochastic_physics ${ATMOSPHERE_CORE_STOCHASTIC_PHYSICS_SOURCES})
+mpas_fortran_target(stochastic_physics)
+target_compile_definitions(stochastic_physics PRIVATE INTERNAL_FILE_NML MPAS)
+if(NOT MPAS_DOUBLE_PRECISION)
+  target_compile_definitions(stochastic_physics PRIVATE CCPP_32BIT)
+endif()
+find_package(BLAS REQUIRED)
+find_package(NetCDF REQUIRED COMPONENTS Fortran C)
+target_link_libraries(stochastic_physics PUBLIC MPI::MPI_Fortran framework ${BLAS_LIBRARIES} NetCDF::NetCDF_Fortran NetCDF::NetCDF_C)
+install(TARGETS stochastic_physics EXPORT ${PROJECT_NAME}ExportsCore
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 if(NOT EXISTS ${ATMOSPHERE_CORE_PHYSICS_MMM_DIR})
     set(PHYSICS_MMM_REPO_URL "https://github.com/NCAR/MMM-physics")
@@ -156,7 +204,7 @@ if(NOT EXISTS ${ATMOSPHERE_CORE_PHYSICS_MMM_DIR})
     endif()
 
 else()
-    message(STATUS "Directory ${DIR_TO_CHECK} already exists, skipping clone")
+    message( STATUS "Finished checking out external repos via manage_externals" )
 endif()
 
 set(ATMOSPHERE_CORE_PHYSICS_MMM_SOURCES
@@ -482,6 +530,7 @@ list(TRANSFORM ATMOSPHERE_CORE_DIAGNOSTIC_SOURCES PREPEND diagnostics/)
 # dynamics/
 set(ATMOSPHERE_CORE_DYNAMICS_SOURCES
     mpas_atm_boundaries.F
+    mpas_atm_dissipation_models.F
     mpas_atm_iau.F
     mpas_atm_time_integration.F)
 list(TRANSFORM ATMOSPHERE_CORE_DYNAMICS_SOURCES PREPEND dynamics/)
@@ -542,7 +591,13 @@ set(CORE_ATMOSPHERE_COMPILE_DEFINITIONS
 if (${DO_PHYSICS})
     list(APPEND CORE_ATMOSPHERE_COMPILE_DEFINITIONS DO_PHYSICS)
 endif ()
+if (${STOCHASTIC_PHYSICS})
+    list(APPEND CORE_ATMOSPHERE_COMPILE_DEFINITIONS STOCHASTIC_PHYSICS)
+endif()
 target_compile_definitions(core_atmosphere PRIVATE ${CORE_ATMOSPHERE_COMPILE_DEFINITIONS})
+if (${STOCHASTIC_PHYSICS})
+    target_link_libraries(core_atmosphere PUBLIC stochastic_physics)
+endif()
 set_MPAS_DEBUG_flag(core_atmosphere)
 mpas_core_target(CORE atmosphere TARGET core_atmosphere INCLUDES ${ATMOSPHERE_CORE_INCLUDES})
 

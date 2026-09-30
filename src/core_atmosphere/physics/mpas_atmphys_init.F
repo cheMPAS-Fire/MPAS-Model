@@ -24,7 +24,11 @@
                              f_pols_tree,f_pols_weed,f_pols_grass,f_pols_all, &
                              f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse, &
                              f_ssalt_fine,f_ssalt_coarse, &
-                             f_no3_a_fine,f_so4_a_fine,f_nh4_a_fine,f_so2,f_nh3,f_ch4
+                             f_no3_a_fine,f_so4_a_fine,f_nh4_a_fine,f_so2,f_nh3,f_ch4,&
+                             f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
+                             f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
+                             f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
+                             f_antvoc,f_bbvoc,f_bc,f_oc,f_brc
 
  use mpas_atmphys_landuse
  use mpas_atmphys_o3climatology
@@ -81,13 +85,14 @@
 !   Laura D. Fowler (laura@ucar.edu) / 2024-02-14.
 ! * added call to subroutine init_lsm_noahmp to initialize the Noah-MP land surface scheme.
 !   Laura D. Fowler (laura@ucar.edu) / 2024-03-11.
-
+! * added initialization of the integer variable mp_top_level to the physics_init code.
+!   Bill Skamarock / 2025-10-17 
 
  contains
 
 
 !=================================================================================================================
- subroutine physics_init(dminfo,stream_manager,clock,configs,mesh,diag,tend,state,time_lev,diag_physics,     &
+ subroutine physics_init(dminfo,stream_manager,clock,configs,mesh,diag,tend,tend_physics,state,time_lev,diag_physics, &
                          diag_physics_noahmp,ngw_input,atm_input,sfc_input,emission_input,output_noahmp)
 !=================================================================================================================
 
@@ -107,6 +112,7 @@ use mpas_stream_manager
  type(mpas_pool_type),intent(inout):: state
  type(mpas_pool_type),intent(inout):: diag
  type(mpas_pool_type),intent(inout):: tend
+ type(mpas_pool_type),intent(inout):: tend_physics
  type(mpas_pool_type),intent(inout):: diag_physics
  type(mpas_pool_type),intent(inout):: diag_physics_noahmp
  type(mpas_pool_type),intent(inout):: ngw_input
@@ -173,13 +179,16 @@ use mpas_stream_manager
  integer,dimension(:),pointer:: jindx1_tau, jindx2_tau
  real(kind=RKIND),dimension(:),pointer:: ddy_j1tau, ddy_j2tau
  real(kind=RKIND),dimension(:),pointer:: latCell
+ real(kind=RKIND),pointer:: config_microphysics_top
+ integer,pointer:: mp_top_level
 
 !local variables and arrays:
  type(MPAS_Time_Type):: currTime
 
  logical:: init_done
  integer:: ierr,julday 
- integer:: iCell,iLag
+ integer:: iCell,iLag,k
+ real(kind=RKIND):: layer_height
 
 !-----------------------------------------------------------------------------------------------------------------
 !call mpas_log_write('')
@@ -205,6 +214,7 @@ use mpas_stream_manager
  call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme      )
  call mpas_pool_get_config(configs,'config_calc_clean_atm_diag', config_calc_clean_atm_diag)
  call mpas_pool_get_config(configs,'config_mie_aod_opt',config_mie_aod_opt)
+ call mpas_pool_get_config(configs,'config_microphysics_top' ,config_microphysics_top )
 
  call mpas_pool_get_dimension(mesh,'nCellsSolve',nCellsSolve)
  call mpas_pool_get_dimension(mesh,'nLags'      ,nLags      )
@@ -291,6 +301,7 @@ use mpas_stream_manager
  call mpas_pool_get_dimension(mesh,'nVertLevels',nVertLevels  )
  call mpas_pool_get_array(mesh,'rdzw'   ,rdzw   )
  call mpas_pool_get_array(mesh,'dzu'    ,dzu    )
+ call mpas_pool_get_array(tend_physics,'mp_top_level',mp_top_level)
 
  currTime = mpas_get_clock_time(clock,MPAS_NOW,ierr)
  call mpas_get_time(curr_time=currTime,DoY=julday,ierr=ierr)
@@ -306,7 +317,11 @@ use mpas_stream_manager
                          f_polp_all,f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed,         &
                          f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,              &
                          f_ssalt_fine,f_ssalt_coarse,                                        &
-                         f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4            )
+                         f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4,           &  
+                         f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
+                         f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
+                         f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
+                         f_antvoc,f_bbvoc,f_bc,f_oc,f_brc )
 
 
  if (config_mie_aod_opt > 0) then
@@ -329,6 +344,17 @@ use mpas_stream_manager
        i_rainnc(iCell) = 0
     enddo
  endif
+
+! set the level above which microphysics tendencies will be ignored
+ mp_top_level = 0
+ layer_height = 0.5/rdzw(1)
+ if(layer_height .le. config_microphysics_top) mp_top_level = 1
+ do k=2,nVertLevels
+    layer_height = layer_height + dzu(k)
+    if(layer_height .le. config_microphysics_top) mp_top_level = k
+ end do
+ call mpas_log_write('physics init: config_microphysics_top and level $r $i ', &
+                     realArgs=(/config_microphysics_top/),intArgs=(/mp_top_level/))
 
 !initialization of counters i_acsw* and i_aclw*. i_acsw* and i_aclw* track the number of times
 !the accumulated long and short-wave radiation fluxes exceed their prescribed theshold values.
@@ -564,7 +590,11 @@ use mpas_stream_manager
                                f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed, &
                                f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,&
                                f_ssalt_fine,f_ssalt_coarse,&
-                               f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4)
+                               f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4, &
+                               f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
+                               f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
+                               f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
+                               f_antvoc,f_bbvoc,f_bc,f_oc,f_brc)
 !=================================================================================================================
 
 !input arguments:
@@ -577,7 +607,11 @@ use mpas_stream_manager
                        f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed, &
                        f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,&
                        f_ssalt_fine,f_ssalt_coarse,&
-                       f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4
+                       f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4,&
+                       f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
+                       f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
+                       f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
+                       f_antvoc,f_bbvoc,f_bc,f_oc,f_brc
 
 !local pointers:
  integer,pointer:: index_qc,index_qr,index_qi,index_qs,index_qg
@@ -587,7 +621,11 @@ use mpas_stream_manager
                    index_pols_all,index_pols_tree,index_pols_grass,index_pols_weed, &
                    index_dust_fine,index_dust_coarse,index_unspc_fine,index_unspc_coarse,&
                    index_ssalt_fine,index_ssalt_coarse, &
-                   index_so4_a_fine,index_no3_a_fine,index_nh4_a_fine,index_nh3,index_so2,index_ch4
+                   index_so4_a_fine,index_no3_a_fine,index_nh4_a_fine,index_nh3,index_so2,index_ch4, &
+                   index_smoke_ultrafine,index_dust_ultrafine, index_mold_fine,      &
+                   index_bact_fine,index_dms,index_plastic_fine,index_unspc_ultrafine,&
+                   index_vash_fine,index_vash_coarse,index_nox,index_soa,index_antsoa,index_bbsoa, &
+                   index_antvoc,index_bbvoc,index_bc,index_oc,index_brc
 
 
 !-----------------------------------------------------------------------------------------------------------------
@@ -615,12 +653,31 @@ use mpas_stream_manager
  f_unspc_coarse = .false.
  f_ssalt_fine   = .false.
  f_ssalt_coarse = .false.
- f_so4_a_fine    = .false.
- f_no3_a_fine    = .false.
- f_nh4_a_fine    = .false.
+ f_so4_a_fine   = .false.
+ f_no3_a_fine   = .false.
+ f_nh4_a_fine   = .false.
  f_nh3          = .false.
  f_ch4          = .false.
  f_so2          = .false.
+ f_smoke_ultrafine = .false.
+ f_dust_ultrafine = .false.
+ f_mold_fine = .false.
+ f_bact_fine = .false.
+ f_dms = .false.
+ f_plastic_fine = .false.
+ f_unspc_ultrafine= .false.
+ f_vash_fine= .false.
+ f_vash_coarse= .false.
+ f_nox= .false.
+ f_soa= .false.
+ f_antsoa= .false.
+ f_bbsoa= .false.
+ f_antvoc= .false.
+ f_bbvoc= .false.
+ f_bc= .false.
+ f_oc= .false.
+ f_brc= .false.
+
  call mpas_pool_get_dimension(state,'index_qc',index_qc)
  call mpas_pool_get_dimension(state,'index_qr',index_qr)
  call mpas_pool_get_dimension(state,'index_qi',index_qi)
@@ -648,6 +705,24 @@ use mpas_stream_manager
  call mpas_pool_get_dimension(state,'index_nh3',index_nh3)
  call mpas_pool_get_dimension(state,'index_so2',index_so2)
  call mpas_pool_get_dimension(state,'index_ch4',index_ch4)
+ call mpas_pool_get_dimension(state,'index_smoke_ultrafine',index_smoke_ultrafine)
+ call mpas_pool_get_dimension(state,'index_dust_ultrafine', index_dust_ultrafine)
+ call mpas_pool_get_dimension(state,'index_mold_fine', index_mold_fine)
+ call mpas_pool_get_dimension(state,'index_bact_fine', index_bact_fine)
+ call mpas_pool_get_dimension(state,'index_dms', index_dms)
+ call mpas_pool_get_dimension(state,'index_plastic_fine', index_plastic_fine)
+ call mpas_pool_get_dimension(state,'index_unspc_ultrafine', index_unspc_ultrafine)
+ call mpas_pool_get_dimension(state,'index_vash_fine', index_vash_fine)
+ call mpas_pool_get_dimension(state,'index_vash_coarse', index_vash_coarse)
+ call mpas_pool_get_dimension(state,'index_nox', index_nox)
+ call mpas_pool_get_dimension(state,'index_soa', index_soa)
+ call mpas_pool_get_dimension(state,'index_antsoa', index_antsoa)
+ call mpas_pool_get_dimension(state,'index_bbsoa', index_bbsoa)
+ call mpas_pool_get_dimension(state,'index_antvoc', index_antvoc)
+ call mpas_pool_get_dimension(state,'index_bbvoc', index_bbvoc)
+ call mpas_pool_get_dimension(state,'index_bc', index_bc)
+ call mpas_pool_get_dimension(state,'index_oc', index_oc)
+ call mpas_pool_get_dimension(state,'index_brc', index_brc)
 
  if(index_qc .gt. -1) f_qc = .true.
  if(index_qr .gt. -1) f_qr = .true.
@@ -676,6 +751,25 @@ use mpas_stream_manager
  if(index_nh3          .gt. -1) f_nh3 = .true.
  if(index_so2          .gt. -1) f_so2 = .true.
  if(index_ch4          .gt. -1) f_ch4 = .true.
+ if(index_smoke_ultrafine   .gt. -1) f_smoke_ultrafine = .true.
+ if(index_dust_ultrafine    .gt. -1) f_dust_ultrafine = .true.
+ if(index_mold_fine         .gt. -1) f_mold_fine = .true.
+ if(index_bact_fine         .gt. -1) f_bact_fine = .true.
+ if(index_dms               .gt. -1) f_dms = .true.
+ if(index_plastic_fine      .gt. -1) f_plastic_fine = .true.
+ if(index_unspc_ultrafine   .gt. -1) f_unspc_ultrafine = .true.
+ if(index_vash_fine         .gt. -1) f_vash_fine = .true.
+ if(index_vash_coarse       .gt. -1) f_vash_coarse = .true.
+ if(index_nox               .gt. -1) f_nox = .true.
+ if(index_soa               .gt. -1) f_soa = .true.
+ if(index_antsoa            .gt. -1) f_antsoa = .true.
+ if(index_bbsoa             .gt. -1) f_bbsoa = .true.
+ if(index_antvoc            .gt. -1) f_antvoc = .true.
+ if(index_bbvoc             .gt. -1) f_bbvoc = .true.
+ if(index_bc                .gt. -1) f_bc = .true.
+ if(index_oc                .gt. -1) f_oc = .true.
+ if(index_brc               .gt. -1) f_brc = .true.
+
 
 !initializes the logical assigned to number concentrations:
  f_nc   = .false.

@@ -204,6 +204,7 @@
          if(.not.allocated(swupflxc_p)   ) allocate(swupflxc_p(ims:ime,kms:kme+1,jms:jme)    )
          if(.not.allocated(swdnflxcln_p) ) allocate(swdnflxcln_p(ims:ime,kms:kme+1,jms:jme)) !Clean sky
          if(.not.allocated(swupflxcln_p) ) allocate(swupflxcln_p(ims:ime,kms:kme+1,jms:jme)) !Clean sky
+         if(.not.allocated(uvai_rrtmg_p) ) allocate(uvai_rrtmg_p(ims:ime,jms:jme)                )
        end if 
 
        if(.not.allocated(pin_p)        ) allocate(pin_p(num_oznlevels)                     )
@@ -354,6 +355,7 @@
        if(allocated(swddni_p)     ) deallocate(swddni_p     )
        if(allocated(swddif_p)     ) deallocate(swddif_p     )
 
+
        if(allocated(swdnflx_p)    ) deallocate(swdnflx_p    )
        if(allocated(swupflx_p)    ) deallocate(swupflx_p    )
        if (config_calc_clean_atm_diag) then
@@ -361,6 +363,7 @@
          if(allocated(swupflxc_p)   ) deallocate(swupflxc_p) !Clear sky
          if(allocated(swdnflxcln_p) ) deallocate(swdnflxcln_p) !Clean sky
          if(allocated(swupflxcln_p) ) deallocate(swupflxcln_p) !Clean sky
+         if(allocated(uvai_rrtmg_p) ) deallocate(uvai_rrtmg_p )
        end if 
 
        if(allocated(pin_p)        ) deallocate(pin_p        )
@@ -582,6 +585,7 @@
       swdntcln_p(i,j) = 0.0_RKIND
       swupbcln_p(i,j) = 0.0_RKIND
       swuptcln_p(i,j) = 0.0_RKIND
+      uvai_rrtmg_p(i,j) = 0.0_RKIND
     endif
  enddo
  do k = kts,kte
@@ -1087,7 +1091,7 @@
 !local pointers:
  real(kind=RKIND),dimension(:),pointer  :: coszr,gsw,swcf,swdnb,swdnbc,swdnt,swdntc, &
                                            swupb,swupbc,swupt,swuptc,swddir,swddni,  &
-                                           swddif
+                                           swddif, uvai_rrtmg
  real(kind=RKIND),dimension(:),pointer  :: swdnbcln, swdntcln, swuptcln, swupbcln                                   
  real(kind=RKIND),dimension(:,:),pointer:: rthratensw !,rthratenswc
  logical,pointer:: config_calc_clean_atm_diag
@@ -1108,6 +1112,7 @@
  call mpas_pool_get_array(diag_physics,'swddni'    ,swddni    )
  call mpas_pool_get_array(diag_physics,'swddif'    ,swddif    )
  call mpas_pool_get_array(tend_physics,'rthratensw',rthratensw)
+ call mpas_pool_get_array(diag_physics,'uvai_rrtmg',uvai_rrtmg)
 ! call mpas_pool_get_array(tend_physics,'rthratenswc',rthratenswc)
  if (config_calc_clean_atm_diag) then
    call mpas_pool_get_array(diag_physics,'swdnbc'    ,swdnbc    ) ! Clear Diagnostic
@@ -1141,6 +1146,7 @@
       swdntcln(i) = swdntcln_p(i,j)
       swupbcln(i) = swupbcln_p(i,j)
       swuptcln(i) = swuptcln_p(i,j)
+      uvai_rrtmg(i) = uvai_rrtmg_p(i,j)
     endif
  enddo
 ! enddo
@@ -1315,8 +1321,8 @@
               swupbc     = swupbc_p     , swupbcln   = swupbcln_p    , swdnb    = swdnb_p  , &
               swdnbc     = swdnbc_p     , swdnbcln   = swdnbcln_p    , swupflx  = swupflx_p, &
               swupflxc   = swupflxc_p   , swupflxcln = swupflxcln_p  , swdnflx  = swdnflx_p, &
-              swdnflxc   = swdnflxc_p   , swdnflxcln = swdnflxcln_p  , swddir   = swddir_p , &
-              swddni     = swddni_p     , swddif     = swddif_p      , &
+              swdnflxc   = swdnflxc_p   , swdnflxcln = swdnflxcln_p  , uvai_rrtmg = uvai_rrtmg_p,&
+              swddir   = swddir_p       , swddni     = swddni_p      , swddif   = swddif_p,  &
               config_calc_clean_atm_diag=config_calc_clean_atm_diag, &
               julian     = curr_julday, &
               ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,           &

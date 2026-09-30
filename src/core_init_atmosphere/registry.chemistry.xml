@@ -154,6 +154,26 @@
                       <var name="dust_coarse" array_group="chemistry" units="kg kg^{-1}"
                            description="coarse dust mixing ratio"
                            packages="mpas_dust_in;mpas_anthro_in"/>
+
+                      <var name="dust1" array_group="chemistry" units="kg kg^{-1}"
+                           description="dust mixing ratio bin 1 (0.2 - 2.0 um)"
+                           packages="mpas_dust_in;mpas_anthro_in"/>
+
+                      <var name="dust2" array_group="chemistry" units="kg kg^{-1}"
+                           description="dust mixing ratio bin 2 (2.0 - 3.6 um)"
+                           packages="mpas_dust_in;mpas_anthro_in"/>
+
+                      <var name="dust3" array_group="chemistry" units="kg kg^{-1}"
+                           description="dust mixing ratio bin 3 (3.6 - 6.0 um)"
+                           packages="mpas_dust_in;mpas_anthro_in"/>
+
+                      <var name="dust4" array_group="chemistry" units="kg kg^{-1}"
+                           description="dust mixing ratio bin 4 (6.0 - 12.0 um)"
+                           packages="mpas_dust_in;mpas_anthro_in"/>
+
+                      <var name="dust5" array_group="chemistry" units="kg kg^{-1}"
+                           description="dust mixing ratio bin 5 (12.0 - 20.0 um)"
+                           packages="mpas_dust_in;mpas_anthro_in"/>
  
                       <var name="ssalt_fine" array_group="chemistry" units="kg kg^{-1}"
                            description="fine sea salt mixing ratio"
@@ -262,6 +282,16 @@
 		     packages="mpas_dust_in;mpas_anthro_in" description="First guess fine dust aerosols"/>
                 <var name="dust_coarse_fg" name_in_code="dust_coarse" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
 		     packages="mpas_dust_in;mpas_anthro_in" description="First guess coarse dust aerosols"/>
+                <var name="dust1_fg" name_in_code="dust1" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+                     packages="mpas_dust_in;mpas_anthro_in" description="dust bin 1 (0.2 - 2.0 um)"/>
+                <var name="dust2_fg" name_in_code="dust2" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+                     packages="mpas_dust_in;mpas_anthro_in" description="dust bin 1 (2.0 - 3.6 um)"/>
+                <var name="dust3_fg" name_in_code="dust3" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+                     packages="mpas_dust_in;mpas_anthro_in" description="dust bin 1 (3.6 - 6.0 um)"/>
+                <var name="dust4_fg" name_in_code="dust4" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+                     packages="mpas_dust_in;mpas_anthro_in" description="dust bin 1 (6.0 - 12.0 um)"/>
+                <var name="dust5_fg" name_in_code="dust5" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
+                     packages="mpas_dust_in;mpas_anthro_in" description="dust bin 1 (12.0 - 20.0 um)"/>
                 <var name="unspc_fine_fg" name_in_code="unspc_fine" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"
 		     packages="mpas_anthro_in" description="First guess fine unspeciated aerosols"/>
                 <var name="unspc_coarse_fg" name_in_code="unspc_coarse" type="real" dimensions="nFGLevels nCells Time" units="kg^{-1}"

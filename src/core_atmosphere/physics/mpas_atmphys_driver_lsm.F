@@ -140,6 +140,8 @@
  if(.not.allocated(smois_p) ) allocate(smois_p(ims:ime,1:num_soils,jms:jme) )
  if(.not.allocated(tslb_p)  ) allocate(tslb_p(ims:ime,1:num_soils,jms:jme)  )
 
+ if(.not.allocated(hfx_bb_p)       ) allocate(hfx_bb_p(ims:ime,jms:jme)       )
+
 !other arrays:
  if(.not.allocated(acsnom_p)    ) allocate(acsnom_p(ims:ime,jms:jme)    )
  if(.not.allocated(acsnow_p)    ) allocate(acsnow_p(ims:ime,jms:jme)    )
@@ -252,6 +254,8 @@
  if(allocated(sh2o_p)  ) deallocate(sh2o_p  )
  if(allocated(smois_p) ) deallocate(smois_p )
  if(allocated(tslb_p)  ) deallocate(tslb_p  )
+
+ if(allocated(hfx_bb_p)       ) deallocate(hfx_bb_p       )
 
 !other arrays:
  if(allocated(acsnom_p)    ) deallocate(acsnom_p    )
@@ -427,9 +431,9 @@
  call mpas_pool_get_array(diag_physics,'udrunoff'  ,udrunoff  )
  call mpas_pool_get_array(diag_physics,'z0'        ,z0        )
  call mpas_pool_get_array(diag_physics,'znt'       ,znt       )
- if (add_fire_heat_flux)then
-   call mpas_pool_get_array(diag_physics,'hfx_bb'         ,hfx_bb           )
- endif
+ !if (add_fire_heat_flux)then
+ call mpas_pool_get_array(diag_physics,'hfx_bb'         ,hfx_bb           )
+ !endif
  if (config_lsm_scheme .eq. "sf_ruc") then
    call mpas_pool_get_array(diag_physics,'rhosnf'         ,rhosnf           )
    call mpas_pool_get_array(diag_physics,'precipfr'       ,precipfr         )
@@ -537,12 +541,13 @@
     glw_p(i,j)        = glw(i)
     grdflx_p(i,j)     = grdflx(i)
     gsw_p(i,j)        = gsw(i)
+    hfx_bb_p(i,j)     = hfx_bb(i)
 ! JLS, add fire heat flux
-    if (add_fire_heat_flux) then
-       hfx_p(i,j)        = hfx(i) + hfx_bb(i)      
-    else
+    !if (add_fire_heat_flux) then
+    !   hfx_p(i,j)        = hfx(i) + hfx_bb(i)      
+    !else
        hfx_p(i,j)        = hfx(i)
-    endif
+    !endif
     lai_p(i,j)        = lai(i)
     lh_p(i,j)         = lh(i)
     noahres_p(i,j)    = noahres(i)
@@ -671,6 +676,8 @@
 
  integer,dimension(:),pointer:: isltyp,ivgtyp
 
+ real(kind=RKIND), dimension(:), pointer :: hfx_bb
+
  real(kind=RKIND),dimension(:),pointer  :: acsnom,acsnow,canwat,chs,chs2,chklowq,cpm,cqs2,glw, &
                                            grdflx,gsw,hfx,lai,lh,noahres,potevp,qfx,qgh,qsfc,  &
                                            br,sfc_albedo,sfc_emibck,sfc_emiss,sfcrunoff,       &
@@ -692,6 +699,8 @@
 
  call mpas_pool_get_config(configs,'config_microp_scheme',config_microp_scheme)
  call mpas_pool_get_config(configs,'config_lsm_scheme',config_lsm_scheme)
+
+ call mpas_pool_get_array(diag_physics,'hfx_bb'       ,hfx_bb       )
 
  call mpas_pool_get_array(diag_physics,'acsnom'    ,acsnom    )
  call mpas_pool_get_array(diag_physics,'acsnow'    ,acsnow    )
@@ -797,6 +806,7 @@
     glw(i)        = glw_p(i,j)
     grdflx(i)     = grdflx_p(i,j)
     gsw(i)        = gsw_p(i,j)
+    hfx_bb(i)     = hfx_bb_p(i,j)
     hfx(i)        = hfx_p(i,j)
     lai(i)        = lai_p(i,j)
     lh(i)         = lh_p(i,j)
@@ -1038,8 +1048,8 @@
                     shdmax         = shdmax_p      , globalCells     =          globalCells,               &
                     ids = ids , ide = ide , jds = jds , jde = jde , kds = kds , kde = kde ,  &
                     ims = ims , ime = ime , jms = jms , jme = jme , kms = kms , kme = kme ,  &
-                    its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte    &
-                          )
+                    its = its , ite = ite , jts = jts , jte = jte , kts = kts , kte = kte ,  &
+                    hfx_bb = hfx_bb_p       )
        call mpas_timer_stop('sf_ruc')
 
     case default

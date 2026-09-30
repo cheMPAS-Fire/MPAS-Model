@@ -9,7 +9,7 @@
 	url = https://github.com/NCAR/MYNN-EDMF
 [submodule "src/core_atmosphere/physics/physics_noaa/RUCLSM"]
 	path = src/core_atmosphere/physics/physics_noaa/RUCLSM
-	url = https://github.com/NOAA-GSL/RUCLSM.git
+	url = https://github.com/cheMPAS-Fire/RUCLSM.git
 [submodule "src/core_atmosphere/physics/physics_noaa/GFL"]
 	path = src/core_atmosphere/physics/physics_noaa/GFL
 	url = https://github.com/NOAA-GSL/GFL.git
@@ -22,3 +22,6 @@
 [submodule "src/core_atmosphere/physics/physics_mmm"]
 	path = src/core_atmosphere/physics/physics_mmm
 	url = https://github.com/NCAR/MMM-physics.git
+[submodule "src/core_atmosphere/stochastic_physics"]
+	path = src/core_atmosphere/stochastic_physics
+	url = https://github.com/dtcenter/stochastic_physics.git

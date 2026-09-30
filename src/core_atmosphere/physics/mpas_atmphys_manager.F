@@ -403,7 +403,8 @@
                                   config_dust_scheme,       &
                                   config_pollen_scheme,     &
                                   config_anthro_scheme,     &
-                                  config_rwc_scheme
+                                  config_rwc_scheme,        &
+                                  config_bact_scheme   
 
  character(len=StrKIND),pointer:: config_conv_interval,     &
                                   config_pbl_interval,      &
@@ -424,6 +425,7 @@
  integer,pointer:: nAerosols,nAerLevels,nOznLevels
  integer,pointer:: nCellsSolve,nSoilLevels,nVertLevels,nlcat,nscat
  integer,pointer:: nChem,nkanthro,nkwildfire,nkbiogenic,nkvolcanic
+ integer,pointer:: nSoilTypes
  integer,pointer:: n_e_ant_in,n_e_bb_in,n_e_bio_in,n_e_vol_in
  integer,pointer:: n_e_ant_out,n_e_bb_out,n_e_bio_out,n_e_dust_out,n_e_ss_out,n_e_vol_out
  integer,pointer:: n_anthro_pt,n_e_ant_pt_in,n_e_ant_stack_groups_in
@@ -456,6 +458,7 @@
  call mpas_pool_get_config(configs,'config_frac_seaice'      ,config_frac_seaice      )
  call mpas_pool_get_config(configs,'config_microp_re'        ,config_microp_re        )
  call mpas_pool_get_config(configs,'config_smoke_scheme'     ,config_smoke_scheme     )
+ call mpas_pool_get_config(configs,'config_bact_scheme'      ,config_bact_scheme     )
  call mpas_pool_get_config(configs,'config_dust_scheme'      ,config_dust_scheme      )
  call mpas_pool_get_config(configs,'config_pollen_scheme'    ,config_pollen_scheme    )
  call mpas_pool_get_config(configs,'config_rwc_scheme'       ,config_rwc_scheme)
@@ -481,6 +484,7 @@
  call mpas_pool_get_dimension(mesh,'nkwildfire'   ,nkwildfire     )
  call mpas_pool_get_dimension(mesh,'nkbiogenic'   ,nkbiogenic     )
  call mpas_pool_get_dimension(mesh,'nkvolcanic'   ,nkvolcanic     )
+ call mpas_pool_get_dimension(mesh,'nSoilTypes'   ,nSoilTypes     )
 
  call mpas_pool_get_dimension(diag_physics, 'num_e_ant_out',n_e_ant_out  )
  call mpas_pool_get_dimension(diag_physics, 'num_e_bb_out',n_e_bb_out    )
@@ -730,6 +734,7 @@ call mpas_pool_get_dimension(emission_input,'num_e_ant_stack_groups_in',n_e_ant_
  kwildfire   = nkwildfire
  kbiogenic   = nkbiogenic
  kvolcanic   = nkvolcanic
+ num_soil_types = nSoilTypes
 !
  num_e_ant_in= n_e_ant_in
  num_e_bb_in = n_e_bb_in
@@ -749,7 +754,7 @@ call mpas_pool_get_dimension(emission_input,'num_e_ant_stack_groups_in',n_e_ant_
 
  if(config_smoke_scheme .ne. 'off' .or. config_dust_scheme  .ne. 'off' .or. &
     config_anthro_scheme .ne. 'off' .or. config_pollen_scheme .ne. 'off' .or. &
-    config_rwc_scheme .ne. 'off' ) then
+    config_rwc_scheme .ne. 'off' .or. config_bact_scheme .ne. 'off'  ) then
     do_chemistry = .true.
  else
     do_chemistry = .false.
