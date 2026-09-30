@@ -1560,6 +1560,7 @@ endif
  integer,pointer :: index_co
  integer,pointer :: index_nox
  integer,pointer :: index_bact_fine
+ integer,pointer :: index_mold_fine
 
  integer,pointer :: index_e_bb_in_smoke_ultrafine
  integer,pointer :: index_e_bb_in_smoke_fine
@@ -1629,6 +1630,7 @@ endif
  character(len=StrKIND),pointer :: config_sna_scheme
  character(len=StrKIND),pointer :: config_methane_scheme
  character(len=StrKIND),pointer :: config_bact_scheme
+ character(len=StrKIND),pointer :: config_mold_scheme
  character(len=StrKIND),pointer :: config_rwc_scheme
  character(len=StrKIND),pointer :: config_extra_chemical_tracers
  character(len=StrKIND),pointer :: config_anthro_pt_scheme
@@ -1719,6 +1721,7 @@ endif
  call mpas_pool_get_config(configs,'config_sna_scheme',config_sna_scheme)
  call mpas_pool_get_config(configs,'config_methane_scheme',config_methane_scheme)
  call mpas_pool_get_config(configs,'config_bact_scheme',config_bact_scheme)
+ call mpas_pool_get_config(configs,'config_mold_scheme',config_mold_scheme)
  call mpas_pool_get_config(configs,'config_ultrafine',config_ultrafine)
  call mpas_pool_get_config(configs,'config_coarse',config_coarse)
  call mpas_pool_get_config(configs,'config_extra_chemical_tracers',config_extra_chemical_tracers)
@@ -1891,6 +1894,7 @@ endif
  call mpas_pool_get_dimension(state,'index_ch4',index_ch4)
 !
  call mpas_pool_get_dimension(state,'index_bact_fine',index_bact_fine)
+ call mpas_pool_get_dimension(state,'index_mold_fine',index_mold_fine)
 
  initflag = 1
  if(config_do_restart .or. itimestep > 1) initflag = 0
@@ -2029,6 +2033,7 @@ endif
             index_nh3 = index_nh3,                                            &
             index_ch4 = index_ch4,                                            &
             index_bact_fine = index_bact_fine,                                &
+            index_mold_fine = index_mold_fine,                                &
 !--- Emission input indices
             index_e_bb_in_smoke_ultrafine = index_e_bb_in_smoke_ultrafine,    &
             index_e_bb_in_smoke_fine = index_e_bb_in_smoke_fine,              &
