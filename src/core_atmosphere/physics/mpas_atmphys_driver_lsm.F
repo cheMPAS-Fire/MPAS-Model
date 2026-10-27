@@ -139,9 +139,7 @@
  if(.not.allocated(sh2o_p)  ) allocate(sh2o_p(ims:ime,1:num_soils,jms:jme)  )
  if(.not.allocated(smois_p) ) allocate(smois_p(ims:ime,1:num_soils,jms:jme) )
  if(.not.allocated(tslb_p)  ) allocate(tslb_p(ims:ime,1:num_soils,jms:jme)  )
-
- if(.not.allocated(hfx_bb_p)       ) allocate(hfx_bb_p(ims:ime,jms:jme)       )
-
+ if(.not.allocated(hfx_bb_p)) allocate(hfx_bb_p(ims:ime,jms:jme)       )
 !other arrays:
  if(.not.allocated(acsnom_p)    ) allocate(acsnom_p(ims:ime,jms:jme)    )
  if(.not.allocated(acsnow_p)    ) allocate(acsnow_p(ims:ime,jms:jme)    )
@@ -255,7 +253,7 @@
  if(allocated(smois_p) ) deallocate(smois_p )
  if(allocated(tslb_p)  ) deallocate(tslb_p  )
 
- if(allocated(hfx_bb_p)       ) deallocate(hfx_bb_p       )
+ if(allocated(hfx_bb_p)) deallocate(hfx_bb_p)
 
 !other arrays:
  if(allocated(acsnom_p)    ) deallocate(acsnom_p    )
@@ -384,6 +382,8 @@
  real(kind=RKIND),dimension(:,:),pointer:: smfr3d,landusef,soilf,keepfr3d,zs
 
  logical,pointer :: add_fire_heat_flux
+ character(len=StrKIND),pointer :: config_smoke_scheme
+ logical :: use_fire_heat
  real(kind=RKIND),dimension(:),pointer  :: hfx_bb
 
 !local variables and arrays:
@@ -397,6 +397,8 @@
  call mpas_pool_get_config(configs,'config_microp_scheme'    ,config_microp_scheme    )
  call mpas_pool_get_config(configs,'config_lsm_scheme'       ,config_lsm_scheme       )
  call mpas_pool_get_config(configs,'add_fire_heat_flux'      ,add_fire_heat_flux      )
+ call mpas_pool_get_config(configs,'config_smoke_scheme',config_smoke_scheme)
+ use_fire_heat = add_fire_heat_flux .and. config_smoke_scheme .ne. 'off'
 
  call mpas_pool_get_array(diag_physics,'acsnom'    ,acsnom    )
  call mpas_pool_get_array(diag_physics,'acsnow'    ,acsnow    )
@@ -431,9 +433,9 @@
  call mpas_pool_get_array(diag_physics,'udrunoff'  ,udrunoff  )
  call mpas_pool_get_array(diag_physics,'z0'        ,z0        )
  call mpas_pool_get_array(diag_physics,'znt'       ,znt       )
- !if (add_fire_heat_flux)then
- call mpas_pool_get_array(diag_physics,'hfx_bb'         ,hfx_bb           )
- !endif
+ if (use_fire_heat) then
+    call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
+ endif
  if (config_lsm_scheme .eq. "sf_ruc") then
    call mpas_pool_get_array(diag_physics,'rhosnf'         ,rhosnf           )
    call mpas_pool_get_array(diag_physics,'precipfr'       ,precipfr         )
@@ -449,7 +451,7 @@
    call mpas_pool_get_array(diag_physics,'graupelncv'     ,graupelncv       )
    call mpas_pool_get_array(diag_physics,'snowncv'        ,snowncv          )
    call mpas_pool_get_array(diag_physics,'rainncv'        ,rainncv          )
-   call mpas_pool_get_array(diag_physics,'qcg'            ,qsg              )
+   call mpas_pool_get_array(diag_physics,'qsg'            ,qsg              )
    call mpas_pool_get_array(diag_physics,'flqc'           ,flqc             )
    call mpas_pool_get_array(diag_physics,'flhc'           ,flhc             )
    call mpas_pool_get_array(diag_physics,'sfcexc'         ,sfcexc           )
@@ -541,13 +543,12 @@
     glw_p(i,j)        = glw(i)
     grdflx_p(i,j)     = grdflx(i)
     gsw_p(i,j)        = gsw(i)
-    hfx_bb_p(i,j)     = hfx_bb(i)
-! JLS, add fire heat flux
-    !if (add_fire_heat_flux) then
-    !   hfx_p(i,j)        = hfx(i) + hfx_bb(i)      
-    !else
-       hfx_p(i,j)        = hfx(i)
-    !endif
+    if (use_fire_heat) then
+      hfx_bb_p(i,j) = hfx_bb(i)
+    else
+      hfx_bb_p(i,j) = 0._RKIND
+    endif       
+    hfx_p(i,j) = hfx(i)
     lai_p(i,j)        = lai(i)
     lh_p(i,j)         = lh(i)
     noahres_p(i,j)    = noahres(i)
@@ -676,6 +677,9 @@
 
  integer,dimension(:),pointer:: isltyp,ivgtyp
 
+ logical,pointer :: add_fire_heat_flux
+ character(len=StrKIND),pointer :: config_smoke_scheme
+ logical :: use_fire_heat
  real(kind=RKIND), dimension(:), pointer :: hfx_bb
 
  real(kind=RKIND),dimension(:),pointer  :: acsnom,acsnow,canwat,chs,chs2,chklowq,cpm,cqs2,glw, &
@@ -700,7 +704,13 @@
  call mpas_pool_get_config(configs,'config_microp_scheme',config_microp_scheme)
  call mpas_pool_get_config(configs,'config_lsm_scheme',config_lsm_scheme)
 
- call mpas_pool_get_array(diag_physics,'hfx_bb'       ,hfx_bb       )
+ call mpas_pool_get_config(configs,'add_fire_heat_flux',add_fire_heat_flux)
+ call mpas_pool_get_config(configs,'config_smoke_scheme',config_smoke_scheme)
+ use_fire_heat = add_fire_heat_flux .and. config_smoke_scheme .ne. 'off'
+
+ if (use_fire_heat) then
+    call mpas_pool_get_array(diag_physics,'hfx_bb',hfx_bb)
+ endif
 
  call mpas_pool_get_array(diag_physics,'acsnom'    ,acsnom    )
  call mpas_pool_get_array(diag_physics,'acsnow'    ,acsnow    )
@@ -806,7 +816,9 @@
     glw(i)        = glw_p(i,j)
     grdflx(i)     = grdflx_p(i,j)
     gsw(i)        = gsw_p(i,j)
-    hfx_bb(i)     = hfx_bb_p(i,j)
+    if (use_fire_heat) then
+       hfx_bb(i) = hfx_bb_p(i,j)
+    endif
     hfx(i)        = hfx_p(i,j)
     lai(i)        = lai_p(i,j)
     lh(i)         = lh_p(i,j)
