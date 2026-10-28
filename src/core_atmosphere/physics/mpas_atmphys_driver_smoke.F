@@ -2397,6 +2397,31 @@ endif
  if (config_carbon_aero_scheme .ne. 'off' ) then
     do_mpas_carbon_aero = .true.
  endif
+
+  k_end = MIN(kte, UBOUND(tauaer_sw, 2))
+ 
+  IF ( config_mie_aod_opt .GT. 0 .AND. &
+       (aero_dir_rad_fdb .EQ. 2 .OR. &
+        aero_dir_rad_fdb .EQ. 4) ) THEN
+ 
+    DO j = jts, jte
+      DO i = its, ite
+        DO k = kts, k_end
+          DO n = 1, 14
+            tauaer_sw_p(i,k,j,n) = tauaer_sw(n,k,i)
+            ssaaer_sw_p(i,k,j,n) = ssaaer_sw(n,k,i)
+            asyaer_sw_p(i,k,j,n) = asyaer_sw(n,k,i)
+          ENDDO
+   
+          DO n = 1, 16
+            tauaer_lw_p(i,k,j,n) = tauaer_lw(n,k,i)
+          ENDDO
+        ENDDO
+      ENDDO
+    ENDDO
+  
+  ENDIF
+
  
   call mpas_timer_start('mpas_smoke')
   call mpas_smoke_driver(                                              &
@@ -2934,8 +2959,9 @@ endif
 ! --------------------------------------------------------------------------------------
 k_end = MIN(kte, UBOUND(tauaer_sw, 2))
 
-IF ( aero_dir_rad_fdb .EQ. 2 .OR. &
-     aero_dir_rad_fdb .EQ. 4 ) THEN
+IF ( config_mie_aod_opt .GT. 0 .AND. &
+     (aero_dir_rad_fdb .EQ. 2 .OR. &
+      aero_dir_rad_fdb .EQ. 4) ) THEN
 
   DO j = jts, jte
     DO i = its, ite

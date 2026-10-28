@@ -232,7 +232,7 @@ module atm_time_integration
 
       type (domain_type), intent(inout) :: domain
 
-#ifdef MPAS_CAM_DYCORE
+#if defined(MPAS_CAM_DYCORE) || defined(MPAS_UFS_DYCORE)
       ! Used in allocating scratch fields for physics tendencies
       type (mpas_pool_type), pointer :: tend_physics
       type (field2DReal), pointer :: tend_ru_physicsField, tend_rtheta_physicsField, tend_rho_physicsField
@@ -307,7 +307,7 @@ module atm_time_integration
       real (kind=RKIND), dimension(:,:), pointer :: deformation_coef_s
 #endif
 
-#ifdef MPAS_CAM_DYCORE
+#if defined(MPAS_CAM_DYCORE) || defined(MPAS_UFS_DYCORE)
       nullify(tend_physics)
       call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
 
@@ -319,6 +319,17 @@ module atm_time_integration
 
       call mpas_pool_get_field(tend_physics, 'tend_ru_physics', tend_ru_physicsField)
       call mpas_allocate_scratch_field(tend_ru_physicsField)
+#ifdef MPAS_UFS_DYCORE
+      !
+      ! Under UFS these fields persist for the whole run: the UFS coupling layer
+      ! (atmos_coupling.F90::ufs_physics_to_mpas) overwrites tend_ru_physics and
+      ! tend_rtheta_physics before every dynamics step, while tend_rho_physics are not
+      ! (yet) used and must stay zero.
+      !
+      tend_rtheta_physicsField % array(:,:) = 0.0_RKIND
+      tend_rho_physicsField % array(:,:) = 0.0_RKIND
+      tend_ru_physicsField % array(:,:) = 0.0_RKIND
+#endif
 #endif
 
 #ifdef MPAS_OPENACC
@@ -597,7 +608,7 @@ module atm_time_integration
       MPAS_ACC_TIMER_START('first_compute_solve_diagnostics [ACC_data_xfer]')
 
       call mpas_pool_get_array(state, 'rho_zz', h, 1)
-      !$acc enter data create(h)
+      !$acc enter data copyin(h)
 
       call mpas_pool_get_array(state, 'u', u, 1)
       !$acc enter data copyin(u)
@@ -1493,7 +1504,7 @@ module atm_time_integration
 
       type (domain_type), intent(inout) :: domain
 
-#ifdef MPAS_CAM_DYCORE
+#if defined(MPAS_CAM_DYCORE) || defined(MPAS_UFS_DYCORE)
       ! Used in allocating scratch fields for physics tendencies
       type (mpas_pool_type), pointer :: tend_physics
       type (field2DReal), pointer :: tend_ru_physicsField, tend_rtheta_physicsField, tend_rho_physicsField
@@ -1569,7 +1580,7 @@ module atm_time_integration
 #endif
 
 
-#ifdef MPAS_CAM_DYCORE
+#if defined(MPAS_CAM_DYCORE) || defined(MPAS_UFS_DYCORE)
       nullify(tend_physics)
       call mpas_pool_get_subpool(domain % blocklist % structs, 'tend_physics', tend_physics)
 
@@ -1933,7 +1944,7 @@ module atm_time_integration
       real (kind=RKIND), dimension(:,:), pointer :: rho_pp, rtheta_pp, ru_p, rw_p, pv_edge, rho_edge
       real (kind=RKIND) :: theta_local, fac_m
 
-#ifndef MPAS_CAM_DYCORE
+#if !defined(MPAS_CAM_DYCORE) && !defined(MPAS_UFS_DYCORE)
       ! Used in allocating scratch fields for physics tendencies
       type (field2DReal), pointer :: tend_ru_physicsField, tend_rtheta_physicsField, tend_rho_physicsField
 #endif
@@ -2031,7 +2042,7 @@ module atm_time_integration
       end do
       !$acc end parallel
 
-#ifndef MPAS_CAM_DYCORE
+#if !defined(MPAS_CAM_DYCORE) && !defined(MPAS_UFS_DYCORE)
       call mpas_pool_get_field(tend_physics, 'tend_rtheta_physics', tend_rtheta_physicsField)
       call mpas_allocate_scratch_field(tend_rtheta_physicsField)
 
@@ -2169,7 +2180,7 @@ module atm_time_integration
 #endif
 
 #else
-#ifndef MPAS_CAM_DYCORE
+#if !defined(MPAS_CAM_DYCORE) && !defined(MPAS_UFS_DYCORE)
       !
       ! If no physics are being used, simply zero-out the physics tendency fields
       !
@@ -2679,7 +2690,7 @@ module atm_time_integration
       deallocate(qtot)  !  we are finished with these now
 
       !$acc exit data delete(tend_rtheta_physics,tend_rho_physics,tend_ru_physics)
-#ifndef MPAS_CAM_DYCORE
+#if !defined(MPAS_CAM_DYCORE) && !defined(MPAS_UFS_DYCORE)
       call mpas_deallocate_scratch_field(tend_rtheta_physicsField)
       call mpas_deallocate_scratch_field(tend_rho_physicsField)
       call mpas_deallocate_scratch_field(tend_ru_physicsField)
@@ -5057,7 +5068,7 @@ module atm_time_integration
             do k=1,nVertLevels
             do iScalar=1,num_scalars
                scalar_tend_column(iScalar,k) = 0.0_RKIND
-#ifndef DO_PHYSICS
+#if !defined(DO_PHYSICS) && !defined(MPAS_UFS_DYCORE)
                scalar_tend_save(iScalar,k,iCell) = 0.0_RKIND  !  testing purposes - we have no sources or sinks
 #endif
             end do
@@ -5395,7 +5406,7 @@ module atm_time_integration
          do k = 1,nVertLevels
             do iScalar = 1,num_scalars
 
-#ifndef DO_PHYSICS
+#if !defined(DO_PHYSICS) && !defined(MPAS_UFS_DYCORE)
                scalar_tend(iScalar,k,iCell) = 0.0_RKIND  !  testing purposes - we have no sources or sinks
 #endif
                scalars_old(iScalar,k,iCell) = scalars_old(iScalar,k,iCell)+dt*scalar_tend(iScalar,k,iCell) / rho_zz_old(k,iCell)
@@ -8722,6 +8733,8 @@ module atm_time_integration
        logical, pointer :: config_print_global_minmax_vel
        logical, pointer :: config_print_detailed_minmax_vel
        logical, pointer :: config_print_global_minmax_sca
+       logical, pointer :: config_print_global_minmax_tend_ps
+       logical, pointer :: config_print_detailed_minmax_tend_ps
 
        integer :: iCell, k, iEdge, iScalar
        integer, pointer :: num_scalars_ptr, nCellsSolve_ptr, nEdgesSolve_ptr, nVertLevels_ptr
@@ -8730,6 +8743,7 @@ module atm_time_integration
        type (mpas_pool_type), pointer :: state
        type (mpas_pool_type), pointer :: diag
        type (mpas_pool_type), pointer :: mesh
+       type (mpas_pool_type), pointer :: tend
 
        real (kind=RKIND) :: scalar_min, scalar_max
        real (kind=RKIND) :: global_scalar_min, global_scalar_max
@@ -8753,6 +8767,7 @@ module atm_time_integration
        real (kind=RKIND), dimension(:,:), pointer :: w
        real (kind=RKIND), dimension(:,:), pointer :: u, v, uReconstructZonal, uReconstructMeridional, uReconstructX, uReconstructY, uReconstructZ
        real (kind=RKIND), dimension(:,:,:), pointer :: scalars, scalars_1, scalars_2
+       real (kind=RKIND), dimension(:), pointer :: tend_sfc_pressure
        real (kind=RKIND), dimension(:,:), pointer :: rho_zz, wwavg, uhAvg, zz
        real (kind=RKIND), dimension(:), pointer :: rdzw, rdzu, fzm, fzp
        integer, dimension(:,:), pointer :: cellsOnEdge
@@ -8763,13 +8778,17 @@ module atm_time_integration
        call mpas_pool_get_config(block % configs, 'config_print_global_minmax_vel', config_print_global_minmax_vel)
        call mpas_pool_get_config(block % configs, 'config_print_detailed_minmax_vel', config_print_detailed_minmax_vel)
        call mpas_pool_get_config(block % configs, 'config_print_global_minmax_sca', config_print_global_minmax_sca)
+       call mpas_pool_get_config(block % configs, 'config_print_global_minmax_tend_ps', config_print_global_minmax_tend_ps)
+       call mpas_pool_get_config(block % configs, 'config_print_detailed_minmax_tend_ps', config_print_detailed_minmax_tend_ps)
 
       call mpas_pool_get_subpool(block % structs, 'state', state)
       call mpas_pool_get_subpool(block % structs, 'diag', diag)
+      call mpas_pool_get_subpool(block % structs, 'tend', tend)
       call mpas_pool_get_array(state, 'w', w, 2)
       call mpas_pool_get_array(state, 'u', u, 2)
       call mpas_pool_get_array(diag, 'v', v)
       call mpas_pool_get_array(state, 'scalars', scalars, 2)
+      call mpas_pool_get_array(tend, 'tend_sfc_pressure', tend_sfc_pressure)
       call mpas_pool_get_dimension(state, 'nCellsSolve', nCellsSolve_ptr)
       call mpas_pool_get_dimension(state, 'nEdgesSolve', nEdgesSolve_ptr)
       call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels_ptr)
@@ -9135,6 +9154,128 @@ module atm_time_integration
             call mpas_log_write(' global min, max scalar $i $r $r', intArgs=(/iScalar/), realArgs=(/global_scalar_min, global_scalar_max/))
          end do
 
+      end if
+
+      if (config_print_detailed_minmax_tend_ps) then
+         if (.not. (config_print_global_minmax_vel .or. config_print_detailed_minmax_vel .or.  &
+                    config_print_global_minmax_sca) ) then
+            call mpas_log_write('')
+         end if
+
+         call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
+
+         call mpas_pool_get_array(mesh, 'indexToCellID', indexToCellID)
+         call mpas_pool_get_array(mesh, 'latCell', latCell)
+         call mpas_pool_get_array(mesh, 'lonCell', lonCell)
+
+         scalar_min = 1.0e20_RKIND
+         offset_1d = huge(1)
+         indexMax = -1
+         latMax = 0.0_RKIND
+         lonMax = 0.0_RKIND
+         !$acc parallel default(present)
+         !$acc loop gang vector reduction(min:scalar_min)
+         do iCell = 1, nCellsSolve
+            scalar_min = min(scalar_min, tend_sfc_pressure(iCell))
+         end do
+         !$acc end parallel
+
+         ! This second loop using offset_1d ensures the same (indexMax) are reported with the scalar_min
+         ! Especially when using OpenACC
+         !$acc parallel default(present)
+         !$acc loop gang vector reduction(min:offset_1d)
+         do iCell = 1, nCellsSolve
+            if (tend_sfc_pressure(iCell) == scalar_min) then
+               ! In case 2 locations tie, only save the minimum value
+               offset_1d = min(offset_1d, iCell-1)   ! modified for 2D spatial (horizontal) variable (dimension size "1" in vertical)
+            end if
+         end do
+         !$acc end parallel
+         indexMax = offset_1d + 1 ! modified for 2D spatial (horizontal) variable
+         latMax = latCell(indexMax)
+         lonMax = lonCell(indexMax)
+         localVals(1) = scalar_min
+         localVals(2) = real(indexMax,kind=RKIND)
+         localVals(3) = 1._RKIND   ! kMax = "1"
+         localVals(4) = latMax
+         localVals(5) = lonMax
+         call mpas_dmpar_minattributes_real(domain % dminfo, scalar_min, localVals, globalVals)
+         global_scalar_min = globalVals(1)
+         indexMax_global = int(globalVals(2))
+         kMax_global = int(globalVals(3))
+         latMax_global = globalVals(4)
+         lonMax_global = globalVals(5)
+         latMax_global = latMax_global * 180.0_RKIND / pi_const
+         lonMax_global = lonMax_global * 180.0_RKIND / pi_const
+         if (lonMax_global > 180.0_RKIND) then
+            lonMax_global = lonMax_global - 360.0_RKIND
+         end if
+         ! format statement should be '(a,f9.4,a,f7.3,a,f8.3,a)'
+         call mpas_log_write(' global min tend_sfc_pressure: $r  $r lat, $r lon',              &
+                             realArgs=(/global_scalar_min, latMax_global, lonMax_global/))
+
+         scalar_max = -1.0e20_RKIND
+         offset_1d = huge(1)
+         indexMax = -1
+         kMax = -1
+         latMax = 0.0_RKIND
+         lonMax = 0.0_RKIND
+         !$acc parallel default(present)
+         !$acc loop gang vector reduction(max:scalar_max)
+         do iCell = 1, nCellsSolve
+            scalar_max = max(scalar_max, tend_sfc_pressure(iCell))
+         end do
+         !$acc end parallel
+
+         !$acc parallel default(present)
+         !$acc loop gang vector reduction(min:offset_1d)
+         do iCell = 1, nCellsSolve
+            if (tend_sfc_pressure(iCell) == scalar_max) then
+               offset_1d = min(offset_1d, iCell-1)
+            end if
+         end do
+         !$acc end parallel
+         indexMax = offset_1d + 1
+         latMax = latCell(indexMax)
+         lonMax = lonCell(indexMax)
+         localVals(1) = scalar_max
+         localVals(2) = real(indexMax,kind=RKIND)
+         localVals(3) = 1._RKIND
+         localVals(4) = latMax
+         localVals(5) = lonMax
+         call mpas_dmpar_maxattributes_real(domain % dminfo, scalar_max, localVals, globalVals)
+         global_scalar_max = globalVals(1)
+         indexMax_global = int(globalVals(2))
+         kMax_global = int(globalVals(3))
+         latMax_global = globalVals(4)
+         lonMax_global = globalVals(5)
+         latMax_global = latMax_global * 180.0_RKIND / pi_const
+         lonMax_global = lonMax_global * 180.0_RKIND / pi_const
+         if (lonMax_global > 180.0_RKIND) then
+            lonMax_global = lonMax_global - 360.0_RKIND
+         end if
+         ! format statement should be '(a,f9.4,a,f7.3,a,f8.3,a)'
+         call mpas_log_write(' global max tend_sfc_pressure: $r  $r lat, $r lon',              &
+                             realArgs=(/global_scalar_max, latMax_global, lonMax_global/))
+
+      else if (config_print_global_minmax_tend_ps ) then
+         if (.not. (config_print_global_minmax_vel .or. config_print_detailed_minmax_vel .or.  &
+                    config_print_global_minmax_sca) ) then
+            call mpas_log_write('')
+         end if
+
+         scalar_min = 0.0_RKIND
+         scalar_max = 0.0_RKIND
+         !$acc parallel default(present)
+         !$acc loop gang vector reduction(min:scalar_min) reduction(max:scalar_max)
+         do iCell = 1, nCellsSolve
+            scalar_min = min(scalar_min, tend_sfc_pressure(iCell))
+            scalar_max = max(scalar_max, tend_sfc_pressure(iCell))
+         end do
+         !$acc end parallel
+         call mpas_dmpar_min_real(domain % dminfo, scalar_min, global_scalar_min)
+         call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
+         call mpas_log_write('global min, max tend_sfc_pressure $r $r', realArgs=(/global_scalar_min, global_scalar_max/))
       end if
 
    end subroutine summarize_timestep
