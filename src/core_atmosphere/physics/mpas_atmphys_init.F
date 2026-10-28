@@ -770,7 +770,6 @@ use mpas_stream_manager
  if(index_oc                .gt. -1) f_oc = .true.
  if(index_brc               .gt. -1) f_brc = .true.
 
-
 !initializes the logical assigned to number concentrations:
  f_nc   = .false.
  f_ni   = .false.
@@ -782,10 +781,10 @@ use mpas_stream_manager
  call mpas_pool_get_dimension(state,'index_nifa',index_nifa)
  call mpas_pool_get_dimension(state,'index_nwfa',index_nwfa)
 
- if(index_nc   .gt. -1) f_nc   = .true.
- if(index_ni   .gt. -1) f_ni   = .true.
- if(index_nifa .gt. -1) f_nifa = .true.
- if(index_nwfa .gt. -1) f_nwfa = .true.
+ if(associated(index_nc))   then; if(index_nc   .gt. -1) f_nc   = .true.; end if
+ if(associated(index_ni))   then; if(index_ni   .gt. -1) f_ni   = .true.; end if
+ if(associated(index_nifa)) then; if(index_nifa .gt. -1) f_nifa = .true.; end if
+ if(associated(index_nwfa)) then; if(index_nwfa .gt. -1) f_nwfa = .true.; end if
 
  end subroutine init_physics_flags
 
