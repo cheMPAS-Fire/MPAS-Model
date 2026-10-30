@@ -47,7 +47,6 @@
  character(len=StrKIND),pointer:: config_volc_scheme
  character(len=StrKIND),pointer:: config_sna_scheme
  character(len=StrKIND),pointer:: config_methane_scheme
- integer,pointer:: config_mynn_tkebudget,config_mynn_edmf_output
  integer,pointer:: config_mynn_tkebudget,config_mynn_diags3d,config_mynn_diags2d     
  logical,pointer:: config_tempo_aerosolaware,config_tempo_hailaware
  logical,pointer:: mp_kessler_in,mp_thompson_in,mp_thompson_aers_in,mp_wsm6_in,mp_nssl2m_in,nssl3m_in
