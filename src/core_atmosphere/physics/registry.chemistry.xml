@@ -872,17 +872,17 @@
            description="MPAS rank for the wildfire"
            packages="mpas_smoke_in" />
       <var_array name="e_bb_stack_groups_in" type="real" dimensions="nbb_pt" packages="mpas_smoke_in">
-         <var name="BBLT" name_in_code="BBLT" array_group="bb_in_aerosols" units="degrees"
+         <var name="BBLT" name_in_code="BBLT" array_group="bb_in_stack" units="degrees"
               description="Latitude of the point source"/>
-         <var name="BBLG" name_in_code="BBLG" array_group="bb_in_aerosols" units="degrees"
+         <var name="BBLG" name_in_code="BBLG" array_group="bb_in_stack" units="degrees"
               description="Longitude of the point source"/>
+         <var name="fire_type_in" type="integer" array_group="bb_in_stack" units="-"
+              description="type of fire"
+              packages="mpas_smoke_in"/>
       </var_array>
       <var name="ecoregion_ID" type="integer" dimensions="nCells" units="-"
            description="ecoregion ID"
            packages="mpas_smoke_online_emissions"/>
-      <var name="fire_type_in" type="integer" dimensions="nbb_pt" units="-"
-           description="type of fire"
-           packages="mpas_smoke_in"/>
      <!-- Anthropogenic -->
      <!-- pt src, for now only EGU - deciding on implementation -->
       <var_array name="e_ant_pt_in" type="real" dimensions="nanthro_pt TSTEP Time" packages="mpas_anthro_pt_emis">
