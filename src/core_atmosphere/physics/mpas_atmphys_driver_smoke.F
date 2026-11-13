@@ -228,6 +228,7 @@
  if (config_soa_scheme .ge. 2) then
     if(.not.allocated(PM2_5_SMOKE_SOA_p)) allocate(PM2_5_SMOKE_SOA_p(ims:ime,kms:kme,jms:jme))
     if(.not.allocated(PM2_5_ANT_SOA_p))   allocate(PM2_5_ANT_SOA_p(ims:ime,kms:kme,jms:jme))
+    if(.not.allocated(PM2_5_BSOA_p))      allocate(PM2_5_BSOA_p(ims:ime,kms:kme,jms:jme))
  endif
 
  if (config_sna_scheme .ne. 'off') then
@@ -398,6 +399,7 @@
  if(allocated(PM2_5_SOA_p)  )         deallocate(PM2_5_SOA_p  )
  if(allocated(PM2_5_SMOKE_SOA_p))     deallocate(PM2_5_SMOKE_SOA_p)
  if(allocated(PM2_5_ANT_SOA_p)  )     deallocate(PM2_5_ANT_SOA_p )
+ if(allocated(PM2_5_BSOA_p)  )        deallocate(PM2_5_BSOA_p )
  if(allocated(PNO3_p)       )         deallocate(PNO3_p      )
  if(allocated(PNH4_p)       )         deallocate(PNH4_p      )
  if(allocated(PSO4_p)       )         deallocate(PSO4_p      )
@@ -1187,7 +1189,7 @@
  real(kind=RKIND),dimension(:),    pointer:: hfx_bb, qfx_bb, frac_grid_burned
  real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5, PM10, PM2_5_SOA
  real(kind=RKIND),dimension(:,:)  ,pointer:: PNO3,PSO4,PNH4
- real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5_SMOKE_SOA, PM2_5_ANT_SOA
+ real(kind=RKIND),dimension(:,:)  ,pointer:: PM2_5_SMOKE_SOA,PM2_5_ANT_SOA,PM2_5_BSOA
  real(kind=RKIND),dimension(:,:)  ,pointer:: aod3d_smoke, aod3d, aod3d_simple
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_sw, asyaer_sw, ssaaer_sw
  real(kind=RKIND),dimension(:,:,:),pointer:: tauaer_lw
@@ -1284,6 +1286,7 @@
  if (config_soa_scheme .ge. 2) then
    call mpas_pool_get_array(diag_physics,'PM2_5_SMOKE_SOA',PM2_5_SMOKE_SOA)
    call mpas_pool_get_array(diag_physics,'PM2_5_ANT_SOA',PM2_5_ANT_SOA)
+   call mpas_pool_get_array(diag_physics,'PM2_5_BSOA',PM2_5_BSOA)
  endif
 
  if (num_e_ant_out .gt. 0 ) then
@@ -1350,6 +1353,7 @@
          if ( config_soa_scheme .ge. 2 ) then
            PM2_5_ANT_SOA(k,i) = PM2_5_ANT_SOA_p(i,k,j)
            PM2_5_SMOKE_SOA(k,i) = PM2_5_SMOKE_SOA_p(i,k,j)
+           PM2_5_BSOA(k,i) = PM2_5_BSOA_p(i,k,j)
            PM2_5_SOA(k,i) = PM2_5_SOA_p(i,k,j)
          endif
          if ( config_sna_scheme .ne. 'off' ) then
@@ -1807,7 +1811,9 @@ endif
  integer,pointer :: index_nox
  integer,pointer :: index_bact_fine
  integer,pointer :: index_soa, index_antsoa, index_bbsoa, index_antvoc, index_bbvoc
+ integer,pointer :: index_biovoc, index_biosoa
  integer,pointer :: index_bc, index_oc, index_brc 
+ integer,pointer :: index_ISOP, index_TERP, index_SESQ
 
  integer,pointer :: index_e_bb_in_smoke_ultrafine
  integer,pointer :: index_e_bb_in_smoke_fine
@@ -1847,6 +1853,7 @@ endif
  integer         :: myrank, ierr
  
  integer,pointer :: index_e_bio_in_polp_tree, index_e_bio_in_polp_grass, index_e_bio_in_polp_weed
+ integer,pointer :: index_e_bio_in_TERP, index_e_bio_in_ISOP, index_e_bio_in_SESQ
 
  integer,pointer :: index_e_vol_in_vash_fine,  index_e_vol_in_vash_coarse
 
@@ -1875,6 +1882,7 @@ endif
  integer,pointer :: index_e_ant_out_bc, index_e_ant_out_oc
 
  integer,pointer :: index_e_bio_out_polp_tree, index_e_bio_out_polp_grass, index_e_bio_out_polp_weed
+ integer,pointer :: index_e_bio_out_ISOP, index_e_bio_out_SESQ, index_e_bio_out_TERP
 
  integer,pointer :: index_e_vol_out_vash_fine,  index_e_vol_out_vash_coarse
 
@@ -2119,6 +2127,9 @@ endif
  call mpas_pool_get_dimension(emission_input,'index_e_bio_in_polp_tree',index_e_bio_in_polp_tree)
  call mpas_pool_get_dimension(emission_input,'index_e_bio_in_polp_grass',index_e_bio_in_polp_grass)
  call mpas_pool_get_dimension(emission_input,'index_e_bio_in_polp_weed',index_e_bio_in_polp_weed)
+ call mpas_pool_get_dimension(emission_input,'index_e_bio_in_TERP',index_e_bio_in_TERP)
+ call mpas_pool_get_dimension(emission_input,'index_e_bio_in_ISOP',index_e_bio_in_ISOP)
+ call mpas_pool_get_dimension(emission_input,'index_e_bio_in_SESQ',index_e_bio_in_SESQ)
 !
  call mpas_pool_get_dimension(emission_input,'index_e_vol_in_vash_fine',index_e_vol_in_vash_fine)
  call mpas_pool_get_dimension(emission_input,'index_e_vol_in_vash_coarse',index_e_vol_in_vash_coarse)
@@ -2156,6 +2167,9 @@ endif
  call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_polp_tree',index_e_bio_out_polp_tree)
  call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_polp_grass',index_e_bio_out_polp_grass)
  call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_polp_weed',index_e_bio_out_polp_weed)
+ call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_ISOP',index_e_bio_out_ISOP)
+ call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_TERP',index_e_bio_out_TERP)
+ call mpas_pool_get_dimension(diag_physics,'index_e_bio_out_SESQ',index_e_bio_out_SESQ)
 !
  call mpas_pool_get_dimension(diag_physics,'index_e_dust_out_dust_ultrafine',index_e_dust_out_dust_ultrafine)
  call mpas_pool_get_dimension(diag_physics,'index_e_dust_out_dust_fine',index_e_dust_out_dust_fine)
@@ -2193,6 +2207,9 @@ endif
  call mpas_pool_get_dimension(state,'index_pols_tree'  ,index_pols_tree )
  call mpas_pool_get_dimension(state,'index_pols_grass'  ,index_pols_grass )
  call mpas_pool_get_dimension(state,'index_pols_weed'  ,index_pols_weed )
+ call mpas_pool_get_dimension(state,'index_ISOP'  ,index_ISOP )
+ call mpas_pool_get_dimension(state,'index_TERP'  ,index_TERP )
+ call mpas_pool_get_dimension(state,'index_SESQ'  ,index_SESQ )
 !
  call mpas_pool_get_dimension(state,'index_ssalt_fine'  ,index_ssalt_fine )
  call mpas_pool_get_dimension(state,'index_ssalt_coarse'  ,index_ssalt_coarse )
@@ -2218,6 +2235,8 @@ endif
  call mpas_pool_get_dimension(state,'index_bbsoa',index_bbsoa)
  call mpas_pool_get_dimension(state,'index_antvoc',index_antvoc)
  call mpas_pool_get_dimension(state,'index_bbvoc',index_bbvoc)
+ call mpas_pool_get_dimension(state,'index_biovoc',index_biovoc)
+ call mpas_pool_get_dimension(state,'index_biosoa',index_biosoa)
  call mpas_pool_get_dimension(state,'index_bc',index_bc)
  call mpas_pool_get_dimension(state,'index_oc',index_oc)
  call mpas_pool_get_dimension(state,'index_brc',index_brc)
@@ -2386,6 +2405,9 @@ endif
             index_pols_tree = index_pols_tree,                                &
             index_pols_grass = index_pols_grass,                              &
             index_pols_weed = index_pols_weed,                                &
+            index_ISOP=index_ISOP,                                            &
+            index_TERP=index_TERP,                                            &
+            index_SESQ=index_SESQ,                                            &
             index_unspc_fine = index_unspc_fine,                              &
             index_unspc_coarse = index_unspc_coarse,                          &
             index_so4_a_fine = index_so4_a_fine,                              &
@@ -2400,6 +2422,8 @@ endif
             index_bbsoa = index_bbsoa,                                        &
             index_antvoc = index_antvoc,                                      &
             index_bbvoc = index_bbvoc,                                        &
+            index_biovoc = index_biovoc,    &
+            index_biosoa = index_biosoa,    &
             index_bc = index_bc,                                              &
             index_oc = index_oc,                                              &
             index_brc = index_brc,                                              &
@@ -2455,6 +2479,9 @@ endif
             index_e_bio_in_polp_tree = index_e_bio_in_polp_tree,              &
             index_e_bio_in_polp_grass = index_e_bio_in_polp_grass,            &
             index_e_bio_in_polp_weed = index_e_bio_in_polp_weed,              &
+            index_e_bio_in_ISOP = index_e_bio_in_ISOP,              &
+            index_e_bio_in_TERP = index_e_bio_in_TERP,              &
+            index_e_bio_in_SESQ = index_e_bio_in_SESQ,              &
             index_e_vol_in_vash_fine = index_e_vol_in_vash_fine,              &
             index_e_vol_in_vash_coarse = index_e_vol_in_vash_coarse,          &
 !--- Emission output indices
@@ -2491,6 +2518,9 @@ endif
             index_e_bio_out_polp_tree = index_e_bio_out_polp_tree,            &
             index_e_bio_out_polp_grass = index_e_bio_out_polp_grass,          &
             index_e_bio_out_polp_weed = index_e_bio_out_polp_weed,            &
+            index_e_bio_out_ISOP = index_e_bio_out_ISOP,              &
+            index_e_bio_out_TERP = index_e_bio_out_TERP,              &
+            index_e_bio_out_SESQ = index_e_bio_out_SESQ,              &
             index_e_dust_out_dust_ultrafine = index_e_dust_out_dust_ultrafine,&
             index_e_dust_out_dust_fine = index_e_dust_out_dust_fine,          &
             index_e_dust_out_dust_coarse = index_e_dust_out_dust_coarse,      &
@@ -2787,8 +2817,15 @@ endif
          PM2_5_ANT_SOA_p(i,k,j) = 0.0_RKIND
       endif
 
+      if (index_biosoa .gt. 0) then
+         PM2_5_BSOA_p(i,k,j) = &
+              chem_p(i,k,j,index_biosoa - chemistry_start + 1)
+      else
+         PM2_5_BSOA_p(i,k,j) = 0.0_RKIND
+      endif
+
       PM2_5_SOA_p(i,k,j) = &
-           PM2_5_SMOKE_SOA_p(i,k,j) + PM2_5_ANT_SOA_p(i,k,j)
+           PM2_5_SMOKE_SOA_p(i,k,j) + PM2_5_ANT_SOA_p(i,k,j) + PM2_5_BSOA_p(i,k,j)
 
    case default
 
@@ -2820,6 +2857,8 @@ endif
       PM2_5_ANT_SOA_p(i,k,j) = &
            PM2_5_ANT_SOA_p(i,k,j) * rho_p(i,k,j)
 
+      PM2_5_BSOA_p(i,k,j) = &
+           PM2_5_BSOA_p(i,k,j) * rho_p(i,k,j)
    endif
 
  enddo

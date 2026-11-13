@@ -245,11 +245,13 @@
  real(kind=RKIND),dimension(:,:),allocatable:: &
     vis_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    PM1_p, PM2_5_p, PM10_p, PM2_5_SOA_p, PM2_5_SMOKE_SOA_p,PM2_5_ANT_SOA_p
+    PM1_p, PM2_5_p, PM10_p,PM2_5_SOA_p,PM2_5_SMOKE_SOA_p,PM2_5_ANT_SOA_p,PM2_5_BSOA_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     PNO3_p, PNH4_p, PSO4_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
-    soa_p, bbsoa_p, antsoa_p, bbvoc_p, antvoc_p
+    soa_p, bbsoa_p, antsoa_p, bbvoc_p, antvoc_p, biovoc_p, biosoa_p
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+    ISOP_p, SESQ_p, TERP_p, LIM_p
  real(kind=RKIND),dimension(:,:,:),allocatable:: &
     aod3d_smoke_p, aod3d_p, aod3d_simple_p
  real(kind=RKIND),dimension(:,:),allocatable:: &
@@ -412,8 +414,14 @@
     f_soa,            &
     f_antsoa,         &
     f_bbsoa,          &
+    f_ISOP,           &
+    f_SESQ,           &
+    f_TERP,           &
+    f_LIM,            &
     f_antvoc,         &
     f_bbvoc,          &
+    f_biovoc,         &
+    f_biosoa,         &
     f_bc,             &
     f_oc,             &
     f_brc

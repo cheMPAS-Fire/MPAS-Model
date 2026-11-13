@@ -24,11 +24,12 @@
                              f_pols_tree,f_pols_weed,f_pols_grass,f_pols_all, &
                              f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse, &
                              f_ssalt_fine,f_ssalt_coarse, &
+                             f_ISOP,f_SESQ,f_TERP, &
                              f_no3_a_fine,f_so4_a_fine,f_nh4_a_fine,f_so2,f_nh3,f_ch4,&
                              f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                              f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                              f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                             f_antvoc,f_bbvoc,f_bc,f_oc,f_brc
+                             f_antvoc,f_bbvoc,f_bc,f_oc,f_brc,f_biovoc, f_biosoa
 
  use mpas_atmphys_landuse
  use mpas_atmphys_o3climatology
@@ -317,11 +318,12 @@ use mpas_stream_manager
                          f_polp_all,f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed,         &
                          f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,              &
                          f_ssalt_fine,f_ssalt_coarse,                                        &
+                         f_ISOP,f_SESQ,f_TERP, &
                          f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4,           &  
                          f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                          f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                          f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                         f_antvoc,f_bbvoc,f_bc,f_oc,f_brc )
+                         f_antvoc,f_bbvoc,f_bc,f_oc,f_brc, f_biovoc, f_biosoa )
 
 
  if (config_mie_aod_opt > 0) then
@@ -590,11 +592,12 @@ use mpas_stream_manager
                                f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed, &
                                f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,&
                                f_ssalt_fine,f_ssalt_coarse,&
+                               f_ISOP,f_SESQ,f_TERP, &
                                f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4, &
                                f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                                f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                                f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                               f_antvoc,f_bbvoc,f_bc,f_oc,f_brc)
+                               f_antvoc,f_bbvoc,f_bc,f_oc,f_brc, f_biovoc, f_biosoa)
 !=================================================================================================================
 
 !input arguments:
@@ -607,11 +610,12 @@ use mpas_stream_manager
                        f_pols_all,f_pols_tree,f_pols_grass,f_pols_weed, &
                        f_dust_fine,f_dust_coarse,f_unspc_fine,f_unspc_coarse,&
                        f_ssalt_fine,f_ssalt_coarse,&
+                       f_ISOP,f_SESQ,f_TERP, &
                        f_so4_a_fine,f_no3_a_fine,f_nh4_a_fine,f_nh3,f_so2,f_ch4,&
                        f_smoke_ultrafine,f_dust_ultrafine, f_mold_fine,      &
                        f_bact_fine,f_dms,f_plastic_fine,f_unspc_ultrafine,&
                        f_vash_fine,f_vash_coarse,f_nox,f_soa,f_antsoa,f_bbsoa, &
-                       f_antvoc,f_bbvoc,f_bc,f_oc,f_brc
+                       f_antvoc,f_bbvoc,f_bc,f_oc,f_brc, f_biovoc, f_biosoa
 
 !local pointers:
  integer,pointer:: index_qc,index_qr,index_qi,index_qs,index_qg
@@ -621,11 +625,13 @@ use mpas_stream_manager
                    index_pols_all,index_pols_tree,index_pols_grass,index_pols_weed, &
                    index_dust_fine,index_dust_coarse,index_unspc_fine,index_unspc_coarse,&
                    index_ssalt_fine,index_ssalt_coarse, &
+                   index_ISOP,index_SESQ,index_TERP, &
                    index_so4_a_fine,index_no3_a_fine,index_nh4_a_fine,index_nh3,index_so2,index_ch4, &
                    index_smoke_ultrafine,index_dust_ultrafine, index_mold_fine,      &
                    index_bact_fine,index_dms,index_plastic_fine,index_unspc_ultrafine,&
                    index_vash_fine,index_vash_coarse,index_nox,index_soa,index_antsoa,index_bbsoa, &
-                   index_antvoc,index_bbvoc,index_bc,index_oc,index_brc
+                   index_antvoc,index_bbvoc,index_bc,index_oc,index_brc,index_biovoc, index_biosoa
+           
 
 
 !-----------------------------------------------------------------------------------------------------------------
@@ -674,6 +680,11 @@ use mpas_stream_manager
  f_bbsoa= .false.
  f_antvoc= .false.
  f_bbvoc= .false.
+ f_biovoc = .false.
+ f_biosoa = .false.
+ f_ISOP = .false.
+ f_SESQ = .false.
+ f_TERP = .false.
  f_bc= .false.
  f_oc= .false.
  f_brc= .false.
@@ -720,6 +731,11 @@ use mpas_stream_manager
  call mpas_pool_get_dimension(state,'index_bbsoa', index_bbsoa)
  call mpas_pool_get_dimension(state,'index_antvoc', index_antvoc)
  call mpas_pool_get_dimension(state,'index_bbvoc', index_bbvoc)
+ call mpas_pool_get_dimension(state,'index_biovoc', index_biovoc)
+ call mpas_pool_get_dimension(state,'index_biosoa', index_biosoa)
+ call mpas_pool_get_dimension(state,'index_ISOP', index_ISOP)
+ call mpas_pool_get_dimension(state,'index_SESQ', index_SESQ)
+ call mpas_pool_get_dimension(state,'index_TERP', index_TERP)
  call mpas_pool_get_dimension(state,'index_bc', index_bc)
  call mpas_pool_get_dimension(state,'index_oc', index_oc)
  call mpas_pool_get_dimension(state,'index_brc', index_brc)
@@ -766,6 +782,11 @@ use mpas_stream_manager
  if(index_bbsoa             .gt. -1) f_bbsoa = .true.
  if(index_antvoc            .gt. -1) f_antvoc = .true.
  if(index_bbvoc             .gt. -1) f_bbvoc = .true.
+ if(index_biovoc            .gt. -1) f_biovoc = .true.
+ if(index_biosoa            .gt. -1) f_biosoa = .true.
+ if(index_ISOP              .gt. -1) f_ISOP = .true.
+ if(index_SESQ              .gt. -1) f_SESQ = .true.
+ if(index_TERP              .gt. -1) f_TERP = .true.
  if(index_bc                .gt. -1) f_bc = .true.
  if(index_oc                .gt. -1) f_oc = .true.
  if(index_brc               .gt. -1) f_brc = .true.

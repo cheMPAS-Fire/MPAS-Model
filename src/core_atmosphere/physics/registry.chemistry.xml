@@ -91,9 +91,15 @@
 	 <package name="speciated_pollen_primary"
 		 active_when="( ANY( [ CHARACTER(len=20) :: 'speciated_primary', 'speciated_rupture' ] == TRIM(config_pollen_scheme) ))"
 		 description="parameterization of speciated primary pollen"/>
+	 <package name="speciated_biogenic_primary"
+		 active_when="( ANY( [ CHARACTER(len=20) :: 'speciated_primary' ] == TRIM(config_biosoa_scheme) ))"
+		 description="parameterization of speciated biogenic emission"/>
 	 <package name="simple_pollen"
 		 active_when="config_pollen_scheme .eq. 'simple'"
   		 description="parameterization of simple pollen"/>
+	 <package name="mpas_biogenic_in"
+		 active_when="config_biosoa_scheme .eq. 'simple'"
+  		 description="parameterization of simple biogenic SOA"/>
 	 <package name="mpas_ssalt_in"
 		 active_when="config_ssalt_scheme .ne. 'off'"
 		 description="parameterization of sea salt"/>
@@ -178,6 +184,10 @@
            units="-"
            description="configuration for mpas pollen model"
            possible_values="`simple',`speciated_rupture',`speciated_primary'"/>
+      <nml_option name="config_biosoa_scheme" type="character" default_value="off" in_defaults="false"
+           units="-"
+           description="configuration for mpas biogenic soa model"
+           possible_values="`simple'"/>
       <nml_option name="config_ssalt_scheme" type="character" default_value="off" in_defaults="false"
            units="-"
            description="configuration for mpas sea salt model"
@@ -459,6 +469,7 @@
               <var name="PM2_5"/>
               <var name="PM2_5_SMOKE_SOA"/>
               <var name="PM2_5_ANT_SOA"/>
+              <var name="PM2_5_BSOA"/>
               <var name="PM2_5_SOA"/>
               <var name="PNO3"/>
               <var name="PNH4"/>
@@ -641,6 +652,18 @@
               description="coarse grass pollen mixing ratio"
               packages="speciated_pollen_primary"/>
 
+         <var name="ISOP" array_group="chemistry" units="ug kg^{-1}"
+              description="biogenic isoprene mixing ratio"
+              packages="speciated_biogenic_primary"/>
+
+         <var name="SESQ" array_group="chemistry" units="ug kg^{-1}"
+              description="biogenic sesquiterpene mixing ratio"
+              packages="speciated_biogenic_primary"/>
+
+         <var name="TERP" array_group="chemistry" units="ug kg^{-1}"
+              description="biogenic alpha pinene mixing ratio"
+              packages="speciated_biogenic_primary"/>
+
          <var name="polp_weed" array_group="chemistry" units="ug kg^{-1}"
               description="coarse weed pollen mixing ratio"
               packages="speciated_pollen_primary"/>
@@ -753,8 +776,16 @@
               description="biomass burning SOA"
               packages="mpas_soa_simple_voc_in"/>
 
+         <var name="biosoa" array_group="chemistry" units="ug kg^{-1}"
+              description="biogenic SOA"
+              packages="mpas_soa_simple_voc_in"/>
+
          <var name="antvoc" array_group="chemistry" units="mol mol^{-1}"
               description="anthropogenic VOC"
+              packages="mpas_soa_simple_voc_in"/>
+
+         <var name="biovoc" array_group="chemistry" units="mol mol^{-1}"
+              description="biogenic VOC"
               packages="mpas_soa_simple_voc_in"/>
 
          <var name="bbvoc" array_group="chemistry" units="mol mol^{-1}"
@@ -955,6 +986,15 @@
          <var name="e_bio_in_polp_weed" name_in_code="e_bio_in_polp_weed" array_group="bio_in_aerosols" units="ug m^{-2} s^{-1}"
               description="input biogenic coarse weed pollen emissions"
               packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
+         <var name="e_bio_in_TERP" name_in_code="e_bio_in_TERP" array_group="bio_in_gases" units="mol km^{-2} hr^{-1}"
+              description="input biogenic alpha-pinene emissions"
+              packages="mpas_biogenic_in"/>
+         <var name="e_bio_in_ISOP" name_in_code="e_bio_in_ISOP" array_group="bio_in_gases" units="mol km^{-2} hr^{-1}"
+              description="input biogenic Isoprene emissions"
+              packages="mpas_biogenic_in"/>
+         <var name="e_bio_in_SESQ" name_in_code="e_bio_in_SESQ" array_group="bio_in_gases" units="mol km^{-2} hr^{-1}"
+              description="input biogenic Sesquiterpene emissions"
+              packages="mpas_biogenic_in"/>
       </var_array>
      <!-- Volcanic -->
       <var_array name="e_vol_in" type="real" dimensions="nkvolcanic nCells Time">
@@ -1092,6 +1132,15 @@
          <var name="e_bio_out_polp_weed"  name_in_code="e_bio_out_polp_weed" array_group="bio_out_aerosols"  units="ug m^{-2} s^{-1}" 
               description="output_emissions of coarse weed pollen"
               packages="simple_pollen;speciated_pollen_primary;speciated_pollen_rupture"/>
+         <var name="e_bio_out_TERP"  name_in_code="e_bio_out_TERP" array_group="bio_out_gases"  units="mol km^{-2} hr^{-1}" 
+              description="output_emissions of alpha-pinene"
+              packages="mpas_biogenic_in"/>
+         <var name="e_bio_out_ISOP"  name_in_code="e_bio_out_ISOP" array_group="bio_out_gases"  units="mol km^{-2} hr^{-1}" 
+              description="output_emissions of Isoprene"
+              packages="mpas_biogenic_in"/>
+         <var name="e_bio_out_SESQ"  name_in_code="e_bio_out_SESQ" array_group="bio_out_gases"  units="mol km^{-2} hr^{-1}" 
+              description="output_emissions of Sesquiterpene"
+              packages="mpas_biogenic_in"/>
       </var_array>
    <!--Seasalt-->
       <var_array name="e_ss_out" type="real" dimensions="nVertLevels nCells Time" packages="mpas_ssalt_in">
@@ -1197,6 +1246,8 @@
       <var name="PM2_5_SMOKE_SOA"   type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
            description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
       <var name="PM2_5_ANT_SOA"     type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
+           description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
+      <var name="PM2_5_BSOA"     type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
            description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
       <var name="PM2_5_SOA"         type="real" dimensions="nVertLevels nCells Time" units="ug m^{-3}"
            description="secondary OA less than or equal to 2.5 micrometers in diameter"/>
@@ -1370,6 +1421,15 @@
           <var name="tend_nh3" name_in_code="nh3" array_group="chemistry" units="mol m^{-3} s^{-1}"
                description="Tendency of ammonia mass per unit volume divided by d(zeta)/dz"
                packages="mpas_sna_in"/>
+          <var name="tend_ISOP" name_in_code="ISOP" array_group="chemistry" units="mol m^{-3} s^{-1}"
+               description="Tendency of biogenic isoprene mass per unit volume divided by d(zeta)/dz"
+               packages="speciated_biogenic_primary"/>
+          <var name="tend_SESQ" name_in_code="SESQ" array_group="chemistry" units="mol m^{-3} s^{-1}"
+               description="Tendency of biogenic sesq mass per unit volume divided by d(zeta)/dz"
+               packages="speciated_biogenic_primary"/>
+          <var name="tend_TERP" name_in_code="TERP" array_group="chemistry" units="mol m^{-3} s^{-1}"
+               description="Tendency of biogenic lumped terpene mass per unit volume divided by d(zeta)/dz"
+               packages="speciated_biogenic_primary"/>
          <var name="tend_bact_fine" name_in_code="bact_fine" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of fine bacteria mass per unit volume divided by d(zeta)/dz"
                packages="mpas_bact_in"/>
@@ -1382,8 +1442,14 @@
           <var name="tend_bbsoa" name_in_code="bbsoa" array_group="chemistry" units="kg m^{-3} s^{-1}"
                description="Tendency of anthropogenic soa mass per unit volume divided by d(zeta)/dz"
                packages="mpas_soa_simple_voc_in"/>
+          <var name="tend_biosoa" name_in_code="biosoa" array_group="chemistry" units="kg m^{-3} s^{-1}"
+               description="Tendency of anthropogenic soa mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_voc_in"/>
           <var name="tend_antvoc" name_in_code="antvoc" array_group="chemistry" units="mol m^{-3} s^{-1}"
                description="Tendency of anthropogenic VOC mass per unit volume divided by d(zeta)/dz"
+               packages="mpas_soa_simple_voc_in"/>
+          <var name="tend_biovoc" name_in_code="biovoc" array_group="chemistry" units="mol m^{-3} s^{-1}"
+               description="Tendency of biogenic voc mass per unit volume divided by d(zeta)/dz"
                packages="mpas_soa_simple_voc_in"/>
           <var name="tend_bbvoc" name_in_code="bbvoc" array_group="chemistry" units="mol m^{-3} s^{-1}"
                description="Tendency of biomass burning VOC mass per unit volume divided by d(zeta)/dz"
@@ -1468,8 +1534,12 @@
               description="Lateral boundary tendency of anthropogenic SOA mixing ratio"/>
          <var name="lbc_bbsoa" name_in_code="bbsoa" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of biomass burning SOA mixing ratio"/>
+         <var name="lbc_biosoa" name_in_code="biosoa" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="kg kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of biogenic SOA mixing ratio"/>
          <var name="lbc_antvoc" name_in_code="antvoc" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="mol mol^{-1} s^{-1}"
               description="Lateral boundary tendency of anthropogenic VOC mixing ratio"/>
+         <var name="lbc_biovoc" name_in_code="biovoc" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="mol mol^{-1} s^{-1}"
+              description="Lateral boundary tendency of biogenic VOC mixing ratio"/>
          <var name="lbc_bbvoc" name_in_code="bbvoc" array_group="chemistry"  packages="mpas_soa_simple_voc_in" units="mol mol^{-1} s^{-1}"
               description="Lateral boundary tendency of biomass burning VOC mixing ratio"/>
          <var name="lbc_bc" name_in_code="bc" array_group="chemistry"  packages="mpas_black_carbon_in" units="kg kg^{-1} s^{-1}"
@@ -1478,6 +1548,12 @@
               description="Lateral boundary tendency of organic carbon mixing ratio"/>
          <var name="lbc_brc" name_in_code="brc" array_group="chemistry"  packages="mpas_brown_carbon_in" units="kg kg^{-1} s^{-1}"
               description="Lateral boundary tendency of brown carbon mixing ratio"/>
+         <var name="lbc_ISOP" name_in_code="ISOP" array_group="chemistry"  packages="speciated_biogenic_primary" units="mol kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of isoprene mixing ratio"/>
+         <var name="lbc_SESQ" name_in_code="SESQ" array_group="chemistry"  packages="speciated_biogenic_primary" units="mol kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of SESQ mixing ratio"/>
+         <var name="lbc_TERP" name_in_code="TERP" array_group="chemistry"  packages="speciated_biogenic_primary" units="mol kg^{-1} s^{-1}"
+              description="Lateral boundary tendency of TERP mixing ratio"/>
       </var_array>
    </var_struct>
 
