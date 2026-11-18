@@ -72,6 +72,7 @@ module init_atm_cases
       logical, pointer :: config_native_gwd_gsl_static
       logical, pointer :: config_met_interp
       logical, pointer :: config_blend_bdy_terrain
+      logical, pointer :: config_use_ext_chem_ic
       character (len=StrKIND), pointer :: config_start_time
       character (len=StrKIND), pointer :: config_met_prefix
       character (len=StrKIND), pointer :: config_specified_zeta_levels
@@ -233,7 +234,8 @@ module init_atm_cases
             call mpas_pool_get_config(block_ptr % configs, 'config_native_gwd_gsl_static', config_native_gwd_gsl_static)
             call mpas_pool_get_config(block_ptr % configs, 'config_met_interp', config_met_interp)
             call mpas_pool_get_config(block_ptr % configs, 'config_blend_bdy_terrain', config_blend_bdy_terrain)
-
+            call mpas_pool_get_config(block_ptr % configs, 'config_use_ext_chem_ic', config_use_ext_chem_ic)
+            
             call mpas_pool_get_subpool(block_ptr % structs, 'mesh', mesh)
             call mpas_pool_get_subpool(block_ptr % structs, 'fg', fg)
             call mpas_pool_get_subpool(block_ptr % structs, 'state', state)
@@ -315,13 +317,17 @@ module init_atm_cases
                                    diag, diag_physics, block_ptr % dimensions, block_ptr % configs)
 
             if (config_met_interp) then
-               rap_aerosols = use_rap_aerosols(block_ptr % configs, block_ptr, mesh, state)
-               if (rap_aerosols) then
-                  call mpas_log_write('Using interpolated aerosols from first guess for ICs. Skipping monthly climatology interpolation')
+               if (.not. config_use_ext_chem_ic) then
+                  rap_aerosols = use_rap_aerosols(block_ptr % configs, block_ptr, mesh, state)
+                  if (rap_aerosols) then
+                     call mpas_log_write('Using interpolated aerosols from first guess for ICs.')
+                  else
+                     call init_atm_thompson_aerosols(block_ptr, mesh, block_ptr % configs, diag, state)
+                  endif
+                  call physics_initialize_real(mesh, fg, domain % dminfo, block_ptr % dimensions, block_ptr % configs)
                else
-                  call init_atm_thompson_aerosols(block_ptr, mesh, block_ptr % configs, diag, state)
-               endif
-               call physics_initialize_real(mesh, fg, domain % dminfo, block_ptr % dimensions, block_ptr % configs)
+                  call mpas_log_write('Skipping physics_initialize_real for external chem IC run')
+               end if
             end if
 
             block_ptr => block_ptr % next
@@ -4223,6 +4229,7 @@ module init_atm_cases
       real (kind=RKIND), pointer :: config_coef_3rd_order
       logical, pointer :: config_blend_bdy_terrain
       logical, pointer :: config_coarse
+      logical, pointer :: config_use_ext_chem_ic
       character (len=StrKIND), pointer :: config_smoke_scheme, config_dust_scheme, &
                                           config_ssalt_scheme, config_anthro_scheme
 
@@ -4350,7 +4357,8 @@ module init_atm_cases
       call mpas_pool_get_config(configs, 'config_ssalt_scheme', config_ssalt_scheme)
       call mpas_pool_get_config(configs, 'config_anthro_scheme', config_anthro_scheme)
       call mpas_pool_get_config(configs, 'config_coarse',config_coarse)
-      
+      call mpas_pool_get_config(configs, 'config_use_ext_chem_ic',config_use_ext_chem_ic)
+
       
       call mpas_pool_get_config(configs, 'config_extrap_airtemp', config_extrap_airtemp)
       if (trim(config_extrap_airtemp) == 'constant') then
@@ -5057,10 +5065,14 @@ module init_atm_cases
       call read_met_close()
 
       if (.not. allocated(maskslab)) then
-         call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
-         call mpas_log_write('LANDSEA field not found in meteorological data file ' &
+         if (config_use_ext_chem_ic) then
+            call mpas_log_write('Chem IC does not need LANDSEA info')
+         else
+            call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_ERR)
+            call mpas_log_write('LANDSEA field not found in meteorological data file ' &
                                       //trim(config_met_prefix)//':'//config_start_time(1:13),                   messageType=MPAS_LOG_ERR)
-         call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_CRIT)
+            call mpas_log_write('********************************************************************************', messageType=MPAS_LOG_CRIT)
+         end if
       end if
 
       edge_mask(:) = 1
@@ -5088,6 +5100,20 @@ module init_atm_cases
       call read_next_met_field(field, istatus)
 
       do while (istatus == 0)
+
+         if (config_use_ext_chem_ic) then
+            select case (trim(field % field))
+            case ('SMKF', 'SMKC', 'SULPH', 'OMHO', 'OMHI', 'BCHO', 'BCHI', &
+                  'DSTF', 'DSTC', 'DUST1', 'DUST2', 'DUST3', 'DUST4', 'DUST5', &
+                  'UNSF', 'UNSC', 'SSTF', 'SSTC')
+               ! This is a chem variable, proceed below
+            case default
+               ! Skip all met, soil, and surface variables
+               deallocate(field % slab)
+               call read_next_met_field(field, istatus)
+               cycle
+            end select
+         end if
 
          ! interp_list(1) = FOUR_POINT
          interp_list(1) = SIXTEEN_POINT
@@ -6951,13 +6977,13 @@ module init_atm_cases
                      y = real(field%ny)
                   end if
                   if (ndims == 1) then
-                     if (maskval /= -1.0) then
+                     if (maskval /= -1.0 .and. allocated(maskslab)) then
                         destField1d(i) = interp_sequence(x, y, 1, rslab, -2, field % nx + 3, 1, field % ny, 1, 1, msgval, interp_list, 1, maskval=maskval, mask_array=maskslab)
                      else
                         destField1d(i) = interp_sequence(x, y, 1, rslab, -2, field % nx + 3, 1, field % ny, 1, 1, msgval, interp_list, 1)
                      end if
                   else if (ndims == 2) then
-                     if (maskval /= -1.0) then
+                     if (maskval /= -1.0 .and. allocated(maskslab)) then
                         destField2d(k,i) = interp_sequence(x, y, 1, rslab, -2, field % nx + 3, 1, field % ny, 1, 1, msgval, interp_list, 1, maskval=maskval, mask_array=maskslab)
                      else
                         destField2d(k,i) = interp_sequence(x, y, 1, rslab, -2, field % nx + 3, 1, field % ny, 1, 1, msgval, interp_list, 1)
@@ -8186,6 +8212,7 @@ call mpas_log_write('Done with soil consistency check')
       character (len=StrKIND), pointer :: config_smoke_scheme, config_dust_scheme
       character (len=StrKIND), pointer :: config_anthro_scheme, config_ssalt_scheme 
       logical, pointer :: config_coarse
+      logical, pointer :: config_use_ext_chem_ic
       integer :: extrap_airtemp
 
       real (kind=RKIND), dimension(:), pointer :: latCell, lonCell
@@ -8343,6 +8370,7 @@ call mpas_log_write('Done with soil consistency check')
       call mpas_pool_get_config(configs, 'config_anthro_scheme',config_anthro_scheme)
       call mpas_pool_get_config(configs, 'config_ssalt_scheme',config_ssalt_scheme)
       call mpas_pool_get_config(configs, 'config_coarse',config_coarse)
+      call mpas_pool_get_config(configs, 'config_use_ext_chem_ic',config_use_ext_chem_ic)
 
       if ( config_smoke_scheme .ne. 'off' ) then
          call mpas_pool_get_array(fg, 'smoke_fine', smoke_fine_fg)
